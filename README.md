@@ -15,7 +15,7 @@
 Verena Zuber, Marc Chadeau-Hyam, Barbara Bodinier, Matt Whitaker
 
 ## Relevant papers
-M Karimi, Early-life inequalities and biological ageing: a multisystem Biological Health Score approach in Understanding Society (2019) J. Epidemiol. Community Health
+M Karimi, Early-life inequalities and biological ageing: a multisystem Biological Health Score approach in Understanding Society (2019) J. Epidemiol. Community Health [link](https://jech.bmj.com/content/73/8/693)
 
 
 
