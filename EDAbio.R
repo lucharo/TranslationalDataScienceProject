@@ -8,7 +8,7 @@
 # - investigate use of IDA and LDA
 #
 
-setwd("/rdsgpfs/general/user/lc5415/home/hda_tds_ukbiobank")
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 if (!require(devtools)) install.packages('devtools')
 library(devtools)
 if (!require(remotes)) install.packages('remotes')
@@ -16,8 +16,8 @@ library(remotes)
 if (!require(ggbiplot)) install_github("vqv/ggbiplot")
 library(ggbiplot)
 # Load datasets, when doing actual analysis, replace these by the non-toy datasets
-b = readRDS("bio_toy.rds")
-c = readRDS("cov_toy.rds")
+b = readRDS("data/Biomarkers_toy_example.rds")
+c = readRDS("data/Covars_toy_example.rds")
 
 # Some of b columns are character eventhough they are numeric measures,
 # make those into numeric and put back into a df
