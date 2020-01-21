@@ -16,8 +16,8 @@ library(remotes)
 if (!require(ggbiplot)) install_github("vqv/ggbiplot")
 library(ggbiplot)
 # Load datasets, when doing actual analysis, replace these by the non-toy datasets
-b = readRDS("data/Biomarkers_toy_example.rds")
-c = readRDS("data/Covars_toy_example.rds")
+b = readRDS("data/Biomarkers_toy.rds")
+c = readRDS("data/Covars_toy.rds")
 
 # Some of b columns are character eventhough they are numeric measures,
 # make those into numeric and put back into a df
