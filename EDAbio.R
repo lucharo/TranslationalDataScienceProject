@@ -42,3 +42,9 @@ summary(b.pca)
 
 # plotting original feature vectors and measurements projected onto top 2 PCAs
 ggbiplot(b.pca)
+
+
+#################### Catriona having fun
+
+plot(c$age_cancer,c$age_recruitment.0.0)
+c$catriona = 1
