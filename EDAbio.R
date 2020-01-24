@@ -18,6 +18,7 @@ library(ggbiplot)
 # Load datasets, when doing actual analysis, replace these by the non-toy datasets
 b = readRDS("data/Biomarkers_toy.rds")
 c = readRDS("data/Covars_toy.rds")
+b$id = rownames(b) 
 
 # Some of b columns are character eventhough they are numeric measures,
 # make those into numeric and put back into a df
@@ -47,5 +48,4 @@ ggbiplot(b.pca)
 #################### Catriona having fun
 
 plot(c$age_cancer,c$age_recruitment.0.0)
-c$catriona = 1
 
