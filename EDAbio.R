@@ -17,9 +17,9 @@ if (!require(ggbiplot)) install_github("vqv/ggbiplot")
 library(ggbiplot)
 if (!require(GGally)) install_github("GGally")
 library(GGally)
-if (!require(tidyverse)) install("tidyverse")
+if (!require(tidyverse)) install.packagaes("tidyverse")
 library(tidyverse)
-if (!require(naniar)) install("naniar")
+if (!require(naniar)) install.packages("naniar")
 library(naniar)
 
 
