@@ -98,7 +98,7 @@ ggbiplot(b.pca)
 
 
 # pairs plot of biomarkers separated by vital status
-ggpairs(bio.joint, columns = 1:5, aes(color=CVD_status))
+ggpairs(bio.joint, aes(color=CVD_status), progress = FALSE)
 
 
 
