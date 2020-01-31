@@ -2,7 +2,6 @@
 
 ## NEXT STEPS:
 #
-# - Make this script into a function
 # - apply to genetic data, which will be much more interesting
 # - see if there is way to group thesemeasurements by disease outcome or something
 # - investigate use of IDA and LDA
@@ -22,6 +21,11 @@ if (!require(tidyverse)) install.packagaes("tidyverse")
 library(tidyverse)
 if (!require(naniar)) install.packages("naniar")
 library(naniar)
+if (!require(FactoMineR)) install.packages("FactoMineR")
+library(FactoMineR)
+if (!require(factoextra)) install.packages("factoextra")
+library(factoextra)
+
 
 
 ## LOAD DATASETS ####
@@ -51,6 +55,8 @@ bio = bio.original[,!grepl("*(.)1(.)0", colnames(bio.original))]
 colnames(bio) = bio.dict$Biomarker.name[
   match(substring(colnames(bio),2,6),bio.dict$UK.Biobank.Field)] 
 
+colnames(bio) = make.names(colnames(bio), unique=TRUE)
+colnames(bio) = sub("\\.\\.",".", colnames(bio))
 # check number of missing values per column
 colSums(is.na(bio))
 
@@ -61,11 +67,16 @@ stopifnot(all(apply(bio, 2, is.numeric)))
 ## preprocessing c
 # replace empty strings by NA
 values_to_replace_w_na = c("")
-cov = cov.original %>% replace_with_na_all(condition = ~.x %in% values_to_replace_w_na)
+cov = cov.original %>% replace_with_na_all(condition = ~.x %in%
+                                             values_to_replace_w_na)
 #remove anything to do wih cancer or external deaths
 cov = cov[,!grepl("cancer|external", colnames(cov))]
 #remove codes except for icd10
-cov = cov[,!(colnames(cov) %in% c("cvd_final_icd9","cvd_final_nc_illness_code","cvd_final_opcs4","cvd_final_ukb_oper_code","other_cause_death"))]
+cov = cov[,!(colnames(cov) %in% c("cvd_final_icd9",
+                                  "cvd_final_nc_illness_code",
+                                  "cvd_final_opcs4",
+                                  "cvd_final_ukb_oper_code",
+                                  "other_cause_death"))]
 
 # change numerical binary outcome variables to categorical
 str(cov)
@@ -78,30 +89,94 @@ cov$cvd_death = as.factor(cov$cvd_death)
 ## Second pre-processing ####
 
 # merging b with c
-bio.joint = merge(bio,cov,by="row.names",all.x=TRUE)[,c(colnames(bio),"CVD_status")]
+bio.joint = merge(bio,cov,by="row.names",all.x=TRUE)[,
+                                                     c(colnames(bio),
+                                                       "CVD_status")]
 
-#remove missing values, this can later be replace by imputation to compare results,
-# MAR is probably the approach to take as we are dealing with biochemical measurements
-# not humans
-bio.joint = bio.joint[complete.cases(bio.joint),]
+#remove missing values, this can later be replace by imputation to compare 
+# results, MAR is probably the approach to take as we are dealing 
+# with biochemical measurements not humans
 
+##################################################################
+##                     MCAR Imputation                          ##
+##################################################################
+
+# MCAR really does not work here
+#bio.joint = bio.joint[complete.cases(bio.joint),]
+
+
+##################################################################
+##                      MAR Imputation                          ##
+##################################################################
+
+if (!require(mice)) install.packages('mice')
+library(mice)
+# the line below make an imputation 'model' if you may
+# the complete dataset is assigned later
+t0 = Sys.time()
+imp.model = mice(bio.joint, m=5, maxit = 50,
+               seed = 500, printFlag = F)
+print(Sys.time() - t0) # takes about 1 minute
+
+# here we assign the imputed data to bio.imp
+bio.imp = complete(imp.model,2)
+
+
+
+##################################################################
+##                        PCA + PCA plot                        ##
+##################################################################
 # compute b's principal components,
 # we set center and scale as TRUE, so that all features are scaled (~divided by sd) 
 # and centred (~mean removed) before calculating PCAs as it should be.
-b.pca = prcomp(bio, center = T, scale. = T)
+b.pca = PCA(bio.imp,
+            #quali.sup sets which variables are qualitative and
+            # supplementary (i.e. not taking into account for
+            # PCA but valuable nonetheless)
+            quali.sup = which(colnames(bio.imp)== "CVD_status"),
+            graph = TRUE)
+
+# scree plot
+fviz_eig(b.pca, addlabels = TRUE, ylim = c(0, 50))
+
+# ellipses with labels of CVD_status levels
+plotellipses(b.pca,31)
 
 # print summary of pca
 summary(b.pca)
 
 # plotting original feature vectors and measurements projected onto top 2 PCAs
-ggbiplot(b.pca)
+ggbiplot(b.pca, groups = CVD_status)
 
+
+
+
+
+
+##################################################################
+##                         ggpairs plot                         ##
+##################################################################
+
+#get "interesting" biomarkers name from the non-complete dataset to plot
+# ggpairs of those
+
+# interesting_biomarkers = colnames(readRDS("data/Biomarkers_toy.rds"))
+# interesting_biomarkers = sub(".0.0", "", interesting_biomarkers)
+# interesting_biomarkers = gsub("_", ".", interesting_biomarkers)
+
+# this would be good but the biomarkers do not even match
 
 # pairs plot of biomarkers separated by vital status
-ggpairs(bio.joint, aes(color=CVD_status), progress = FALSE)
+
+#ggpairs(bio.imp,
+        #aes(color=CVD_status), progress = FALSE)
 
 
 
+
+##################################################################
+##                         First models                         ##
+##################################################################
 ## Running basic models
 #Covariates
 glm_cov <- glm(CVD_status ~ age_cl + BS2_all, data=cov, family=binomial)
@@ -114,9 +189,18 @@ glm_cov_plot <- effect_plot(glm_cov, pred = BS2_all, interval = TRUE, int.width 
 glm_cov_plot
 
 #Biomarkers
-all_cols <- colnames(bio.joint[1:30])
-glm_bio <- glm(CVD_status ~ all_cols, data=bio.joint, family=binomial)
+# all_cols <- colnames(bio.joint[1:30]) ---- this line's not needed
+glm_bio <- glm(CVD_status ~., data=bio.joint, family=binomial)
 summary(glm_bio)
 round(cbind("odds" = exp(coef(glm_bio)), exp(confint(glm_bio))), 3)
+
+
+
+
+
+
+
+
+
 
 
