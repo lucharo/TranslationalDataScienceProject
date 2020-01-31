@@ -2,7 +2,7 @@
 ## Data set (N~500,000) 
  - UK Biobank
  - Genetic and biochemistry data, lifestyle and socio-economic factors
- - Outcomes of interest: cancer and/or cardiovascular disease
+ - Outcomes of interest: __cardiovascular disease__
  
 ## Suggested methodological approaches
  - Integrating the genetic information in a Polygenic Risk Score
