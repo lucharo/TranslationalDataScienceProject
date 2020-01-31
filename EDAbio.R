@@ -26,7 +26,7 @@ library(naniar)
 ## LOAD DATASETS ####
 # Load datasets, when doing actual analysis, replace these by the non-toy datasets
 cov.original = readRDS("data/Covars_toy.rds")
-bio.original= readRDS("data/Biomarkers_toy_example.rds")
+bio.original= readRDS("data/Biomarkers_toy.rds")
 bio.dict = readxl::read_xlsx("Biomarker_annotation.xlsx")
 
 cov.dict = readxl::read_xlsx("Covariate_dictionary.xlsx")
@@ -66,7 +66,7 @@ cov = cov[,!grepl("cancer|external", colnames(cov))]
 ## Second pre-processing ####
 
 # merging b with c
-bio.joint = merge(bio,cov,by="row.names",all.x=TRUE)[,c(colnames(bio),"vit_status")]
+bio.joint = merge(bio,cov,by="row.names",all.x=TRUE)[,c(colnames(bio),"CVD_status")]
 
 #remove missing values, this can later be replace by imputation to compare results,
 # MAR is probably the approach to take as we are dealing with biochemical measurements
@@ -76,18 +76,14 @@ bio.joint = bio.joint[complete.cases(bio.joint),]
 # compute b's principal components,
 # we set center and scale as TRUE, so that all features are scaled (~divided by sd) 
 # and centred (~mean removed) before calculating PCAs as it should be.
-b.pca = prcomp(bio, center = T, scale. = T)
+b.pca = prcomp(bio.joint, center = T, scale. = T)
 
 # print summary of pca
 summary(b.pca)
 
 # plotting original feature vectors and measurements projected onto top 2 PCAs
-ggbiplot(b.pca)
+ggbiplot(b.pca, groups = bio.joint$CVD_status)
 
-
-#################### Catriona having fun
-
-plot(c$age_cancer,c$age_recruitment.0.0)
-
-ggpairs(bio)
+# ggpairs plot
+ggpairs(bio, aes(color=Species, alpha=0.5), progress=FALSE)
 
