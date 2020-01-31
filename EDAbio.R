@@ -57,6 +57,7 @@ colSums(is.na(bio))
 # safety-check for all vars being numeric
 stopifnot(all(apply(bio, 2, is.numeric)))
 
+
 ## preprocessing c
 # replace empty strings by NA
 values_to_replace_w_na = c("")
@@ -66,10 +67,18 @@ cov = cov[,!grepl("cancer|external", colnames(cov))]
 #remove codes except for icd10
 cov = cov[,!(colnames(cov) %in% c("cvd_final_icd9","cvd_final_nc_illness_code","cvd_final_opcs4","cvd_final_ukb_oper_code","other_cause_death"))]
 
+# change numerical binary outcome variables to categorical
+str(cov)
+cov$CVD_status = as.factor(cov$CVD_status)
+cov$vit_status = as.factor(cov$vit_status)
+cov$dc_cvd_st = as.factor(cov$dc_cvd_st)
+cov$cvd_death = as.factor(cov$cvd_death)
+
+
 ## Second pre-processing ####
 
 # merging b with c
-bio.joint = merge(bio,cov,by="row.names",all.x=TRUE)[,c(colnames(bio),"vit_status")]
+bio.joint = merge(bio,cov,by="row.names",all.x=TRUE)[,c(colnames(bio),"CVD_status")]
 
 #remove missing values, this can later be replace by imputation to compare results,
 # MAR is probably the approach to take as we are dealing with biochemical measurements
@@ -88,9 +97,8 @@ summary(b.pca)
 ggbiplot(b.pca)
 
 
-#################### Catriona having fun
+# pairs plot of biomarkers separated by vital status
+ggpairs(bio.joint, columns = 1:5, aes(color=CVD_status))
 
-plot(c$age_cancer,c$age_recruitment.0.0)
 
-ggpairs(bio)
 
