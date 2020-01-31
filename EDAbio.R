@@ -22,6 +22,9 @@ library(GGally)
 # Load datasets, when doing actual analysis, replace these by the non-toy datasets
 b = readRDS("data/Biomarkers_toy.rds")
 c = readRDS("data/Covars_toy.rds")
+b.example = readRDS("data/Biomarkers_toy_example.rds")
+bio.dict = readxl::read_xlsx("Biomarker_annotation.xlsx")
+cov.dict = readxl::read_xlsx("Covariate_dictionary.xlsx")
 b$id = rownames(b) 
 
 # Some of b columns are character eventhough they are numeric measures,
