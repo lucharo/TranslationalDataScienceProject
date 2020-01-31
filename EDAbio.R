@@ -37,7 +37,7 @@ colnames(bio.dict) = make.names(colnames(bio.dict), unique=TRUE)
 
 #get column numbers of columns with name containing pattern *(.)1(.)*
 # use (.) to match the dot as opposed to using . as a wildcard
-b = b.original[,!grepl("*(.)1(.)0", colnames(b))]
+b = b.original[,!grepl("*(.)1(.)0", colnames(b.original))]
 
 # Match code with biomarker name to change column names of b
 # get element 2 to 6 of all string in vector colnames(b)
