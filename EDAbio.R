@@ -7,6 +7,7 @@
 # - see if there is way to group thesemeasurements by disease outcome or something
 # - investigate use of IDA and LDA
 #
+rm(list = ls())
 
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 if (!require(devtools)) install.packages('devtools')
@@ -62,6 +63,8 @@ values_to_replace_w_na = c("")
 cov = cov.original %>% replace_with_na_all(condition = ~.x %in% values_to_replace_w_na)
 #remove anything to do wih cancer or external deaths
 cov = cov[,!grepl("cancer|external", colnames(cov))]
+#remove codes except for icd10
+cov = cov[,!(colnames(cov) %in% c("cvd_final_icd9","cvd_final_nc_illness_code","cvd_final_opcs4","cvd_final_ukb_oper_code","other_cause_death"))]
 
 ## Second pre-processing ####
 
