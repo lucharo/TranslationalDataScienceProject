@@ -102,3 +102,11 @@ ggpairs(bio.joint, columns = 1:5, aes(color=CVD_status))
 
 
 
+## Running basic models 
+glm_cov <- glm(CVD_status ~ age_cl + BS2_all, data=cov, family = binomial)
+summary(glm_cov)
+round(cbind("odds" = exp(coef(glm_cov)), exp(confint(glm_cov))), 3)
+
+library(jtools)
+glm_plot <- effect_plot(glm_cov, pred = BS2_all, interval = TRUE, int.width = 0.95) 
+glm_plot
