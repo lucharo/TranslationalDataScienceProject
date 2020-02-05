@@ -114,13 +114,13 @@ library(mice)
 # the line below make an imputation 'model' if you may
 # the complete dataset is assigned later
 t0 = Sys.time()
-imp.model = mice(bio.joint, m=5, maxit = 50,
+imp.model = mice(bio.joint, m=5, maxit = 10,
                seed = 500, printFlag = F)
 print(Sys.time() - t0) # takes about 1 minute
 
 # here we assign the imputed data to bio.imp
 bio.imp = complete(imp.model,2)
-
+saveRDS(bio.imp, file = "data/MARbiomarkers")
 
 
 ##################################################################
@@ -137,13 +137,18 @@ b.pca = PCA(bio.imp,
             graph = TRUE)
 
 # scree plot
+png(filename = "Biomarkers_scree_plot")
 fviz_eig(b.pca, addlabels = TRUE, ylim = c(0, 50))
+dev.off()
 
 # ellipses with labels of CVD_status levels
+png(filename = "PCA_plot_biomarkers")
 plotellipses(b.pca,31)
+dev.off()
 
 # print summary of pca
 summary(b.pca)
+save(b.pca, file = "results/PCA_results_biomarkers.rds")
 
 # plotting original feature vectors and measurements projected onto top 2 PCAs
 ggbiplot(b.pca, groups = CVD_status)
@@ -193,6 +198,10 @@ glm_cov_plot
 glm_bio <- glm(CVD_status ~., data=bio.joint, family=binomial)
 summary(glm_bio)
 round(cbind("odds" = exp(coef(glm_bio)), exp(confint(glm_bio))), 3)
+
+
+
+
 
 
 
