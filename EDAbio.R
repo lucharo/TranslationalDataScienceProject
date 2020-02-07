@@ -95,7 +95,36 @@ cov$cvd_death = as.factor(cov$cvd_death)
 bio.joint = merge(bio,cov,by="row.names",all.x=TRUE)[,
                                                      c(colnames(bio),
                                                        "CVD_status")]
+##################################################################
+##                      Missing Data plots                      ##
+##################################################################
+gg_miss_fct(x = bio.joint, fct = CVD_status)+
+  ggtitle("Missing data patterns by CVD status")
+ggsave("results/MissBioDatabyCVD.pdf")
 
+gg_miss_fct(x = cov, fct = CVD_status)
+
+# explanation of upset plot: the variables on the left are the set
+# of variables with most missing data or whichever set of variables 
+# you choose (nsets = n_var_miss(data), gives you all variables)
+# with missing data, where as nsets = 10, gives you the top 10 vars
+# with most missing data. The dots connected by lines represent
+# the cases where NAs have been observed in the variables connected
+# by the lines and on the top chart you have the number of ocurrences
+# for each of those events. nintersects limits the amount of variable
+# intersection you want to look at
+
+upset = gg_miss_upset(bio.joint, 
+                      nsets = 10,
+                      nintersects = 10)
+
+
+vis_miss(bio.joint)+
+  scale_y_continuous(position = 'right')+
+  theme(axis.text.x = element_text(angle = 0))+
+  scale_x_discrete(position = "bottom")+
+  coord_flip()
+ggsave("results/missBioDataPatterns.pdf")
 #remove missing values, this can later be replace by imputation to compare 
 # results, MAR is probably the approach to take as we are dealing 
 # with biochemical measurements not humans
