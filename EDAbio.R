@@ -31,7 +31,7 @@ library(factoextra)
 ## LOAD DATASETS ####
 # Load datasets, when doing actual analysis, replace these by the non-toy datasets
 cov.original = readRDS("data/Covars_toy.rds")
-bio.original= readRDS("data/Biomarkers_toy_example.rds")
+bio.original= readRDS("data/Biomarkers_toy.rds")
 bio.dict = readxl::read_xlsx("Biomarker_annotation.xlsx")
 
 cov.dict = readxl::read_xlsx("Covariate_dictionary.xlsx")
@@ -103,7 +103,7 @@ bio.joint = merge(bio,cov,by="row.names",all.x=TRUE)[,
 
 # MCAR really does not work here
 #bio.joint = bio.joint[complete.cases(bio.joint),]
-
+#saveRDS(bio.joint, file = "data/MCARbiomarkers.rds")
 
 ##################################################################
 ##                      MAR Imputation                          ##
@@ -120,7 +120,7 @@ print(Sys.time() - t0) # takes about 1 minute
 
 # here we assign the imputed data to bio.imp
 bio.imp = complete(imp.model,2)
-saveRDS(bio.imp, file = "data/MARbiomarkers")
+saveRDS(bio.imp, file = "data/MARbiomarkers.rds")
 
 
 ##################################################################
@@ -151,7 +151,7 @@ summary(b.pca)
 save(b.pca, file = "results/PCA_results_biomarkers.rds")
 
 # plotting original feature vectors and measurements projected onto top 2 PCAs
-ggbiplot(b.pca, groups = CVD_status)
+#ggbiplot(b.pca, groups = CVD_status)
 
 
 
