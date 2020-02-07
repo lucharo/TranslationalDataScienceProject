@@ -137,12 +137,12 @@ b.pca = PCA(bio.imp,
             graph = TRUE)
 
 # scree plot
-png(filename = "Biomarkers_scree_plot")
+png(filename = "results/Biomarkers_scree_plot.png")
 fviz_eig(b.pca, addlabels = TRUE, ylim = c(0, 50))
 dev.off()
 
 # ellipses with labels of CVD_status levels
-png(filename = "PCA_plot_biomarkers")
+png(filename = "results/PCA_plot_biomarkers.png")
 plotellipses(b.pca,31)
 dev.off()
 
