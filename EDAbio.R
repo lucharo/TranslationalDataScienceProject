@@ -118,6 +118,7 @@ upset = gg_miss_upset(bio.joint,
                       nsets = 10,
                       nintersects = 10)
 
+upset_cov = gg_miss_upset(cov)
 
 vis_miss(bio.joint)+
   scale_y_continuous(position = 'right')+
