@@ -21,10 +21,13 @@ if (!require(tidyverse)) install.packagaes("tidyverse")
 library(tidyverse)
 if (!require(naniar)) install.packages("naniar")
 library(naniar)
-if (!require(FactoMineR)) install.packages("FactoMineR")
-library(FactoMineR)
 if (!require(factoextra)) install.packages("factoextra")
 library(factoextra)
+if (!require(ggfortify)) install.packages("ggfortify")
+library(ggfortify)
+if (!require(stats)) install.packages("stats")
+library(stats)
+
 
 
 
@@ -129,22 +132,20 @@ saveRDS(bio.imp, file = "data/MARbiomarkers.rds")
 # compute b's principal components,
 # we set center and scale as TRUE, so that all features are scaled (~divided by sd) 
 # and centred (~mean removed) before calculating PCAs as it should be.
-b.pca = PCA(bio.imp,
-            #quali.sup sets which variables are qualitative and
-            # supplementary (i.e. not taking into account for
-            # PCA but valuable nonetheless)
-            quali.sup = which(colnames(bio.imp)== "CVD_status"),
-            graph = TRUE)
+b.pca = prcomp(bio.imp[,-31], center = TRUE, scale. = TRUE)
 
 # scree plot
-png(filename = "results/Biomarkers_scree_plot.png")
-fviz_eig(b.pca, addlabels = TRUE, ylim = c(0, 50))
-dev.off()
+scree = ggscreeplot(b.pca)+ylim(0,1)
+ggsave("results/Biomarkers_scree_plot.pdf")
 
 # ellipses with labels of CVD_status levels
-png(filename = "results/PCA_plot_biomarkers.png")
-plotellipses(b.pca,31)
-dev.off()
+ellipses = autoplot(b.pca, data = bio.imp,
+                    colour = 'CVD_status',
+                    alpha = 0.5,
+                    loadings = T, loadings.colour = 'black',
+                    loadings.label = T, loadings.label.colour = 'black')+
+  scale_color_brewer(palette = 'Set1')
+ggsave("results/PCA_plot_biomarkers.pdf")
 
 # print summary of pca
 summary(b.pca)
