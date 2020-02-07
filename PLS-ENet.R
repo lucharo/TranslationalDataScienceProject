@@ -9,19 +9,11 @@ library(lme4)
 # Maybe also do univariate analysis using mixed models effect (maybe for
 # duplicate measurements)
 
-###########################################################################
-###########################################################################
-###                                                                     ###
-###                    RIDGE, LASSO AND ELASTIC NETS                    ###
-###                                                                     ###
-###########################################################################
-###########################################################################
-
 # load biomarkers dataset, ideally one of the already preprocessed ones
 # so you dont have to run preprocessing again
-biomarkers = readRDS("data/MARbiomarkers.rds")
-y = select(biomarkers, CVD_status)
-X = select(biomarkers, -CVD_status)
+biomarkersCVD = readRDS("data/MARbiomarkers.rds")
+y = select(biomarkersCVD, CVD_status)
+X = select(biomarkersCVD, -CVD_status)
 
 set.seed(3141592) 
 train.index = sample(1:nrow(X), 0.8*nrow(X))
@@ -29,6 +21,15 @@ X.train = as.matrix(X[train.index,])
 y.train = as.numeric(y[train.index,1])
 X.test = as.matrix(X[-train.index,])
 y.test = as.numeric(y[-train.index,1])
+
+
+###########################################################################
+###########################################################################
+###                                                                     ###
+###                    RIDGE, LASSO AND ELASTIC NETS                    ###
+###                                                                     ###
+###########################################################################
+###########################################################################
 
 model_selector = function(alpha){
   set.seed(100) 
@@ -72,6 +73,8 @@ total_results
 
 
 
+
+
 ############################################################################
 ############################################################################
 ###                                                                      ###
@@ -79,4 +82,41 @@ total_results
 ###                                                                      ###
 ############################################################################
 ############################################################################
+
+###########################################################################
+###########################################################################
+###                                                                     ###
+###                UNIVARIATE ANALYSIS OF THE BIOMARKERS                ###
+###                                                                     ###
+###########################################################################
+###########################################################################
+
+bio.covs = readRDS("data/bio_and_covs.rds")
+
+confounders = c("age_CVD","BS2_all", "qual2","smok_ever_2",
+                "physical_activity_2", "alcohol_2", "BMI_5cl_2",
+                "no_cmrbt_cl2", "no_medicines")
+
+bio.names = colnames(select(biomarkersCVD, -CVD_status))
+
+DoYouMatter = function(molecule, data = bio.covs){
+  # I guess I would ideally not have to precise a data argument and allow
+  # the data to be the global proteins.covars object, though lmer throws an
+  # error
+  
+  formula0 = as.formula(paste(molecule,
+                              paste(confounders, collapse = "+"), sep = "~"))
+  m0 = lm(formula0, data = data, na.action = na.omit)
+  
+  formula1 = as.formula(paste(molecule,
+                              paste(c(confounders, "CVD_status"),
+                                    collapse = "+"),
+                              sep = "~"))
+  m1 = lm(formula1, data = data, na.action = na.omit)
+  
+  anova(m0,m1)$`Pr(>Chisq)`[2]
+}
+
+pvals = unlist(lapply(bio.names, DoYouMatter))
+FatANOVA = data.frame("Biomarkers" = bio.names, "p-value" = pvals)
 

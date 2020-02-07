@@ -8,6 +8,14 @@
 #
 rm(list = ls())
 
+###########################################################################
+###########################################################################
+###                                                                     ###
+###                         PACKAGE DECLARATION                         ###
+###                                                                     ###
+###########################################################################
+###########################################################################
+
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 if (!require(devtools)) install.packages('devtools')
 library(devtools)
@@ -27,19 +35,29 @@ if (!require(ggfortify)) install.packages("ggfortify")
 library(ggfortify)
 if (!require(stats)) install.packages("stats")
 library(stats)
+if (!require(mice)) install.packages('mice')
+library(mice)
 
 
+############################################################################
+############################################################################
+###                                                                      ###
+###                             DATA LOADING                             ###
+###                                                                      ###
+############################################################################
+############################################################################
 
-
-## LOAD DATASETS ####
-# Load datasets, when doing actual analysis, replace these by the non-toy datasets
+#################################################################
+##                      Original datasets                      ##
+#################################################################
 cov.original = readRDS("data/Covars_toy.rds")
 bio.original= readRDS("data/Biomarkers_toy.rds")
 bio.dict = readxl::read_xlsx("Biomarker_annotation.xlsx")
-
 cov.dict = readxl::read_xlsx("Covariate_dictionary.xlsx")
 
-## Initial pre-processing ####
+##################################################################
+##              Changing biomarkers codes by names              ##
+##################################################################
 #make nicely looking names (programmingly functional)
 colnames(bio.dict) = make.names(colnames(bio.dict), unique=TRUE)
 
@@ -60,13 +78,14 @@ colnames(bio) = bio.dict$Biomarker.name[
 
 colnames(bio) = make.names(colnames(bio), unique=TRUE)
 colnames(bio) = sub("\\.\\.",".", colnames(bio))
-# check number of missing values per column
-colSums(is.na(bio))
 
 # safety-check for all vars being numeric
 stopifnot(all(apply(bio, 2, is.numeric)))
 
 
+##################################################################
+##               Processing of covariates dataset               ##
+##################################################################
 ## preprocessing c
 # replace empty strings by NA
 values_to_replace_w_na = c("")
@@ -89,16 +108,33 @@ cov$dc_cvd_st = as.factor(cov$dc_cvd_st)
 cov$cvd_death = as.factor(cov$cvd_death)
 
 
-## Second pre-processing ####
 
-# merging b with c
-bio.joint = merge(bio,cov,by="row.names",all.x=TRUE)[,
-                                                     c(colnames(bio),
-                                                       "CVD_status")]
+##################################################################
+##                   Processing of biomarkers                   ##
+##################################################################
+
+# drop columns with more than 50% missing values i.e. Rheumatoid factor
+# and oestradiol
+bio = bio[,!colMeans(is.na(bio))>0.5]
+saveRDS(bio, file = "data/bioProcessed.rds")
+
+# impute biomarkers based on biomarkers only
+t0 = Sys.time()
+imp.model = mice(bio, m=5, maxit = 10,
+                 seed = 500, printFlag = F)
+print(Sys.time() - t0) # takes about 1 minute
+
+# here we assign the imputed data to bio.imp
+bio.imp = complete(imp.model,2)
+saveRDS(bio.imp, file = "data/bioImputed.rds")
+
 ##################################################################
 ##                      Missing Data plots                      ##
 ##################################################################
-gg_miss_fct(x = bio.joint, fct = CVD_status)+
+
+bio.CVD = merge(bio,cov[,"CVD_status"],by="row.names",all.x=TRUE)
+
+gg_miss_fct(x = bio.CVD, fct = CVD_status)+
   ggtitle("Missing data patterns by CVD status")
 ggsave("results/MissBioDatabyCVD.pdf")
 
@@ -114,46 +150,48 @@ gg_miss_fct(x = cov, fct = CVD_status)
 # for each of those events. nintersects limits the amount of variable
 # intersection you want to look at
 
-upset = gg_miss_upset(bio.joint, 
+upset = gg_miss_upset(bio.CVD, 
                       nsets = 10,
                       nintersects = 10)
 
 
-vis_miss(bio.joint)+
+vis_miss(bio.CVD)+
   scale_y_continuous(position = 'right')+
   theme(axis.text.x = element_text(angle = 0))+
   scale_x_discrete(position = "bottom")+
   coord_flip()
 ggsave("results/missBioDataPatterns.pdf")
-#remove missing values, this can later be replace by imputation to compare 
-# results, MAR is probably the approach to take as we are dealing 
-# with biochemical measurements not humans
 
 ##################################################################
-##                     MCAR Imputation                          ##
+##                   Biomarker distributions                    ##
 ##################################################################
 
-# MCAR really does not work here
-#bio.joint = bio.joint[complete.cases(bio.joint),]
-#saveRDS(bio.joint, file = "data/MCARbiomarkers.rds")
+bio.imp.CVD = merge(bio.imp,cov[,"CVD_status"],by="row.names",all.x=TRUE)
+rownames(bio.imp.CVD) = bio.imp.CVD$Row.names
+bio.imp.CVD = bio.imp.CVD[,-1]
+bio.imp.CVD %>% pivot_longer(-CVD_status, 
+                           names_to = "Biomarker",
+                           values_to = "Amount") %>%
+  ggplot(aes(x = Amount, color = CVD_status)) +
+  geom_density(alpha = 0)+
+  facet_wrap(Biomarker~., scales = "free")+
+  theme_minimal()+
+  scale_color_brewer(palette = "Set1")+
+  ggtitle("Biomarker distribution for imputed data")
+ggsave("results/bio_dist_imp.pdf")
 
-##################################################################
-##                      MAR Imputation                          ##
-##################################################################
-
-if (!require(mice)) install.packages('mice')
-library(mice)
-# the line below make an imputation 'model' if you may
-# the complete dataset is assigned later
-t0 = Sys.time()
-imp.model = mice(bio.joint, m=5, maxit = 10,
-               seed = 500, printFlag = F)
-print(Sys.time() - t0) # takes about 1 minute
-
-# here we assign the imputed data to bio.imp
-bio.imp = complete(imp.model,2)
-saveRDS(bio.imp, file = "data/MARbiomarkers.rds")
-
+rownames(bio.CVD) = bio.CVD$Row.names
+bio.CVD = bio.CVD[,-1]
+bio.CVD %>% pivot_longer(-CVD_status, 
+                         names_to = "Biomarker",
+                         values_to = "Amount") %>%
+  ggplot(aes(x = Amount, color = CVD_status)) +
+  geom_density(alpha = 0)+
+  facet_wrap(Biomarker~., scales = "free")+
+  theme_minimal()+
+  scale_color_brewer(palette = "Set1")+
+  ggtitle("Biomarker distribution for MCAR data")
+ggsave("results/bio_dist_MCAR.pdf")
 
 ##################################################################
 ##                        PCA + PCA plot                        ##
@@ -161,14 +199,14 @@ saveRDS(bio.imp, file = "data/MARbiomarkers.rds")
 # compute b's principal components,
 # we set center and scale as TRUE, so that all features are scaled (~divided by sd) 
 # and centred (~mean removed) before calculating PCAs as it should be.
-b.pca = prcomp(bio.imp[,-31], center = TRUE, scale. = TRUE)
+b.pca = prcomp(bio.imp.CVD[,-28], center = TRUE, scale. = TRUE)
 
 # scree plot
 scree = ggscreeplot(b.pca)+ylim(0,1)
 ggsave("results/Biomarkers_scree_plot.pdf")
 
 # ellipses with labels of CVD_status levels
-ellipses = autoplot(b.pca, data = bio.imp,
+ellipses = autoplot(b.pca, data = bio.imp.CVD,
                     colour = 'CVD_status',
                     alpha = 0.5,
                     loadings = T, loadings.colour = 'black',
@@ -214,20 +252,20 @@ save(b.pca, file = "results/PCA_results_biomarkers.rds")
 ##################################################################
 ## Running basic models
 #Covariates
-glm_cov <- glm(CVD_status ~ age_cl + BS2_all, data=cov, family=binomial)
-summary(glm_cov)
-round(cbind("odds" = exp(coef(glm_cov)), exp(confint(glm_cov))), 3)
-
-if (!require(jtools)) install.packages('jtools')
-library(jtools)
-glm_cov_plot <- effect_plot(glm_cov, pred = BS2_all, interval = TRUE, int.width = 0.95) 
-glm_cov_plot
-
-#Biomarkers
-# all_cols <- colnames(bio.joint[1:30]) ---- this line's not needed
-glm_bio <- glm(CVD_status ~., data=bio.joint, family=binomial)
-summary(glm_bio)
-round(cbind("odds" = exp(coef(glm_bio)), exp(confint(glm_bio))), 3)
+# glm_cov <- glm(CVD_status ~ age_cl + BS2_all, data=cov, family=binomial)
+# summary(glm_cov)
+# round(cbind("odds" = exp(coef(glm_cov)), exp(confint(glm_cov))), 3)
+# 
+# if (!require(jtools)) install.packages('jtools')
+# library(jtools)
+# glm_cov_plot <- effect_plot(glm_cov, pred = BS2_all, interval = TRUE, int.width = 0.95) 
+# glm_cov_plot
+# 
+# #Biomarkers
+# # all_cols <- colnames(bio.joint[1:30]) ---- this line's not needed
+# glm_bio <- glm(CVD_status ~., data=bio.joint, family=binomial)
+# summary(glm_bio)
+# round(cbind("odds" = exp(coef(glm_bio)), exp(confint(glm_bio))), 3)
 
 
 
