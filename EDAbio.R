@@ -154,6 +154,7 @@ upset = gg_miss_upset(bio.CVD,
                       nsets = 10,
                       nintersects = 10)
 
+upset_cov = gg_miss_upset(cov)
 
 vis_miss(bio.CVD)+
   scale_y_continuous(position = 'right')+
