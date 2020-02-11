@@ -53,6 +53,18 @@ library(mice)
 cov.original = readRDS("data/Covars_toy.rds")
 bio.original= readRDS("data/Biomarkers_toy.rds")
 bio.dict = readxl::read_xlsx("Biomarker_annotation.xlsx")
+
+##################################################################
+##                        Cluster add-in                        ##
+##################################################################
+cluster = 0
+
+if (cluster == 1){
+  rownames(bio.original) = bio.original$`mydata$eid`
+  bio.original = bio.original[,-1]
+}
+
+##################################################################
 cov.dict = readxl::read_xlsx("Covariate_dictionary.xlsx")
 
 ##################################################################
