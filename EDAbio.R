@@ -54,6 +54,9 @@ cov.original = readRDS("data/Covars_toy.rds")
 bio.original= readRDS("data/Biomarkers_toy.rds")
 bio.dict = readxl::read_xlsx("Biomarker_annotation.xlsx")
 cov.dict = readxl::read_xlsx("Covariate_dictionary.xlsx")
+snp.original = readRDS('data/Genes_toy.rds')
+snp_info.original = readxl::read_xlsx("SNP_info.xlsx")
+
 
 ##################################################################
 ##              Changing biomarkers codes by names              ##
@@ -128,6 +131,17 @@ print(Sys.time() - t0) # takes about 1 minute
 bio.imp = complete(imp.model,2)
 saveRDS(bio.imp, file = "data/bioImputed.rds")
 
+
+
+#################################################################
+##                     Proccessing of SNPs                     ##
+#################################################################
+
+# removing any snps from the info file that are not included in the data provided by barbz
+snps = colnames(snp.original)
+snp.info = snp_info.original[snp_info.original$markername %in% snps, ] 
+
+
 ##################################################################
 ##                      Missing Data plots                      ##
 ##################################################################
@@ -139,6 +153,8 @@ gg_miss_fct(x = bio.CVD, fct = CVD_status)+
 ggsave("results/MissBioDatabyCVD.pdf")
 
 gg_miss_fct(x = cov, fct = CVD_status)
+
+# There is no missing data in snp.original (checked full dataset on hpc)
 
 # explanation of upset plot: the variables on the left are the set
 # of variables with most missing data or whichever set of variables 
@@ -225,8 +241,6 @@ save(b.pca, file = "results/PCA_results_biomarkers.rds")
 
 
 
-
-
 ##################################################################
 ##                         ggpairs plot                         ##
 ##################################################################
@@ -267,8 +281,6 @@ save(b.pca, file = "results/PCA_results_biomarkers.rds")
 # glm_bio <- glm(CVD_status ~., data=bio.joint, family=binomial)
 # summary(glm_bio)
 # round(cbind("odds" = exp(coef(glm_bio)), exp(confint(glm_bio))), 3)
-
-
 
 
 
