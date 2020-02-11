@@ -181,8 +181,10 @@ gg_miss_fct(x = cov, fct = CVD_status)
 upset = gg_miss_upset(bio.CVD, 
                       nsets = 10,
                       nintersects = 10)
+ggsave("results/upset_biofull.pdf")
 
 upset_cov = gg_miss_upset(cov)
+ggsave("results/upset_covfull.pdf")
 
 vis_miss(bio.CVD)+
   scale_y_continuous(position = 'right')+
