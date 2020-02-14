@@ -1,14 +1,74 @@
 # This script will load preprocessed datasets and plot the relevant EDA plots
 
+##################################################################
+##                     Input to this file:                      ##
+##                      [bioProcessed.rds],                     ##
+##                     [covProcessed.rds],                      ##
+##                       [bioImputed.rds],
+##                      [bioUnfiltered.rds]
+##################################################################
+
+#################################################################
+##            Output from this file: many pdf plots            ##
+#################################################################
+
+###########################################################################
+###########################################################################
+###                                                                     ###
+###                         PACKAGE DECLARATION                         ###
+###                                                                     ###
+###########################################################################
+###########################################################################
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+if (!require(devtools)) install.packages('devtools')
+library(devtools)
+if (!require(remotes)) install.packages('remotes')
+library(remotes)
+if (!require(ggbiplot)) install_github("vqv/ggbiplot")
+library(ggbiplot)
+if (!require(GGally)) install_github("GGally")
+library(GGally)
+if (!require(tidyverse)) install.packagaes("tidyverse")
+library(tidyverse)
+if (!require(naniar)) install.packages("naniar")
+library(naniar)
+if (!require(factoextra)) install.packages("factoextra")
+library(factoextra)
+if (!require(ggfortify)) install.packages("ggfortify")
+library(ggfortify)
+if (!require(stats)) install.packages("stats")
+library(stats)
+if (!require(mice)) install.packages('mice')
+library(mice)
+
+library(parallel)
+cores = detectCores()
+##################################################################
+##                  Load preprocessed datasets                  ##
+##################################################################
+bio.unfiltered = readRDS("data/preprocessed/bioUnfiltered.rds")
+bio = readRDS("data/preprocessed/bioProcessed.rds")
+cov = readRDS("data/preprocessed/covProcessed.rds")
+bio.imp = readRDS("data/preprocessed/bioImputed.rds")
 
 ##################################################################
 ##                      Missing Data plots                      ##
 ##################################################################
 
-bio.CVD = merge(bio,cov[,"CVD_status"],by="row.names",all.x=TRUE)
+# missing data plot with all 
+bio.unfiltered.CVD = merge(bio.unfiltered,
+                           cov[,"CVD_status"],
+                           by="row.names",all.x=TRUE)
+
+gg_miss_fct(x = bio.unfiltered.CVD, fct = CVD_status)+
+  ggtitle("Missing data patterns by CVD status for all biomarkers")
+ggsave("results/MissBioDataALLbyCVD.pdf")
+
+bio.CVD = merge(bio,cov[,"CVD_status"],
+                by="row.names",all.x=TRUE)
 
 gg_miss_fct(x = bio.CVD, fct = CVD_status)+
-  ggtitle("Missing data patterns by CVD status")
+  ggtitle("Missing data patterns by CVD status updated")
 ggsave("results/MissBioDatabyCVD.pdf")
 
 gg_miss_fct(x = cov, fct = CVD_status)
@@ -25,6 +85,11 @@ gg_miss_fct(x = cov, fct = CVD_status)
 # for each of those events. nintersects limits the amount of variable
 # intersection you want to look at
 
+gg_miss_upset(bio.unfiltered.CVD, 
+                      nsets = 10,
+                      nintersects = 10)
+ggsave("results/upset_biofull_unfiltered.pdf")
+
 upset = gg_miss_upset(bio.CVD, 
                       nsets = 10,
                       nintersects = 10)
@@ -32,6 +97,13 @@ ggsave("results/upset_biofull.pdf")
 
 upset_cov = gg_miss_upset(cov)
 ggsave("results/upset_covfull.pdf")
+
+vis_miss(bio.unfiltered.CVD)+
+  scale_y_continuous(position = 'right')+
+  theme(axis.text.x = element_text(angle = 0))+
+  scale_x_discrete(position = "bottom")+
+  coord_flip()
+ggsave("results/missBioDataPatterns_unfiltered.pdf")
 
 vis_miss(bio.CVD)+
   scale_y_continuous(position = 'right')+
@@ -47,6 +119,7 @@ ggsave("results/missBioDataPatterns.pdf")
 bio.imp.CVD = merge(bio.imp,cov[,"CVD_status"],by="row.names",all.x=TRUE)
 rownames(bio.imp.CVD) = bio.imp.CVD$Row.names
 bio.imp.CVD = bio.imp.CVD[,-1]
+
 bio.imp.CVD %>% pivot_longer(-CVD_status, 
                              names_to = "Biomarker",
                              values_to = "Amount") %>%
@@ -77,7 +150,7 @@ ggsave("results/bio_dist_MCAR.pdf")
 # compute b's principal components,
 # we set center and scale as TRUE, so that all features are scaled (~divided by sd) 
 # and centred (~mean removed) before calculating PCAs as it should be.
-b.pca = prcomp(bio.imp.CVD[,-28], center = TRUE, scale. = TRUE)
+b.pca = prcomp(bio.imp.CVD[,-ncol(bio.imp.CVD)], center = TRUE, scale. = TRUE)
 
 # scree plot
 scree = ggscreeplot(b.pca)+ylim(0,1)

@@ -241,7 +241,7 @@ ggsave("results/bio_dist_MCAR.pdf")
 # compute b's principal components,
 # we set center and scale as TRUE, so that all features are scaled (~divided by sd) 
 # and centred (~mean removed) before calculating PCAs as it should be.
-b.pca = prcomp(bio.imp.CVD[,-28], center = TRUE, scale. = TRUE)
+b.pca = prcomp(bio.imp.CVD[,-ncol(bio.imp.CVD)], center = TRUE, scale. = TRUE)
 
 # scree plot
 scree = ggscreeplot(b.pca)+ylim(0,1)
