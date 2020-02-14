@@ -1,5 +1,22 @@
 # This file will only include preprocessing of the original datasets and their respective storage
 
+####################################################################
+##  Input this file: Original covariates data set (37 columns),   ##
+##   Original biomarkers(60 columns), Biomarker annotation file,  ##
+##         Covariate dictionary, SNP dataset, SNP info file       ##
+####################################################################
+
+#################################################################################
+##       Output from this file: Processed covariates, only with entries        ##
+##          relevant to CVD[covProcessed.rds], Biomarkers dataset with         ##
+##                   well labelled columns and only one entry                  ##
+##                  over time (not imputed)[bioProcessed.rds],                 ##
+##                     same biomarkers dataset but imputed                     ##
+##          through MICE imputation[bioImputed.rds], biomarker dataset         ##
+##                   with only complete cases [bioMCAR.rds],                   ##
+##   biomarker preprocessed with all columns (30 columns)[bioUnfiltered.rds]   ##
+#################################################################################
+
 ###########################################################################
 ###########################################################################
 ###                                                                     ###
@@ -116,16 +133,21 @@ cov$vit_status = as.factor(cov$vit_status)
 cov$dc_cvd_st = as.factor(cov$dc_cvd_st)
 cov$cvd_death = as.factor(cov$cvd_death)
 
+saveRDS(cov, file = "data/preprocessed/covProcessed.rds")
 
 
 ##################################################################
 ##                   Processing of biomarkers                   ##
 ##################################################################
 
+saveRDS(bio, file = "data/preprocessed/bioUnfiltered.rds")
 # drop columns with more than 50% missing values i.e. Rheumatoid factor
 # and oestradiol
 bio = bio[,!colMeans(is.na(bio))>0.5]
-saveRDS(bio, file = "data/bioProcessed.rds")
+saveRDS(bio, file = "data/preprocessed/bioProcessed.rds")
+
+bioMCAR = bio[complete.cases(bio),]
+saveRDS(bioMCAR, file = "data/preprocessed/bioMCAR.rds")
 
 # impute biomarkers based on biomarkers only
 t0 = Sys.time()
@@ -135,14 +157,14 @@ print(Sys.time() - t0) # takes about 1 minute
 
 # Impute with parallelisation
 t0 = Sys.time()
-imp.model = parlmice(bio, n.core = cores,
+imp.model = parlmice(bio, n.core = cores, m =5,
                      #m=5, seed = NA, printFlag = F,
                      cl.type = "FORK")
 print(Sys.time() - t0) # takes about 1 minute
 
 # here we assign the imputed data to bio.imp
 bio.imp = complete(imp.model,2)
-saveRDS(bio.imp, file = "data/bioImputed.rds")
+saveRDS(bio.imp, file = "data/preprocessed/bioImputed.rds")
 
 
 
