@@ -38,6 +38,8 @@ library(stats)
 if (!require(mice)) install.packages('mice')
 library(mice)
 
+library(parallel)
+cores = detectCores()
 
 ############################################################################
 ############################################################################
@@ -137,6 +139,13 @@ saveRDS(bio, file = "data/bioProcessed.rds")
 t0 = Sys.time()
 imp.model = mice(bio, m=5, maxit = 10,
                  seed = 500, printFlag = F)
+print(Sys.time() - t0) # takes about 1 minute
+
+# Impute with parallelisation
+t0 = Sys.time()
+imp.model = parlmice(bio, n.core = cores,
+                  #m=5, seed = NA, printFlag = F,
+                 cl.type = "FORK")
 print(Sys.time() - t0) # takes about 1 minute
 
 # here we assign the imputed data to bio.imp
