@@ -174,6 +174,7 @@ saveRDS(bio.imp, file = "data/preprocessed/bioImputed.rds")
 
 # removing any snps from the info file that are not included in the data provided by barbz
 snps = colnames(snp.original)
-snp.info = snp_info.original[snp_info.original$markername %in% snps, ] 
+snp.info = snp_info.original[snp_info.original$markername %in% snps, ]
 
+saveRDS(snp.info, file = "data/preprocessed/snpInfo.rds")
 
