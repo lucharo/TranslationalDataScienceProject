@@ -1,12 +1,16 @@
-#EDA
+# This script will load preprocessed datasets and plot the relevant EDA plots
 
-## NEXT STEPS:
-#
-# - apply to genetic data, which will be much more interesting
-# - see if there is way to group thesemeasurements by disease outcome or something
-# - investigate use of IDA and LDA
-#
-rm(list = ls())
+##################################################################
+##                     Input to this file:                      ##
+##                      [bioProcessed.rds],                     ##
+##                     [covProcessed.rds],                      ##
+##                       [bioImputed.rds],
+##                      [bioUnfiltered.rds]
+##################################################################
+
+#################################################################
+##            Output from this file: many pdf plots            ##
+#################################################################
 
 ###########################################################################
 ###########################################################################
@@ -15,7 +19,6 @@ rm(list = ls())
 ###                                                                     ###
 ###########################################################################
 ###########################################################################
-
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 if (!require(devtools)) install.packages('devtools')
 library(devtools)
@@ -40,139 +43,32 @@ library(mice)
 
 library(parallel)
 cores = detectCores()
-
-############################################################################
-############################################################################
-###                                                                      ###
-###                             DATA LOADING                             ###
-###                                                                      ###
-############################################################################
-############################################################################
-
-#################################################################
-##                      Original datasets                      ##
-#################################################################
-cov.original = readRDS("data/Covars_toy.rds")
-bio.original= readRDS("data/Biomarkers_toy.rds")
-bio.dict = readxl::read_xlsx("Biomarker_annotation.xlsx")
-
 ##################################################################
-##                        Cluster add-in                        ##
+##                  Load preprocessed datasets                  ##
 ##################################################################
-cluster = 0
-
-if (cluster == 1){
-  rownames(bio.original) = bio.original$`mydata$eid`
-  bio.original = bio.original[,-1]
-}
-
-##################################################################
-cov.dict = readxl::read_xlsx("Covariate_dictionary.xlsx")
-snp.original = readRDS('data/Genes_toy.rds')
-snp_info.original = readxl::read_xlsx("SNP_info.xlsx")
-
-
-##################################################################
-##              Changing biomarkers codes by names              ##
-##################################################################
-#make nicely looking names (programmingly functional)
-colnames(bio.dict) = make.names(colnames(bio.dict), unique=TRUE)
-
-#get column numbers of columns with name containing pattern *(.)1(.)*
-# use (.) to match the dot as opposed to using . as a wildcard
-bio = bio.original[,!grepl("*(.)1(.)0", colnames(bio.original))]
-
-# Match code with biomarker name to change column names of b
-# get element 2 to 6 of all string in vector colnames(b)
-# the match() function, match the substring from colnames to
-# the UK.biobank.field in the biomarkers dictionary, 
-# effectively ordering the colnames of b
-# Alternative: order UK.bionbank.field entries and match them
-#---- bio.dict = bio.dict %>% arrange(UK.Biobank.Field)
-
-colnames(bio) = bio.dict$Biomarker.name[
-  match(substring(colnames(bio),2,6),bio.dict$UK.Biobank.Field)] 
-
-colnames(bio) = make.names(colnames(bio), unique=TRUE)
-colnames(bio) = sub("\\.\\.",".", colnames(bio))
-
-# safety-check for all vars being numeric
-stopifnot(all(apply(bio, 2, is.numeric)))
-
-
-##################################################################
-##               Processing of covariates dataset               ##
-##################################################################
-## preprocessing c
-# replace empty strings by NA
-values_to_replace_w_na = c("")
-cov = cov.original %>% replace_with_na_all(condition = ~.x %in%
-                                             values_to_replace_w_na)
-#remove anything to do wih cancer or external deaths
-cov = cov[,!grepl("cancer|external", colnames(cov))]
-#remove codes except for icd10
-cov = cov[,!(colnames(cov) %in% c("cvd_final_icd9",
-                                  "cvd_final_nc_illness_code",
-                                  "cvd_final_opcs4",
-                                  "cvd_final_ukb_oper_code",
-                                  "other_cause_death"))]
-
-# change numerical binary outcome variables to categorical
-str(cov)
-cov$CVD_status = as.factor(cov$CVD_status)
-cov$vit_status = as.factor(cov$vit_status)
-cov$dc_cvd_st = as.factor(cov$dc_cvd_st)
-cov$cvd_death = as.factor(cov$cvd_death)
-
-
-
-##################################################################
-##                   Processing of biomarkers                   ##
-##################################################################
-
-# drop columns with more than 50% missing values i.e. Rheumatoid factor
-# and oestradiol
-bio = bio[,!colMeans(is.na(bio))>0.5]
-saveRDS(bio, file = "data/bioProcessed.rds")
-
-# impute biomarkers based on biomarkers only
-t0 = Sys.time()
-imp.model = mice(bio, m=5, maxit = 10,
-                 seed = 500, printFlag = F)
-print(Sys.time() - t0) # takes about 1 minute
-
-# Impute with parallelisation
-t0 = Sys.time()
-imp.model = parlmice(bio, n.core = cores,
-                  #m=5, seed = NA, printFlag = F,
-                 cl.type = "FORK")
-print(Sys.time() - t0) # takes about 1 minute
-
-# here we assign the imputed data to bio.imp
-bio.imp = complete(imp.model,2)
-saveRDS(bio.imp, file = "data/bioImputed.rds")
-
-
-
-#################################################################
-##                     Proccessing of SNPs                     ##
-#################################################################
-
-# removing any snps from the info file that are not included in the data provided by barbz
-snps = colnames(snp.original)
-snp.info = snp_info.original[snp_info.original$markername %in% snps, ] 
-
-
-
+bio.unfiltered = readRDS("data/preprocessed/bioUnfiltered.rds")
+bio = readRDS("data/preprocessed/bioProcessed.rds")
+cov = readRDS("data/preprocessed/covProcessed.rds")
+bio.imp = readRDS("data/preprocessed/bioImputed.rds")
 
 ##################################################################
 ##                      Missing Data plots                      ##
 ##################################################################
 
-bio.CVD = merge(bio,cov[,"CVD_status"],by="row.names",all.x=TRUE)
+# missing data plot with all 
+bio.unfiltered.CVD = merge(bio.unfiltered,
+                           cov[,"CVD_status"],
+                           by="row.names",all.x=TRUE)
+
+gg_miss_fct(x = bio.unfiltered.CVD, fct = CVD_status)+
+  ggtitle("Missing data patterns by CVD status for all biomarkers")
+ggsave("results/MissBioDataALLbyCVD.pdf")
+
+bio.CVD = merge(bio,cov[,"CVD_status"],
+                by="row.names",all.x=TRUE)
 
 gg_miss_fct(x = bio.CVD, fct = CVD_status)+
-  ggtitle("Missing data patterns by CVD status")
+  ggtitle("Missing data patterns by CVD status updated")
 ggsave("results/MissBioDatabyCVD.pdf")
 
 gg_miss_fct(x = cov, fct = CVD_status)
@@ -189,6 +85,11 @@ gg_miss_fct(x = cov, fct = CVD_status)
 # for each of those events. nintersects limits the amount of variable
 # intersection you want to look at
 
+gg_miss_upset(bio.unfiltered.CVD, 
+                      nsets = 10,
+                      nintersects = 10)
+ggsave("results/upset_biofull_unfiltered.pdf")
+
 upset = gg_miss_upset(bio.CVD, 
                       nsets = 10,
                       nintersects = 10)
@@ -196,6 +97,13 @@ ggsave("results/upset_biofull.pdf")
 
 upset_cov = gg_miss_upset(cov)
 ggsave("results/upset_covfull.pdf")
+
+vis_miss(bio.unfiltered.CVD)+
+  scale_y_continuous(position = 'right')+
+  theme(axis.text.x = element_text(angle = 0))+
+  scale_x_discrete(position = "bottom")+
+  coord_flip()
+ggsave("results/missBioDataPatterns_unfiltered.pdf")
 
 vis_miss(bio.CVD)+
   scale_y_continuous(position = 'right')+
@@ -211,9 +119,10 @@ ggsave("results/missBioDataPatterns.pdf")
 bio.imp.CVD = merge(bio.imp,cov[,"CVD_status"],by="row.names",all.x=TRUE)
 rownames(bio.imp.CVD) = bio.imp.CVD$Row.names
 bio.imp.CVD = bio.imp.CVD[,-1]
+
 bio.imp.CVD %>% pivot_longer(-CVD_status, 
-                           names_to = "Biomarker",
-                           values_to = "Amount") %>%
+                             names_to = "Biomarker",
+                             values_to = "Amount") %>%
   ggplot(aes(x = Amount, color = CVD_status)) +
   geom_density(alpha = 0)+
   facet_wrap(Biomarker~., scales = "free")+
@@ -282,7 +191,7 @@ save(b.pca, file = "results/PCA_results_biomarkers.rds")
 # pairs plot of biomarkers separated by vital status
 
 #ggpairs(bio.imp,
-        #aes(color=CVD_status), progress = FALSE)
+#aes(color=CVD_status), progress = FALSE)
 
 
 
@@ -306,16 +215,3 @@ save(b.pca, file = "results/PCA_results_biomarkers.rds")
 # glm_bio <- glm(CVD_status ~., data=bio.joint, family=binomial)
 # summary(glm_bio)
 # round(cbind("odds" = exp(coef(glm_bio)), exp(confint(glm_bio))), 3)
-
-
-
-
-
-
-
-
-
-
-
-
-
