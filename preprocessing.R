@@ -178,3 +178,10 @@ snp.info = snp_info.original[snp_info.original$markername %in% snps, ]
 
 saveRDS(snp.info, file = "data/preprocessed/snpInfo.rds")
 
+
+# recoding 00 as NA,  01 as 1, 02 as 1, and 03 as 2
+snp <- snp.original
+
+for (i in colnames(snp)){
+  snp[,i] = rawToChar(snp[,i], multiple=TRUE)
+}
