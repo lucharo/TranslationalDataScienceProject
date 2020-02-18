@@ -1,5 +1,5 @@
 library(tidyverse)
-
+library(ggpubr)
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 bio = readRDS("data/preprocessed/bioProcessed.rds")
@@ -99,4 +99,17 @@ scores_Mantej = BHSCalculator("More_is_bad_Mantej")
 data.frame(rbind(cbind(BHS = scores_paper, Reference = "Paper"),
       cbind(BHS = scores_Mantej, Reference = "Mantej")),
       stringsAsFactors = F) %>% 
-  ggplot(aes(x = Reference, y = BHS))+geom_boxplot()
+  ggplot(aes(x = Reference, y = as.numeric(BHS), fill = Reference))+
+  geom_boxplot()+
+  ylab("BHS")+
+  scale_fill_brewer(palette = "Set1")+
+  stat_compare_means(method = "t.test", paired = T,
+                     label.x = 1.5, label.y = 0.9)+
+  stat_summary(geom = "point", shape = 23)+
+  theme_minimal()
+
+
+t.test(as.numeric(BHS) ~ Reference, data = data.frame(
+  rbind(cbind(BHS = scores_paper, Reference = "Paper"),
+        cbind(BHS = scores_Mantej, Reference = "Mantej")),
+  stringsAsFactors = F), paired = T)
