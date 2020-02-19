@@ -50,12 +50,13 @@ bio.unfiltered = readRDS("data/preprocessed/bioUnfiltered.rds")
 bio = readRDS("data/preprocessed/bioProcessed.rds")
 cov = readRDS("data/preprocessed/covProcessed.rds")
 bio.imp = readRDS("data/preprocessed/bioImputed.rds")
+snp = readRDS("data/preprocessed/snpProcessed.rds")
 
 ##################################################################
 ##                      Missing Data plots                      ##
 ##################################################################
 
-# missing data plot with all 
+# missing data plot with all (for biomarkers)
 bio.unfiltered.CVD = merge(bio.unfiltered,
                            cov[,"CVD_status"],
                            by="row.names",all.x=TRUE)
@@ -71,9 +72,6 @@ gg_miss_fct(x = bio.CVD, fct = CVD_status)+
   ggtitle("Missing data patterns by CVD status updated")
 ggsave("results/MissBioDatabyCVD.pdf")
 
-gg_miss_fct(x = cov, fct = CVD_status)
-
-# There is no missing data in snp.original (checked full dataset on hpc)
 
 # explanation of upset plot: the variables on the left are the set
 # of variables with most missing data or whichever set of variables 
@@ -95,9 +93,6 @@ upset = gg_miss_upset(bio.CVD,
                       nintersects = 10)
 ggsave("results/upset_biofull.pdf")
 
-upset_cov = gg_miss_upset(cov)
-ggsave("results/upset_covfull.pdf")
-
 vis_miss(bio.unfiltered.CVD)+
   scale_y_continuous(position = 'right')+
   theme(axis.text.x = element_text(angle = 0))+
@@ -111,6 +106,29 @@ vis_miss(bio.CVD)+
   scale_x_discrete(position = "bottom")+
   coord_flip()
 ggsave("results/missBioDataPatterns.pdf")
+
+
+# missing data plots for covariates
+
+gg_miss_fct(x = cov, fct = CVD_status) +
+  ggtitle('Missing data patterns by CVD status for covariates')
+ggsave("results/MissCovDatabyCVD.pdf")
+
+gg_miss_upset(cov)
+ggsave("results/upset_covfull.pdf")
+
+
+# missing data plots for snps
+
+snp.cvd = merge(snp, cov[,"CVD_status"], by="row.names", all.x=TRUE)
+
+gg_miss_fct(x = snp.cvd, fct = CVD_status) +
+  ggtitle("Missing data patterns by CVD status for all snps")
+
+gg_miss_upset(snp)
+ggsave("results/upset_snp.pdf")
+
+
 
 ##################################################################
 ##                   Biomarker distributions                    ##
