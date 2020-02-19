@@ -23,15 +23,40 @@ betas <- snp.info$beta
 
 # establishing for loop to use inside function 
 for (i in length(snp)){
-  PRS = snp[i,]*betas[i]
+  for (j in length(snp)){
+    PRS = snp[i,j]*betas
+  }
 }
 
+PRSt = snp[1,]*betas
+PRSx = rowSums(PRSt)
 
 compute_PRS <- function(){
-  PRS = c()
+  sb = c()
   for (i in length(snp)){
-    PRS[i] = snp[i,]*betas[i]
+    sb[i,] = snp[i,]*betas
   }
+  PRS = rowSums(sb)
+}
+
+##this for loop calculates beta*copy number for each snp  
+
+snps.betas <- function() {
+  for (i in length(snp)){
+    PRSt = snp[i,]*betas
+  }
+}
+
+snps.betas2 <- function(row = length(snp)){
+  PRSt = snp['row',]*betas
+}
+
+PRSt = apply(snp, 1, snps.betas)
+
+compute_PRS <- function(){
+  sums_rows = apply(snp, 1, sums)
+  sb = snp[i,]*beta
+  PRS = rowSums(sb)
 }
 
 
