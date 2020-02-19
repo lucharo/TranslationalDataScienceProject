@@ -192,3 +192,4 @@ snp[snp==2] <- 1
 snp[snp==3] <- 2
 
 saveRDS(snp, "data/preprocessed/snpProcessed.rds")
+
