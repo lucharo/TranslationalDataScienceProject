@@ -162,6 +162,17 @@ imp.model = parlmice(bio, n.core = cores, m =5,
                      cl.type = "FORK")
 print(Sys.time() - t0) # takes about 1 minute
 
+# Impute with KNN
+t0 = Sys.time()
+
+# tune.knn.impute(data, cat.var = 1:ncol(data), k.min = 1, k.max = 20,
+#                 frac.miss = 0.1, n.iter = 20, seed = 0)
+# 
+# knn.impute(data, k = 10, cat.var = 1:ncol(data),
+#            to.impute = 1:nrow(data), using = 1:nrow(data))
+
+print(Sys.time() - t0) # takes about 1 minute
+
 # here we assign the imputed data to bio.imp
 bio.imp = complete(imp.model,2)
 saveRDS(bio.imp, file = "data/preprocessed/bioImputed.rds")
