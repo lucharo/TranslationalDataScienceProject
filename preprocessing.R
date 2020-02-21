@@ -75,22 +75,18 @@ snp.original = readRDS('data/Genes_toy.rds')
 snp_info.original = readxl::read_xlsx("SNP_info.xlsx")
 
 ##################################################################
-##                       Cluster datasets                       ##
-##################################################################
-
-cov.original = readRDS("data/Covariates.rds")
-bio.original= readRDS("data/Biomarkers_full.rds")
-bio.dict = readxl::read_xlsx("Biomarker_annotation.xlsx")
-cov.dict = readxl::read_xlsx("Covariate_dictionary.xlsx")
-snp.original = readRDS('data/genetic_data_cvd_snps.rds')
-snp_info.original = readxl::read_xlsx("SNP_info.xlsx")
-
-##################################################################
 ##                        Cluster add-in                        ##
 ##################################################################
 cluster = 0
 
 if (cluster == 1){
+  cov.original = readRDS("data/Covariates.rds")
+  bio.original= readRDS("data/Biomarkers_full.rds")
+  bio.dict = readxl::read_xlsx("Biomarker_annotation.xlsx")
+  cov.dict = readxl::read_xlsx("Covariate_dictionary.xlsx")
+  snp.original = readRDS('data/genetic_data_cvd_snps.rds')
+  snp_info.original = readxl::read_xlsx("SNP_info.xlsx")
+  
   rownames(bio.original) = bio.original$`mydata$eid`
   bio.original = bio.original[,-1]
 }
@@ -186,45 +182,89 @@ saveRDS(bioMCAR, file = "data/preprocessed/bioMCAR.rds")
 # Impute with KNN -- using caret
 t0 = Sys.time()
 
-kNNImputeOptimization = function(data.in, seed = 1, folds = NULL){
-#  set.seed(seed)
-  data.truth = data.in[complete.cases(data.in),]
-  data = data.truth
-
-  rows = sample(1:nrow(data), 
-                0.48*nrow(data))
-  columns = sample(1:ncol(data),
-                   0.1*ncol(data), replace = T)
+kNNImputeOptimization = function(data.in, seed = 1234){
+  set.seed(seed) # this makes the sampling of different indices random
+  # take complete data
+  data.complete = data.in[complete.cases(data.in),]
+  # within the range of rows from data.in grab as many rows as there are
+  # rows in the complete data set
+  rand.index = sample(x = 1:nrow(data.in), size = nrow(data.complete))
+  # get the NA pattern in that random subset of the data.in
+  NApattern = which(is.na(data.in[rand.index,]), arr.ind = T)
+  rows = NApattern[,1]
+  columns = NApattern[,2]
+  # data to impute will be based in complete cases
+  data.to.impute = data.complete
+  # induce missingness in the data to impute with the real structure
+  # of the original data -- feeding these indices does not seem to work
+  # well
+  # -- data.to.impute[rows, columns] = NA
   
-  data[rows,columns] = NA
-  mean.cols = as.vector(colMeans(data, na.rm = T))
-  sd.cols = as.vector(apply(data,2, function(col) sd(col, na.rm = T)))
-  data.scaled = sweep(sweep(data,MARGIN = 2,mean.cols,'-'),2,sd.cols,"/")
+  ## fill in NAs with nested for loop
+  
+  thePlaceToBe = environment()
+  apply(NApattern, MARGIN=1,
+           FUN=function(k){
+             i=k[1];j=k[2]
+             dat = get("data.to.impute")
+             dat[i,j] = NA
+             assign("data.to.impute",
+                    dat, envir = thePlaceToBe)
+           })
+  
+  #get mean and sds for scaling
+  mean.cols = as.vector(colMeans(data.to.impute, na.rm = T))
+  sd.cols = as.vector(apply(data.to.impute,2, function(col) sd(col, na.rm = T)))
+  # scale the data to impute
+  data.scaled = sweep(sweep(data.to.impute,
+                            MARGIN = 2,mean.cols,'-'),
+                      2,sd.cols,"/")
+  # put in right format for imputation
   data.scaled = as.matrix(data.scaled)
   
-  predictions.k = lapply(c(1:20),
+  # BARE IN MIND THERE IS NO RANDOMNESS REGARDING impute.knn
+  # it has a default random seed inside it
+  # get list of imputed datasets for k = 1:20
+  predictions.k = lapply(c(1:100),
                          function(x) 
                            #knn.impute(data.scaled, k = x, cat.var = NULL)
                          #knnImputation(data.scaled, k = x, scale = F)
                          impute.knn(data.scaled, k = x,
                                     rowmax = 1, colmax = 1)$data
                          )
+  
+  # assert if there's any missing data in any of the imputed dataframes
   stopifnot(sum(sapply(1:length(predictions.k),
-            function(i) anyNA(predictions.k[[i]]))) == 0)
+                       function(i) anyNA(predictions.k[[i]]))) == 0)
+  # rescale data
+  predictions.k.rescaled = lapply(1:length(predictions.k),
+                                  function(x) 
+                                    sweep(sweep(predictions.k[[x]],
+                                                MARGIN = 2,sd.cols,'*')
+                                          ,2,mean.cols,"+"))
+  # get amount of missing data
   missing.dat = sum(is.na(data.scaled))
-  # Sum of square errors
-  MSE = lapply(1:length(predictions.k),
-                function(i) sum((predictions.k[[i]][rows,columns] -
-                                        data.truth[rows,columns])**2)/
-                 missing.dat)
-  RMSE = sqrt(unlist(MSE))
-  best.k = which.min(RMSE)
-  plot(1:20, RMSE, main = paste0("NAs: ",missing.dat, "/", nrow(data)*ncol(data)))
-  best.k
+
+  # Calculate mean square error
+  # apply for every dataset
+  MSE = sapply(1:length(predictions.k),function(L){
+    # mean of vector of squared differences between vector and original data
+    mean(apply(NApattern, MARGIN=1,
+               FUN=function(k){
+                 i=k[1];j=k[2]
+                 (predictions.k.rescaled[[L]][i,j]-data.complete[i,j])**2
+               }))
+  })
+  
+  # calculate RMSE to have 
+  RMSE = sqrt(MSE)
+  RMSE
   
 }
 
-bestk = kNNImputeOptimization(bio)
+RMSE = sapply(1:100,function(x) kNNImputeOptimization(bio, seed = x))
+boxplot(t(RMSE))
+
 # ?scaling: works weird man
 mean.cols = as.vector(colMeans(bio, na.rm = T))
 sd.cols = as.vector(apply(bio,2, function(col) sd(col, na.rm = T)))
