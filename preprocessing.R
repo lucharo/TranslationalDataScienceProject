@@ -176,8 +176,7 @@ saveRDS(bioMCAR, file = "data/preprocessed/bioMCAR.rds")
 # 
 # # Impute with parallelisation
 # t0 = Sys.time()
-# imp.model = parlmice(bio, n.core = cores, m =5,
-#                      #m=5, seed = NA, printFlag = F,
+# imp.model = parlmice(bio,  m =5, seed = NA, printFlag = F,
 #                      cl.type = "FORK")
 # print(Sys.time() - t0) # takes about 1 minute
 
@@ -198,9 +197,10 @@ kNNImputeOptimization = function(data.in, seed = 1, folds = NULL){
                    0.1*ncol(data), replace = T)
   
   data[rows,columns] = NA
-  means.col = colMeans(data,na.rm = T)
-  sd.col = apply(data, 2, function(x) sd(x,na.rm = T))
-  data.scaled = as.matrix((data-means.col)/sd.col)
+  mean.cols = as.vector(colMeans(data, na.rm = T))
+  sd.cols = as.vector(apply(data,2, function(col) sd(col, na.rm = T)))
+  data.scaled = sweep(sweep(data,MARGIN = 2,mean.cols,'-'),2,sd.cols,"/")
+  data.scaled = as.matrix(data.scaled)
   
   predictions.k = lapply(c(1:20),
                          function(x) 
@@ -225,14 +225,20 @@ kNNImputeOptimization = function(data.in, seed = 1, folds = NULL){
 }
 
 bestk = kNNImputeOptimization(bio)
-# ?scaling
-mean.cols = colMeans(bio, na.rm = T)
-sd.cols = apply(bio,2, function(col) sd(col, na.rm = T))
-bio.scaled = (bio - mean.cols)/sd.cols
-bio.scaled.imp = impute.knn(bio.scaled)
+# ?scaling: works weird man
+mean.cols = as.vector(colMeans(bio, na.rm = T))
+sd.cols = as.vector(apply(bio,2, function(col) sd(col, na.rm = T)))
+bio.scaled = sweep(sweep(bio,MARGIN = 2,mean.cols,'-'),2,sd.cols,"/")
+bio.scaled = as.matrix(bio.scaled)
+bio.scaled.imp = impute.knn(bio.scaled)$data
 
-bio.imp = bio.scaled.imp*sd.cols+mean.cols
-
+#descale 0r rescale, however you wanna call it
+bio.imp = sweep(sweep(bio.scaled.imp,MARGIN = 2,sd.cols,'*'),2,mean.cols,"+")
+# this weird
+# matrix(c(1,2,3,5,3,4), nrow = 2, byrow = T)*c(2,3,2)
+# this works
+#sweep(matrix(c(1,2,3,5,3,4), nrow = 2, byrow = T), 2, 
+      # c(2,3,2), "*")
 print(Sys.time() - t0) # takes about 1 minute
 
 
