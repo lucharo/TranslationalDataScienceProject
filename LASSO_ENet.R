@@ -1,5 +1,8 @@
 # LASSO, RIDGE AND E-NET ANALYSIS, BASED ON PRACTICAL 3
 
+## cehck which variables were selected for lasso, enet
+
+
 library(glmnet)
 
 bio = readRDS("data/preprocessed/bioImputed.rds")
@@ -9,8 +12,8 @@ bio.CVD = merge(bio,cov[,"CVD_status"],
 rownames(bio.CVD) = bio.CVD$Row.names
 bio.CVD = bio.CVD[,-1]
 
-y = select(bio.CVD, CVD_status)
-X = select(bio.CVD, -CVD_status)
+y = dplyr::select(bio.CVD, CVD_status)
+X = dplyr::select(bio.CVD, -CVD_status)
 
 set.seed(3141592) 
 train.index = sample(1:nrow(X), 0.8*nrow(X))
@@ -28,6 +31,8 @@ y.test = as.numeric(y[-train.index,1])
 ###########################################################################
 ###########################################################################
 
+best.lam = "lambda.min"
+
 model_selector = function(alpha){
   set.seed(100) 
   # run cross validation
@@ -36,7 +41,7 @@ model_selector = function(alpha){
   
   plot(model)
   
-  bestlam = model$lambda.1se
+  bestlam = model[[best.lam]]
   
   model_pred = predict(model, s = bestlam,
                        newx = X.test )
@@ -44,8 +49,10 @@ model_selector = function(alpha){
   
   results = t(data.frame(c(round(alpha,2), round(model$lambda.min,2),
                            round(model$lambda.1se,2),
-                           length(which(coef(model)!=0))-1,
+                           # get number of coefs with best
+                           sum(coef(model, s = bestlam)!=0)-1,
                            testMSE)))
+  
   colnames(results) = c("Alpha","lambda.min","lambda.1se",
                         "# of predictors", "Test MSE")
   rownames(results) = ifelse(alpha == 0, "Ridge",
@@ -59,7 +66,16 @@ model_selector = function(alpha){
 cvm = function(alpha) {
   model = cv.glmnet(x = X.train, y = y.train,
                     alpha = alpha, family = "binomial")
-  with(model, cvm[which.min(lambda - lambda.1se)]) }
+  # pick the error (given by cvm) with the best lambda (lamda.1se or lambda.min)
+  # in theory we'd want lambda == lamba.min or lambda.1se but for some reason 
+  # lambda does not containg any value equal to lambda.min or lambda.1se, 
+  # therefore we do the maths:
+  #     lambda == lambda.min
+  # ==> lambda - lambda.min == 0 
+  # this difference could be negative but we're interested in the lambda 
+  # closer to lambda min (smaller absolute difference)
+  # ==> lambda for which abs(lambda-lambda.min) is minimum (closer to 0)
+  with(model, cvm[which.min(abs(lambda - lambda.min))]) }
 
 alpha.opt = optimise(cvm, c(0, 1))
 
