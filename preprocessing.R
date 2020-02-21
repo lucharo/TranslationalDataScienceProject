@@ -70,6 +70,20 @@ cores = detectCores()
 cov.original = readRDS("data/Covars_toy.rds")
 bio.original= readRDS("data/Biomarkers_toy.rds")
 bio.dict = readxl::read_xlsx("Biomarker_annotation.xlsx")
+cov.dict = readxl::read_xlsx("Covariate_dictionary.xlsx")
+snp.original = readRDS('data/Genes_toy.rds')
+snp_info.original = readxl::read_xlsx("SNP_info.xlsx")
+
+##################################################################
+##                       Cluster datasets                       ##
+##################################################################
+
+cov.original = readRDS("data/Covariates.rds")
+bio.original= readRDS("data/Biomarkers_full.rds")
+bio.dict = readxl::read_xlsx("Biomarker_annotation.xlsx")
+cov.dict = readxl::read_xlsx("Covariate_dictionary.xlsx")
+snp.original = readRDS('data/genetic_data_cvd_snps.rds')
+snp_info.original = readxl::read_xlsx("SNP_info.xlsx")
 
 ##################################################################
 ##                        Cluster add-in                        ##
@@ -82,9 +96,6 @@ if (cluster == 1){
 }
 
 ##################################################################
-cov.dict = readxl::read_xlsx("Covariate_dictionary.xlsx")
-snp.original = readRDS('data/Genes_toy.rds')
-snp_info.original = readxl::read_xlsx("SNP_info.xlsx")
 
 
 ##################################################################
@@ -182,7 +193,7 @@ kNNImputeOptimization = function(data.in, seed = 1, folds = NULL){
   data = data.truth
 
   rows = sample(1:nrow(data), 
-                0.1*nrow(data), replace = T)
+                0.48*nrow(data))
   columns = sample(1:ncol(data),
                    0.1*ncol(data), replace = T)
   
@@ -200,20 +211,27 @@ kNNImputeOptimization = function(data.in, seed = 1, folds = NULL){
                          )
   stopifnot(sum(sapply(1:length(predictions.k),
             function(i) anyNA(predictions.k[[i]]))) == 0)
-  
+  missing.dat = sum(is.na(data.scaled))
   # Sum of square errors
-  SSE = lapply(1:length(predictions.k),
+  MSE = lapply(1:length(predictions.k),
                 function(i) sum((predictions.k[[i]][rows,columns] -
-                                        data.truth[rows,columns])**2))
-  best.k = which.min(SSE)
-  plot(1:20, SSE)
+                                        data.truth[rows,columns])**2)/
+                 missing.dat)
+  RMSE = sqrt(unlist(MSE))
+  best.k = which.min(RMSE)
+  plot(1:20, RMSE, main = paste0("NAs: ",missing.dat, "/", nrow(data)*ncol(data)))
   best.k
   
 }
 
 bestk = kNNImputeOptimization(bio)
+# ?scaling
+mean.cols = colMeans(bio, na.rm = T)
+sd.cols = apply(bio,2, function(col) sd(col, na.rm = T))
+bio.scaled = (bio - mean.cols)/sd.cols
+bio.scaled.imp = impute.knn(bio.scaled)
 
-bio.imp = impute.knn(bio)
+bio.imp = bio.scaled.imp*sd.cols+mean.cols
 
 print(Sys.time() - t0) # takes about 1 minute
 
