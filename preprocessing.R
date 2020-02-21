@@ -271,3 +271,10 @@ snp[snp==3] <- 2
 
 saveRDS(snp, "data/preprocessed/snpProcessed.rds")
 
+###Can do imputation of snps
+#First check that no people have all missing values and no snps have all missing values 
+max(rowSums(is.na(snp)))
+#max number of missing values for one person is 15/177
+max(colSums(is.na(snp)))
+#max number of missing values for one snp is 226/2000
+

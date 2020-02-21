@@ -32,7 +32,6 @@ snps.betas <- function() {
   }
 }
 
-
 #now including the weighted sum for each person (NAs are still present in the snp data so have included na.rm=TRUE for now, can remove if we do imputation)
 compute_PRS <- function(data=snp){
   for (i in length(snp)){
@@ -41,6 +40,8 @@ compute_PRS <- function(data=snp){
   PRS = rowSums(PRS_int, na.rm=TRUE)
 }
 
+PRSt = snp[1,]*betas
+length(snp)
 
 #Apply the function to each row (person) to get PRS for each person
 all_PRS = apply(snp, 1, compute_PRS)
