@@ -18,47 +18,39 @@ snp <- readRDS("data/preprocessed/snpProcessed.rds")
 # Check that the snps are in the same order in snp and snp.info
 stopifnot(all(colnames(snp) == snp.info$markername))
 
-# Function for computing PRS per person
+### Function for computing PRS per person
 betas <- snp.info$beta
 
-# establishing for loop to use inside function 
+#this for loop calculates beta*copy number for each snp  
 for (i in length(snp)){
-  for (j in length(snp)){
-    PRS = snp[i,j]*betas
-  }
+  PRStest = snp[i,]*betas
 }
-
-PRSt = snp[1,]*betas
-PRSx = rowSums(PRSt)
-
-compute_PRS <- function(){
-  sb = c()
-  for (i in length(snp)){
-    sb[i,] = snp[i,]*betas
-  }
-  PRS = rowSums(sb)
-}
-
-##this for loop calculates beta*copy number for each snp  
-
+#putting this in a function
 snps.betas <- function() {
   for (i in length(snp)){
-    PRSt = snp[i,]*betas
+    PRStest = snp[i,]*betas
   }
 }
 
-snps.betas2 <- function(row = length(snp)){
-  PRSt = snp['row',]*betas
-}
 
-PRSt = apply(snp, 1, snps.betas)
-
-compute_PRS <- function(){
-  sums_rows = apply(snp, 1, sums)
-  sb = snp[i,]*beta
-  PRS = rowSums(sb)
+#now including the weighted sum for each person (NAs are still present in the snp data so have included na.rm=TRUE for now, can remove if we do imputation)
+compute_PRS <- function(data=snp){
+  for (i in length(snp)){
+    PRS_int = snp[i,]*betas
+  }
+  PRS = rowSums(PRS_int, na.rm=TRUE)
 }
 
 
-# Using apply function to compute PRS for all subjects 
-all_PRS <- apply(snp, MARGIN=1, FUN=compute_PRS)
+#Apply the function to each row (person) to get PRS for each person
+all_PRS = apply(snp, 1, compute_PRS)
+
+
+#Use parallel computing (not done yet)
+library(parallel)
+no_cores = detectCores()-1
+cl - makeCluster(no_cores)
+
+all_PRS <- parSapply(cl=cl, X=snp, FUN=compute_PRS)
+
+stopCluster(cl)
