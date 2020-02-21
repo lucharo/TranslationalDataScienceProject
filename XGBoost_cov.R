@@ -1,21 +1,21 @@
 
 # Installing and Loading Packages -----------------------------------------
-
-install.packages("xgboost")
-install.packages("readr")
-install.packages("stringr")
-install.packages("caret")
-install.packages("car")
-
+if (!require(xgboost)) install_github("xgboost")
 library(xgboost)
+if (!require(readr)) install_github("readr")
 library(readr)
+if (!require(stringr)) install.packagaes("stringr")
 library(stringr)
+if (!require(caret)) install.packages("caret")
 library(caret)
+if (!require(car)) install.packages("car")
 library(car)
+
 library(tidyverse)
 
 
 # Setting up our environment ----------------------------------------------
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 #Load Data
 covariates_processed = readRDS("data/preprocessed/covProcessed.rds")
@@ -52,7 +52,7 @@ covariates_label = as.integer(covariates_processed$CVD_status)-1
 covariates_label
 summary(covariates_label)
 table(covariates_label)
-table(cov$CVD_status)
+table(covariates_processed$CVD_status)
 
 nc <- length(unique(covariates_label))
 nc
@@ -251,9 +251,11 @@ print(imp_2)
 xgb.plot.importance(imp_2)
 p_2 <- predict(bst_model_2, newdata = dtest)
 head(p_2)
+
 pred_2 <- matrix(p_2, nrow = nc, ncol = length(p_2)/nc) %>% 
   t() %>% #This will create a transpose for the matrix
   data.frame() %>% 
   mutate(label = test_labels, max_prob = max.col(., "last")-1)
 head(pred_2)
+
 table(Prediction = pred_2$max_prob, Actual = pred_2$label)
