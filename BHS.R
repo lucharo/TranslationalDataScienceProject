@@ -1,5 +1,8 @@
 library(tidyverse)
 library(ggpubr)
+
+
+#### ADD COMPARISONS BY SUBGROUP and add some more comments
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 bio = readRDS("data/preprocessed/bioProcessed.rds")

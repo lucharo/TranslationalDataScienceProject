@@ -39,7 +39,7 @@ sPLSDA$loadings$X[sPLSDA$loadings$X != 0, ]
 
 source("pls_functions.R")
 set.seed(1)
-res_splsda = CalibratesPLSDA(dataX=X, dataY=y, ncomp=1, Nrepeat=5)
+res_splsda = CalibratesPLSDA(X,y, ncomp=1, Nrepeat=10)
 PlotCalib(res = res_splsda)
 
 
