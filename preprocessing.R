@@ -46,6 +46,12 @@ if (!require(stats)) install.packages("stats")
 library(stats)
 if (!require(mice)) install.packages('mice')
 library(mice)
+if (!require(DMwR)) install.packages('DMwR')
+library(DMwR)
+if (!require(impute)) BiocManager::install("impute")
+library(impute)
+
+
 
 library(parallel)
 cores = detectCores()
@@ -144,37 +150,74 @@ saveRDS(bio, file = "data/preprocessed/bioUnfiltered.rds")
 # drop columns with more than 50% missing values i.e. Rheumatoid factor
 # and oestradiol
 bio = bio[,!colMeans(is.na(bio))>0.5]
+# drop rows with more than 50% biomarkers missing
+bio = bio[!rowMeans(is.na(bio))>0.5,]
 saveRDS(bio, file = "data/preprocessed/bioProcessed.rds")
 
 bioMCAR = bio[complete.cases(bio),]
 saveRDS(bioMCAR, file = "data/preprocessed/bioMCAR.rds")
 
 # impute biomarkers based on biomarkers only
-t0 = Sys.time()
-imp.model = mice(bio, m=5, maxit = 10,
-                 seed = 500, printFlag = F)
-print(Sys.time() - t0) # takes about 1 minute
-
-# Impute with parallelisation
-t0 = Sys.time()
-imp.model = parlmice(bio, n.core = cores, m =5,
-                     #m=5, seed = NA, printFlag = F,
-                     cl.type = "FORK")
-print(Sys.time() - t0) # takes about 1 minute
-
-# Impute with KNN
-t0 = Sys.time()
-
-# tune.knn.impute(data, cat.var = 1:ncol(data), k.min = 1, k.max = 20,
-#                 frac.miss = 0.1, n.iter = 20, seed = 0)
+# t0 = Sys.time()
+# imp.model = mice(bio, m=5, maxit = 10,
+#                  seed = 500, printFlag = F)
+# print(Sys.time() - t0) # takes about 1 minute
 # 
-# knn.impute(data, k = 10, cat.var = 1:ncol(data),
-#            to.impute = 1:nrow(data), using = 1:nrow(data))
-
-print(Sys.time() - t0) # takes about 1 minute
+# # Impute with parallelisation
+# t0 = Sys.time()
+# imp.model = parlmice(bio, n.core = cores, m =5,
+#                      #m=5, seed = NA, printFlag = F,
+#                      cl.type = "FORK")
+# print(Sys.time() - t0) # takes about 1 minute
 
 # here we assign the imputed data to bio.imp
-bio.imp = complete(imp.model,2)
+#bio.imp = complete(imp.model,2)
+
+# Impute with KNN -- using caret
+t0 = Sys.time()
+
+kNNImputeOptimization = function(data.in, seed = 1, folds = NULL){
+#  set.seed(seed)
+  data.truth = data.in[complete.cases(data.in),]
+  data = data.truth
+
+  rows = sample(1:nrow(data), 
+                0.1*nrow(data), replace = T)
+  columns = sample(1:ncol(data),
+                   0.1*ncol(data), replace = T)
+  
+  data[rows,columns] = NA
+  means.col = colMeans(data,na.rm = T)
+  sd.col = apply(data, 2, function(x) sd(x,na.rm = T))
+  data.scaled = as.matrix((data-means.col)/sd.col)
+  
+  predictions.k = lapply(c(1:20),
+                         function(x) 
+                           #knn.impute(data.scaled, k = x, cat.var = NULL)
+                         #knnImputation(data.scaled, k = x, scale = F)
+                         impute.knn(data.scaled, k = x,
+                                    rowmax = 1, colmax = 1)$data
+                         )
+  stopifnot(sum(sapply(1:length(predictions.k),
+            function(i) anyNA(predictions.k[[i]]))) == 0)
+  
+  # Sum of square errors
+  SSE = lapply(1:length(predictions.k),
+                function(i) sum((predictions.k[[i]][rows,columns] -
+                                        data.truth[rows,columns])**2))
+  best.k = which.min(SSE)
+  plot(1:20, SSE)
+  best.k
+  
+}
+
+bestk = kNNImputeOptimization(bio)
+
+bio.imp = impute.knn(bio)
+
+print(Sys.time() - t0) # takes about 1 minute
+
+
 saveRDS(bio.imp, file = "data/preprocessed/bioImputed.rds")
 
 
