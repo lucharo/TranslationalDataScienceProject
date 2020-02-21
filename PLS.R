@@ -42,7 +42,7 @@ sPLSDA$loadings$X[sPLSDA$loadings$X != 0, ]
 #Sourcing from Barbz code, running calibration to find which number of selected variables gives the lowest misclassification rate. 
 source("pls_functions.R")
 set.seed(1)
-res_splsda = CalibratesPLSDA(dataX=X, dataY=y, ncomp=1, Nrepeat=5)
+res_splsda = CalibratesPLSDA(X,y, ncomp=1, Nrepeat=10)
 PlotCalib(res = res_splsda)
 
 sum(cov$CVD_status == 2)/length(cov$CVD_status)

@@ -23,6 +23,9 @@ bio_cov = merge(bio,cov,by="row.names",all.x=TRUE)
 rownames(bio_cov) = bio_cov$Row.names
 bio_cov = bio_cov[,-1]
 
+confounders = c("age_CVD","BS2_all", "qual2","smok_ever_2",
+                "physical_activity_2", "alcohol_2", "BMI_5cl_2",
+                "no_cmrbt_cl2", "no_medicines")
 
 DoYouMatter = function(biomarker, data = bio.imp_cov){
   # I guess I would ideally not have to precise a data argument and allow
@@ -41,9 +44,7 @@ DoYouMatter = function(biomarker, data = bio.imp_cov){
 }
 
 Univariate.analysis = function(merged.dataset){
-  confounders = c("age_CVD","BS2_all", "qual2","smok_ever_2",
-                  "physical_activity_2", "alcohol_2", "BMI_5cl_2",
-                  "no_cmrbt_cl2", "no_medicines")
+  
   
   bio.names = colnames(bio.imp)
   
