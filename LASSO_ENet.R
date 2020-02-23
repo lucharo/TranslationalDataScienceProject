@@ -3,6 +3,8 @@
 ## cehck which variables were selected for lasso, enet
 
 
+# NEED TO ADD CV/SUBSAMPLING KIND OF THING AND CHECK WHICH BIOS SELECTED ALL THE TIME
+
 library(glmnet)
 
 bio = readRDS("data/preprocessed/bioImputed.rds")

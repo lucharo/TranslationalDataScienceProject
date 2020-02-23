@@ -206,7 +206,7 @@ kNNImputeOptimization = function(data.in, seed = 1234){
   apply(NApattern, MARGIN=1,
            FUN=function(k){
              i=k[1];j=k[2]
-             dat = get("data.to.impute")
+             dat = get("data.to.impute", envir = thePlaceToBe)
              dat[i,j] = NA
              assign("data.to.impute",
                     dat, envir = thePlaceToBe)
@@ -225,7 +225,7 @@ kNNImputeOptimization = function(data.in, seed = 1234){
   # BARE IN MIND THERE IS NO RANDOMNESS REGARDING impute.knn
   # it has a default random seed inside it
   # get list of imputed datasets for k = 1:20
-  predictions.k = lapply(c(1:100),
+  predictions.k = lapply(c(1:50),
                          function(x) 
                            #knn.impute(data.scaled, k = x, cat.var = NULL)
                          #knnImputation(data.scaled, k = x, scale = F)
@@ -262,8 +262,10 @@ kNNImputeOptimization = function(data.in, seed = 1234){
   
 }
 
-RMSE = sapply(1:100,function(x) kNNImputeOptimization(bio, seed = x))
-boxplot(t(RMSE))
+RMSE = t(sapply(1,function(x) kNNImputeOptimization(bio, seed = x)))
+boxplot(RMSE)
+best.k.med = which.min(apply(RMSE, 2, median))
+best.k.mean = which.min(colMeans(RMSE))
 
 # ?scaling: works weird man
 mean.cols = as.vector(colMeans(bio, na.rm = T))
@@ -308,6 +310,22 @@ snp[snp==0] <- NA
 snp[snp==1] <- 0
 snp[snp==2] <- 1
 snp[snp==3] <- 2
+
+# SNP'S DATA A BIT HARDER TO IMPUTE BECAUSE VALUES ARE EITHER 0,1 OR 2, 
+# SOME ENTRIES (PARTICUARLY LINEARLY 77 HAS A LOT OF THE SAME VALUES, =2 FOR COLUMN 77)
+# WHICH MAKES IT EASY TO DO IMPUTATION:
+# -- mean(snp[,77]==2, na.rm = T) == 0.995998
+# -- sum(colMeans(snp==0, na.rm = T)>0.7) = 0
+# -- sum(colMeans(snp==1, na.rm = T)>0.95) = 0
+# -- sum(colMeans(snp==2, na.rm = T)>0.95) = 9 # having these columns in results in a standard deviation of
+# 0 which does not allow us to scale the SNP values, BUT MAYBE SNPs don't need to be rescaled
+# -- sum(colMeans(snp==2, na.rm = T)>0.7) = 60
+snp = snp[,!(colMeans(snp==2,na.rm= T)>0.9)]
+
+# NOT REALLY SURE HOW TO IMPUTE SNPs, ASK BARBS
+
+RMSE.snps = t(sapply(1:10,function(x) kNNImputeOptimization(data.in = snp, seed = x)))
+boxplot(RMSE.snps)
 
 saveRDS(snp, "data/preprocessed/snpProcessed.rds")
 
