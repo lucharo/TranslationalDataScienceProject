@@ -52,4 +52,7 @@ ggplot(cov.prs, aes(x=CVD_status, y=PRS_sums))+
   geom_boxplot()
 
 #t-test - no sig difference in mean PRS between groups...
-t.test(PRS ~ CVD_status, data=cov.prs)
+t.test(PRS_sums ~ CVD_status, data=cov.prs)
+
+
+
