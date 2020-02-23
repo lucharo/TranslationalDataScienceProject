@@ -22,11 +22,14 @@ stopifnot(all(colnames(snp) == snp.info$markername))
 betas <- snp.info$beta
 
 #Element-wise multiplication of each row of snp by the betas (margin=2 specifies it is rows of the matrix; each row is a person) - this multiples each no. of snp copies by the beta coefficient for that snp 
-PRS_int = sweep(snp, MARGIN=2, betas, `*`)
+PRS_matrix = sweep(snp, MARGIN=2, betas, `*`)
 
 
 #Now calculate the weighted sum for each person (have included na.rm=TRUE to make it work for now, can remove when we've done imputation)
-PRS = rowSums(PRS_int, na.rm=TRUE)
+PRS_sums = rowSums(PRS_int, na.rm=TRUE)
+
+PRS = cbind(rownames(snp), PRSsums)
+saveRDS(PRS, "data/preprocessed/PolygenicRiskScore.rds")
 
 
 #################################################################
