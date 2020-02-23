@@ -15,43 +15,29 @@ snp <- readRDS("data/preprocessed/snpProcessed.rds")
 ##                        Computing PRS                         ##
 ##################################################################
 
-# Check that the snps are in the same order in snp and snp.info
+#Check that the snps are in the same order in snp and snp.info
 stopifnot(all(colnames(snp) == snp.info$markername))
 
-### Function for computing PRS per person
+#Extracting the beta values (which are in the correct order based on above check)
 betas <- snp.info$beta
 
-#this for loop calculates beta*copy number for each snp  
-for (i in length(snp)){
-  PRStest = snp[i,]*betas
-}
-#putting this in a function
-snps.betas <- function() {
-  for (i in length(snp)){
-    PRStest = snp[i,]*betas
-  }
-}
-
-#now including the weighted sum for each person (NAs are still present in the snp data so have included na.rm=TRUE for now, can remove if we do imputation)
-compute_PRS <- function(data=snp){
-  for (i in length(snp)){
-    PRS_int = snp[i,]*betas
-  }
-  PRS = rowSums(PRS_int, na.rm=TRUE)
-}
-
-PRSt = snp[1,]*betas
-length(snp)
-
-#Apply the function to each row (person) to get PRS for each person
-all_PRS = apply(snp, 1, compute_PRS)
+#Element-wise multiplication of each row of snp by the betas (margin=2 specifies it is rows of the matrix; each row is a person) - this multiples each no. of snp copies by the beta coefficient for that snp 
+PRS_int = sweep(snp, MARGIN=2, betas, `*`)
 
 
-#Use parallel computing (not done yet)
-library(parallel)
-no_cores = detectCores()-1
-cl - makeCluster(no_cores)
+#Now calculate the weighted sum for each person (have included na.rm=TRUE to make it work for now, can remove when we've done imputation)
+PRS = rowSums(PRS_int, na.rm=TRUE)
 
-all_PRS <- parSapply(cl=cl, X=snp, FUN=compute_PRS)
 
-stopCluster(cl)
+#################################################################
+##                Comparison between CVD status                ##
+#################################################################
+
+cov <- readRDS("data/preprocessed/covProcessed.rds")
+cov.prs <- cbind(cov, PRS)
+
+#Boxplot of PRS by CVD status
+ggplot(cov.prs, aes(x=CVD_status, y=PRS)) + geom_boxplot()
+
+#t-test - no sig difference in mean PRS between groups...
+t.test(PRS ~ CVD_status, data=cov.prs)
