@@ -4,6 +4,9 @@
 ##                 Prepare libraries and data                   ##
 ##################################################################
 
+
+## PROBLEM WITH PLS NOT WORKING HAS TO DO WITH CASE-CONTROLSIMBALANCE,
+# OUT OF 2000 LIKE 73 CASES OR SO
 rm(list=ls())
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
@@ -17,7 +20,6 @@ cov <- readRDS("data/preprocessed/covProcessed.rds")
 
 X = bio
 y = cov$CVD_status
-
 
 ##################################################################
 ##                    Running PLS-DA model                    ##
