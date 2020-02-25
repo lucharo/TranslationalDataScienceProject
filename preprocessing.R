@@ -222,6 +222,13 @@ kNNImputeOptimization = function(data.in, seed = 1234){
   # put in right format for imputation
   data.scaled = as.matrix(data.scaled)
   
+  # -- if want scaled RMSE
+  # data.complete.scaled = sweep(sweep(data.complete,
+  #                                    MARGIN = 2,mean.cols,'-'),
+  #                              2,sd.cols,"/")
+  # # put in right format for imputation
+  # data.complete.scaled = as.matrix(data.complete.scaled)
+  
   # BARE IN MIND THERE IS NO RANDOMNESS REGARDING impute.knn
   # it has a default random seed inside it
   # get list of imputed datasets for k = 1:20
@@ -237,14 +244,17 @@ kNNImputeOptimization = function(data.in, seed = 1234){
   stopifnot(sum(sapply(1:length(predictions.k),
                        function(i) anyNA(predictions.k[[i]]))) == 0)
   # rescale data
+  # -- if want scaled RMSE: predictions.k.rescaled = predictions.k 
   predictions.k.rescaled = lapply(1:length(predictions.k),
-                                  function(x) 
+                                  function(x)
                                     sweep(sweep(predictions.k[[x]],
                                                 MARGIN = 2,sd.cols,'*')
                                           ,2,mean.cols,"+"))
   # get amount of missing data
   missing.dat = sum(is.na(data.scaled))
-
+  
+  ## MAYBE COMPUTE ERROR PER COLUMN AND GIVE BOXPLOT OF THAT
+  
   # Calculate mean square error
   # apply for every dataset
   MSE = sapply(1:length(predictions.k),function(L){
@@ -252,17 +262,19 @@ kNNImputeOptimization = function(data.in, seed = 1234){
     mean(apply(NApattern, MARGIN=1,
                FUN=function(k){
                  i=k[1];j=k[2]
+                 # -- if want scaled RMSE
+                 # (predictions.k.rescaled[[L]][i,j]-data.complete.scaled[i,j])**2
                  (predictions.k.rescaled[[L]][i,j]-data.complete[i,j])**2
                }))
   })
-  
+
   # calculate RMSE to have 
   RMSE = sqrt(MSE)
   RMSE
   
 }
 
-RMSE = t(sapply(1,function(x) kNNImputeOptimization(bio, seed = x)))
+RMSE = t(sapply(1:5,function(x) kNNImputeOptimization(bio, seed = x)))
 boxplot(RMSE)
 best.k.med = which.min(apply(RMSE, 2, median))
 best.k.mean = which.min(colMeans(RMSE))
