@@ -254,7 +254,7 @@ kNNImputeOptimization = function(data.in, seed = 1234){
   missing.dat = sum(is.na(data.scaled))
   
   ## MAYBE COMPUTE ERROR PER COLUMN AND GIVE BOXPLOT OF THAT
-  
+  ## try logging bio because of skewed variables
   # Calculate mean square error
   # apply for every dataset
   MSE = sapply(1:length(predictions.k),function(L){
