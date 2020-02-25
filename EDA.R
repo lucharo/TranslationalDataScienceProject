@@ -19,6 +19,7 @@
 ###                                                                     ###
 ###########################################################################
 ###########################################################################
+rm(list = ls())
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 if (!require(devtools)) install.packages('devtools')
 library(devtools)
@@ -43,6 +44,14 @@ library(mice)
 
 library(parallel)
 cores = detectCores()
+
+# Set global theme
+source("ggPalettes.R")
+paperPalette()
+scale_color_global = scale_color_gdocs
+scale_fill_global = scale_fill_gdocs
+
+
 ##################################################################
 ##                  Load preprocessed datasets                  ##
 ##################################################################
@@ -52,6 +61,9 @@ cov = readRDS("data/preprocessed/covProcessed.rds")
 bio.imp = readRDS("data/preprocessed/bioImputed.rds")
 snp = readRDS("data/preprocessed/snpProcessed.rds")
 
+# change dots for spaces in colnames bio for appropriate plotting
+colnames(bio) = str_replace_all(colnames(bio), "\\."," ")
+
 ##################################################################
 ##                      Missing Data plots                      ##
 ##################################################################
@@ -60,6 +72,8 @@ snp = readRDS("data/preprocessed/snpProcessed.rds")
 bio.unfiltered.CVD = merge(bio.unfiltered,
                            cov[,"CVD_status"],
                            by="row.names",all.x=TRUE)
+rownames(bio.unfiltered.CVD) = bio.unfiltered.CVD$Row.names
+bio.unfiltered.CVD = bio.unfiltered.CVD[-1]
 
 gg_miss_fct(x = bio.unfiltered.CVD, fct = CVD_status)+
   ggtitle("Missing data patterns by CVD status for all biomarkers")
@@ -83,15 +97,19 @@ ggsave("results/MissBioDatabyCVD.pdf")
 # for each of those events. nintersects limits the amount of variable
 # intersection you want to look at
 
+# upset plots are not cool with ggsave method
+pdf(file = "results/upset_biofull_unfiltered.pdf", onefile = F)
 gg_miss_upset(bio.unfiltered.CVD, 
                       nsets = 10,
                       nintersects = 10)
-ggsave("results/upset_biofull_unfiltered.pdf")
+dev.off()
 
-upset = gg_miss_upset(bio.CVD, 
-                      nsets = 10,
-                      nintersects = 10)
-ggsave("results/upset_biofull.pdf")
+
+pdf(file = "results/upset_biofull.pdf", onefile = F)
+gg_miss_upset(bio.CVD, 
+              nsets = 10,
+              nintersects = 10)
+dev.off()
 
 vis_miss(bio.unfiltered.CVD)+
   scale_y_continuous(position = 'right')+
@@ -114,8 +132,10 @@ gg_miss_fct(x = cov, fct = CVD_status) +
   ggtitle('Missing data patterns by CVD status for covariates')
 ggsave("results/MissCovDatabyCVD.pdf")
 
+pdf(file = "results/upset_covfull.pdf", onefile = F)
 gg_miss_upset(cov)
-ggsave("results/upset_covfull.pdf")
+dev.off()
+
 
 
 # missing data plots for snps
@@ -138,16 +158,38 @@ bio.imp.CVD = merge(bio.imp,cov[,"CVD_status"],by="row.names",all.x=TRUE)
 rownames(bio.imp.CVD) = bio.imp.CVD$Row.names
 bio.imp.CVD = bio.imp.CVD[,-1]
 
+biomarker.labeller = function(original){
+  str_replace_all(original, "\\."," ")
+}
+
+
 bio.imp.CVD %>% pivot_longer(-CVD_status, 
                              names_to = "Biomarker",
                              values_to = "Amount") %>%
   ggplot(aes(x = Amount, color = CVD_status)) +
   geom_density(alpha = 0)+
-  facet_wrap(Biomarker~., scales = "free")+
-  theme_minimal()+
-  scale_color_brewer(palette = "Set1")+
+  facet_wrap(Biomarker~.,
+             scales = "free",
+             labeller = labeller(Biomarker = biomarker.labeller))+
+  #theme_minimal()+
+  #scale_color_brewer(palette = "Set1")+
+  scale_color_global()+
   ggtitle("Biomarker distribution for imputed data")
+
 ggsave("results/bio_dist_imp.pdf")
+
+bio.imp.CVD %>% pivot_longer(-CVD_status, 
+                             names_to = "Biomarker",
+                             values_to = "Amount") %>%
+  ggplot(aes(x = log10(Amount), color = CVD_status)) +
+  geom_density(alpha = 0)+
+  facet_wrap(Biomarker~.,
+             scales = "free")+
+  #theme_minimal()+
+  #scale_color_brewer(palette = "Set1")+
+  ggtitle("Biomarker distribution for imputed data(log scaled)")
+
+ggsave("results/bio_dist_impLOG.pdf")
 
 rownames(bio.CVD) = bio.CVD$Row.names
 bio.CVD = bio.CVD[,-1]
@@ -157,8 +199,9 @@ bio.CVD %>% pivot_longer(-CVD_status,
   ggplot(aes(x = Amount, color = CVD_status)) +
   geom_density(alpha = 0)+
   facet_wrap(Biomarker~., scales = "free")+
-  theme_minimal()+
-  scale_color_brewer(palette = "Set1")+
+  #theme_minimal()+
+  #scale_color_brewer(palette = "Set1")+
+  #scale_colour_Publication()+
   ggtitle("Biomarker distribution for MCAR data")
 ggsave("results/bio_dist_MCAR.pdf")
 
@@ -168,7 +211,8 @@ ggsave("results/bio_dist_MCAR.pdf")
 # compute b's principal components,
 # we set center and scale as TRUE, so that all features are scaled (~divided by sd) 
 # and centred (~mean removed) before calculating PCAs as it should be.
-b.pca = prcomp(bio.imp.CVD[,-ncol(bio.imp.CVD)], center = TRUE, scale. = TRUE)
+b.pca = prcomp(bio.imp.CVD[,-ncol(bio.imp.CVD)],
+               center = TRUE, scale. = TRUE)
 
 # scree plot
 scree = ggscreeplot(b.pca)+ylim(0,1)
@@ -180,7 +224,7 @@ ellipses = autoplot(b.pca, data = bio.imp.CVD,
                     alpha = 0.5,
                     loadings = T, loadings.colour = 'black',
                     loadings.label = T, loadings.label.colour = 'black')+
-  scale_color_brewer(palette = 'Set1')
+  scale_color_global()
 ggsave("results/PCA_plot_biomarkers.pdf")
 
 # print summary of pca
