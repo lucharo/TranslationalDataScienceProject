@@ -111,19 +111,22 @@ gg_miss_upset(bio.CVD,
               nintersects = 10)
 dev.off()
 
-vis_miss(bio.unfiltered.CVD)+
+if (!require(cowplot)) install.packages("cowplot")
+library(cowplot)
+
+miss1 = vis_miss(bio.unfiltered.CVD)+
   scale_y_continuous(position = 'right')+
   theme(axis.text.x = element_text(angle = 0))+
   scale_x_discrete(position = "bottom")+
   coord_flip()
-ggsave("results/missBioDataPatterns_unfiltered.pdf")
+ggsave("results/missBioDataPatterns_unfiltered.png")
 
 vis_miss(bio.CVD)+
   scale_y_continuous(position = 'right')+
   theme(axis.text.x = element_text(angle = 0))+
   scale_x_discrete(position = "bottom")+
   coord_flip()
-ggsave("results/missBioDataPatterns.pdf")
+ggsave("results/missBioDataPatterns.png")
 
 
 # missing data plots for covariates
@@ -145,8 +148,9 @@ snp.cvd = merge(snp, cov[,"CVD_status"], by="row.names", all.x=TRUE)
 gg_miss_fct(x = snp.cvd, fct = CVD_status) +
   ggtitle("Missing data patterns by CVD status for all snps")
 
+pdf(file = "results/upset_snp.pdf", onefile = F)
 gg_miss_upset(snp)
-ggsave("results/upset_snp.pdf")
+dev.off()
 
 
 
