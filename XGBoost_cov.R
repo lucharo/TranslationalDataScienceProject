@@ -26,7 +26,7 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 #Load Data
 cov = readRDS("data/preprocessed/covProcessed.rds")
 bio = readRDS("data/preprocessed/bioImputed.rds")
-snp = readRDS("data/preprocessed/snpProcessed.rds")
+snp = readRDS("data/preprocessed/snpImputed.rds")
 
 # Preparing our Data and selecting features -------------------------------
 
@@ -214,12 +214,15 @@ Analysis("svm", cov.bio)
 
 Analysis("xgboost", cov.bio)
 
-snp = snp[complete.cases(snp),]
+cov.bio.snp = merge(cov.bio, snp, by = "row.names")
+rownames(cov.bio.snp) = cov.bio.snp$Row.names
+cov.bio.snp = cov.bio.snp[,-1]
 
+Analysis("svm", cov.bio.snp)
 
+Analysis("xgboost", cov.bio.snp)
 
-
-
+# more to come: +BHS_score, +PRS, +both ...
 
 
 
