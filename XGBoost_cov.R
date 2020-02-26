@@ -18,18 +18,13 @@ library(tidyverse)
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 #Load Data
-covariates_processed = readRDS("data/preprocessed/covProcessed.rds")
-str(covariates_processed)
-
-#Set a random seed and shuffle data frame - doing this so that when I split our data into a tesing set and training set using the row numbers, I know that I'll get a random sample of data in both the testing and training set
-set.seed(1234) 
-covariates_processed <- covariates_processed[sample(1:nrow(covariates_processed)), ]
-head(covariates_processed)
-
+cov = readRDS("data/preprocessed/covProcessed.rds")
+bio = readRDS("data/preprocessed/bioImputed.rds")
 
 # Preparing our Data and selecting features -------------------------------
 
-#One stumbling block when getting started with the xgboost package in R is that you can't just pass it a dataframe. The core xgboost function requires data to be a matrix.
+# One stumbling block when getting started with the xgboost package in R is 
+# that you can't just pass it a dataframe. The core xgboost function requires data to be a matrix.
 
 #To prepare our data, we have a number of steps we need to complete:
 #remove information about the target variable from the training data
@@ -43,52 +38,45 @@ head(covariates_processed)
 
 #First let's remove the columns that have information on our target variable
 
-covariates_processed_targetVariableRemoved <- covariates_processed %>% 
-  select(-c("dc_cvd_st", "stop_cvd", "CVD_status", "age_CVD", "cvd_final_icd10", "primary_cause_death_ICD10", "cvd_death", "cvd_incident", "cvd_prevalent", "stop"))
+#Let's create a new vector with labels - convert the CVD_status factor to an 
+# integer class starting at 0, as the first class should be 0; picky requirement
+Outcome = as.integer(cov$CVD_status)-1
 
-#Let's create a new vector with labels - convert the CVD_status factor to an integer class starting at 0, as the first class should be 0; picky requirement
-
-covariates_label = as.integer(covariates_processed$CVD_status)-1
-covariates_label
-summary(covariates_label)
-table(covariates_label)
-table(covariates_processed$CVD_status)
-
-nc <- length(unique(covariates_label))
-nc
-
-#Check out the first few lines
-head(covariates_label)
+cov <- cov %>% 
+  select(-c("vit_status","dc_cvd_st", "CVD_status","age_cl", "stop","stop_cvd",
+            "age_CVD", "cvd_final_icd10", "primary_cause_death_ICD10",
+            "cvd_death", "cvd_incident", "cvd_prevalent"))
 
 # Reduce the amount of redundant information ------------------------------
 
-#Finally, I want to remove all the non-numeric variables, since a matrix can only hold numeric variables - if you try to create a matrix from a dataframe with non-numeric variables in it, it will conver them all into NA's and give you some warning messages.
+#Finally, I want to remove all the non-numeric variables,
+# since a matrix can only hold numeric variables - if you try to create a 
+# matrix from a dataframe with non-numeric variables in it, it will 
+# conver them all into NA's and give you some warning messages.
 
-str(covariates_processed_targetVariableRemoved)
+# Luis: we want to keep ordered categorical variables as integers but OneHotEncoding
+# on non-ordered categorical variables (e.g. smok_ever, physical activity) only those
+# 2 surprisingly
 
-#Select just the numeric columns
-covariates_processed_numeric <- covariates_processed_targetVariableRemoved %>%
-  select_if(is.numeric)
-str(covariates_processed_numeric)
-
+# ONCE transformed make into matrix --> 
 
 # Convert dataframe into matrix -------------------------------------------
 
-covaraites_matrix <- data.matrix(covariates_processed_numeric)
+cov <- data.matrix(cov)
 
 
 # Split dataset into Training and Testing Sets ----------------------------
 
 #Get the numb 70/30 training test split
-numberofTrainingSamples <- round(length(covariates_label) * 0.7)
+tr.index <- sample(1:nrow(cov_, size = 0.7*nrow(cov)))
 
 #Training Data
-train_data <- covaraites_matrix[1:numberofTrainingSamples, ]
-train_labels <- covariates_label[1:numberofTrainingSamples]
+cov.train <- cov[tr.index, ]
+y.train <- Outcome[tr.index]
 
 #Testing Data
-test_data <- covaraites_matrix[-(1:numberofTrainingSamples), ]
-test_labels <- covariates_label[-(1:numberofTrainingSamples)]
+cov.test <- cov[-tr.index, ]
+test_labels <- Outcome[-tr.index]
 
 
 # Convert the cleaned dataframe to a DMATRIX ------------------------------
