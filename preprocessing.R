@@ -274,7 +274,7 @@ kNNImputeOptimization = function(data.in, seed = 1234){
   
 }
 
-RMSE = t(sapply(1:5,function(x) kNNImputeOptimization(bio, seed = x)))
+RMSE = t(sapply(1:5,function(x) kNNImputeOptimization(log10(bio), seed = x)))
 boxplot(RMSE)
 best.k.med = which.min(apply(RMSE, 2, median))
 best.k.mean = which.min(colMeans(RMSE))
