@@ -13,6 +13,12 @@ library(car)
 
 library(tidyverse)
 
+# for auc calculation
+library(ModelMetrics)
+
+# for svm 
+library(e1071)
+
 
 # Setting up our environment ----------------------------------------------
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
@@ -20,6 +26,7 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 #Load Data
 cov = readRDS("data/preprocessed/covProcessed.rds")
 bio = readRDS("data/preprocessed/bioImputed.rds")
+snp = readRDS("data/preprocessed/snpProcessed.rds")
 
 # Preparing our Data and selecting features -------------------------------
 
@@ -40,10 +47,11 @@ bio = readRDS("data/preprocessed/bioImputed.rds")
 
 #Let's create a new vector with labels - convert the CVD_status factor to an 
 # integer class starting at 0, as the first class should be 0; picky requirement
-Outcome = as.integer(cov$CVD_status)-1
+cov$CVD_status = as.integer(cov$CVD_status)-1
 
-cov <- cov %>% 
-  select(-c("vit_status","dc_cvd_st", "CVD_status","age_cl", "stop","stop_cvd",
+cov <- cov %>% # we will leave CVD_stattus in cov and let it be split in the 
+  # analysis function so that the sampling can be done and order is kept
+  select(-c("vit_status","dc_cvd_st","age_cl", "stop","stop_cvd",
             "age_CVD", "cvd_final_icd10", "primary_cause_death_ICD10",
             "cvd_death", "cvd_incident", "cvd_prevalent"))
 
@@ -58,18 +66,171 @@ cov <- cov %>%
 # on non-ordered categorical variables (e.g. smok_ever, physical activity) only those
 # 2 surprisingly
 
-# ONCE transformed make into matrix --> 
+cov$smok_ever_2 = as.factor(cov$smok_ever_2)
+cov$physical_activity_2 = as.factor(cov$physical_activity_2)
 
-# Convert dataframe into matrix -------------------------------------------
+onehotvars = dummyVars("~.", data = cov[,c("smok_ever_2","physical_activity_2")])
+onehotvars = data.frame(predict(onehotvars, newdata = cov[,c("smok_ever_2",
+                                                             "physical_activity_2")]))
+# Delete one hot encoded variables and add the encoded versions
+cov = cov %>% select(-c(smok_ever_2,physical_activity_2)) %>% cbind(onehotvars)
+# remove onehot vars for memory management
+remove(onehotvars)
 
-cov <- data.matrix(cov)
+# Convert dataframes into matrix -------------------------------------------
+
+# cov <- as.matrix(cov)
+# bio = as.matrix(as.numeric(bio))
+
+# preferred xgboost data type = xgb.Dmatrix
+
+#################################################################
+##                  Function would start here                  ##
+#################################################################
+
+Analysis = function(model, data, outcome = 'CVD_status'){
+  #reproducibility across datasets
+  
+  set.seed(1247)
+  tr.index = sample(1:nrow(data), size = 0.7*nrow(data))
+  X = dplyr::select(data, -outcome)
+  y = dplyr::select(data, outcome)
+  
+  y.train = y[tr.index,1]
+  X.train = X[tr.index,]
+  
+  y.test = y[-tr.index,1]
+  X.test = X[-tr.index,]
+  
+  if (model == "xgboost"){
+    X.train = as.matrix(X.train)
+    X.test = as.matrix(X.test)
+    train = xgb.DMatrix(data = X.train, label= y.train)
+    test <- xgb.DMatrix(data = X.test, label = y.test)
+    
+    # nrounds is basically number of trees in forest
+    # this is basically a grid search
+    best_auc = 0
+    best_eta = 0
+    best_depth = 0
+    best_nround = 0
+    for (nround in c(5,10,20)){
+      #Apparently one should only tweak nrounds realistically or maybe yes
+      # https://www.kaggle.com/c/otto-group-product-classification-challenge/discussion/13053
+      # https://stackoverflow.com/questions/35050846/xgboost-in-r-how-does-xgb-cv-pass-the-optimal-parameters-into-xgb-train
+      # many other things to optimise: https://rdrr.io/cran/xgboost/man/xgb.train.html
+      for (max_depth in c(3,5,10,15)){
+        for (eta in c(0.1, 0.5, 1)){
+          
+          # if the nfold is too tiny this function may give an error because the dataset
+          # fed into the model only contains negative samples aka (controls)
+          
+          model.cv = xgb.cv(data = train, nfold = 5, nrounds = nround, objective = "binary:logistic",
+                      metrics = list("auc"), eta = eta, max_depth = max_depth, verbose = F)
+          if (max(model.cv[["evaluation_log"]][["test_auc_mean"]]) > best_auc){
+            best_eta = eta
+            best_depth = max_depth
+            best_nround = nround
+            best_auc = max(model.cv[["evaluation_log"]][["test_auc_mean"]])
+          }
+        }
+      }
+    }
+    
+    best.model = xgb.train(data = train, nrounds = best_nround, objective = "binary:logistic",
+                           eta = best_eta, max_depth = best_depth, eval_metric = "auc")
+    prdct = predict(best.model, newdata = test)
+    pred <- prediction(prdct, getinfo(test,'label'))
+    perf <- performance(pred,"tpr","fpr")
+    auc = performance(pred, "auc")
+    plot(perf, coloured = T)
+    return(auc@y.values[[1]])
+    
+  }
+  
+  else if (model == "svm"){
+    
+    ## set up for CV
+    folds <- cut(seq(1,nrow(X.train)),breaks=5,labels=FALSE)
+    
+    best_auc = 0
+    best_kernel = 0
+    best_cost = 0
+    for (kernel in c("linear","radial")){
+      for(cost in c(1,5,10,15)){
+        ######### CV
+        auc.list = c()
+        for (i in 1:5){
+          valIndexes <- which(folds==i)
+          ValData <- X.train[valIndexes, ]
+          nonValData <- X.train[-valIndexes, ]
+          
+          ValOutcome = y.train[valIndexes]
+          nonValOutcome = y.train[-valIndexes]
+          
+          
+          # details for this syntax :
+          #  https://stackoverflow.com/questions/9028662/predict-maybe-im-not-understanding-it  
+          md.svm = svm(nonValOutcome ~ . , data = data.frame(nonValOutcome, nonValData),
+                       kernel = kernel, cost = cost)
+          prdct = predict(md.svm, newdata =  ValData)
+          pred.objct = prediction(prdct, ValOutcome)
+          auc = performance(pred.objct, "auc")
+          auc.list = append(auc.list, auc@y.values[[1]])
+        }
+        mean.auc = mean(auc.list)
+        if (mean.auc>best_auc){
+          best_auc = mean.auc
+          best_kernel = kernel
+          best_cost = cost
+        }
+      }
+    }
+    
+    bst.svm = svm(y.train~., data = data.frame(y.train, X.train),
+                 kernel = best_kernel, cost = best_cost)
+    best.prdct = predict(bst.svm, X.test)
+    pred.objct = prediction(best.prdct, y.test)
+    auc = performance(pred.objct, "auc")
+    plot(performance(pred.objct, "tpr", "fpr"))
+    return(auc@y.values[[1]])
+  }
+  
+  else if (model == "logit"){
+    
+  }
+}
+
+
+Analysis("xgboost", cov)
+
+Analysis("svm", cov)
+
+cov.bio = merge(cov,bio, by = "row.names")
+rownames(cov.bio) = cov.bio$Row.names
+cov.bio = cov.bio[,-1]
+
+Analysis("svm", cov.bio)
+
+Analysis("xgboost", cov.bio)
+
+snp = snp[complete.cases(snp),]
+
+
+
+
+
+
+
+
+
 
 
 # Split dataset into Training and Testing Sets ----------------------------
 
 #Get the numb 70/30 training test split
-tr.index <- sample(1:nrow(cov_, size = 0.7*nrow(cov)))
-
+tr.index.cov <- sample(1:nrow(cov), size = 0.7*nrow(cov))
+tr.index.bio = sample(1:nrow(cov), size = 0.7*nrow(cov))
 #Training Data
 cov.train <- cov[tr.index, ]
 y.train <- Outcome[tr.index]
