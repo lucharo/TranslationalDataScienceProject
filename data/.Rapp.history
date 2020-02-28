@@ -1,1 +1,2 @@
 load("/Users/Fatima/Desktop/Translational Data Sciences/BEES_TDS/data/Biomarkers_toy.rds")
+load("/Users/luischavesrodriguez/OneDrive - Imperial College London/MScHDA/Term2/TDS/Project/data/Covars_toy.rds")
