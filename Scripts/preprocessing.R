@@ -182,97 +182,15 @@ saveRDS(bioMCAR, file = "../data/preprocessed/bioMCAR.rds")
 # Impute with KNN -- using caret
 t0 = Sys.time()
 
-kNNImputeOptimization = function(data.in, seed = 1234){
-  set.seed(seed) # this makes the sampling of different indices random
-  # take complete data
-  data.complete = data.in[complete.cases(data.in),]
-  # within the range of rows from data.in grab as many rows as there are
-  # rows in the complete data set
-  rand.index = sample(x = 1:nrow(data.in), size = nrow(data.complete))
-  # get the NA pattern in that random subset of the data.in
-  NApattern = which(is.na(data.in[rand.index,]), arr.ind = T)
-  rows = NApattern[,1]
-  columns = NApattern[,2]
-  # data to impute will be based in complete cases
-  data.to.impute = data.complete
-  # induce missingness in the data to impute with the real structure
-  # of the original data -- feeding these indices does not seem to work
-  # well
-  # -- data.to.impute[rows, columns] = NA
-  
-  ## fill in NAs with nested for loop
-  
-  thePlaceToBe = environment()
-  apply(NApattern, MARGIN=1,
-           FUN=function(k){
-             i=k[1];j=k[2]
-             dat = get("data.to.impute", envir = thePlaceToBe)
-             dat[i,j] = NA
-             assign("data.to.impute",
-                    dat, envir = thePlaceToBe)
-           })
-  
-  #get mean and sds for scaling
-  mean.cols = as.vector(colMeans(data.to.impute, na.rm = T))
-  sd.cols = as.vector(apply(data.to.impute,2, function(col) sd(col, na.rm = T)))
-  # scale the data to impute
-  data.scaled = sweep(sweep(data.to.impute,
-                            MARGIN = 2,mean.cols,'-'),
-                      2,sd.cols,"/")
-  # put in right format for imputation
-  data.scaled = as.matrix(data.scaled)
-  
-  # -- if want scaled RMSE
-  # data.complete.scaled = sweep(sweep(data.complete,
-  #                                    MARGIN = 2,mean.cols,'-'),
-  #                              2,sd.cols,"/")
-  # # put in right format for imputation
-  # data.complete.scaled = as.matrix(data.complete.scaled)
-  
-  # BARE IN MIND THERE IS NO RANDOMNESS REGARDING impute.knn
-  # it has a default random seed inside it
-  # get list of imputed datasets for k = 1:20
-  predictions.k = lapply(c(1:50),
-                         function(x) 
-                           #knn.impute(data.scaled, k = x, cat.var = NULL)
-                         #knnImputation(data.scaled, k = x, scale = F)
-                         impute.knn(data.scaled, k = x,
-                                    rowmax = 1, colmax = 1)$data
-                         )
-  
-  # assert if there's any missing data in any of the imputed dataframes
-  stopifnot(sum(sapply(1:length(predictions.k),
-                       function(i) anyNA(predictions.k[[i]]))) == 0)
-  # rescale data
-  # -- if want scaled RMSE: predictions.k.rescaled = predictions.k 
-  predictions.k.rescaled = lapply(1:length(predictions.k),
-                                  function(x)
-                                    sweep(sweep(predictions.k[[x]],
-                                                MARGIN = 2,sd.cols,'*')
-                                          ,2,mean.cols,"+"))
-  # get amount of missing data
-  missing.dat = sum(is.na(data.scaled))
-  
-  ## MAYBE COMPUTE ERROR PER COLUMN AND GIVE BOXPLOT OF THAT
-  ## try logging bio because of skewed variables
-  # Calculate mean square error
-  # apply for every dataset
-  MSE = sapply(1:length(predictions.k),function(L){
-    # mean of vector of squared differences between vector and original data
-    mean(apply(NApattern, MARGIN=1,
-               FUN=function(k){
-                 i=k[1];j=k[2]
-                 # -- if want scaled RMSE
-                 # (predictions.k.rescaled[[L]][i,j]-data.complete.scaled[i,j])**2
-                 (predictions.k.rescaled[[L]][i,j]-data.complete[i,j])**2
-               }))
-  })
+source("kNNImputeOptimization.R",print.eval = T)
 
-  # calculate RMSE to have 
-  RMSE = sqrt(MSE)
-  RMSE
-  
-}
+RMSE = t(sapply(1:5,
+                function(x) kNNImputeOptimization(bio, seed = x,
+                                                  perParam = T, scaled = T,
+                                                  plot = x==5)))
+boxplot(RMSE)
+best.k.med = which.min(apply(RMSE, 2, median))
+best.k.mean = which.min(colMeans(RMSE))
 
 RMSE = t(sapply(1:5,function(x) kNNImputeOptimization(log10(bio), seed = x)))
 boxplot(RMSE)
