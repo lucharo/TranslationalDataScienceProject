@@ -67,12 +67,12 @@ cores = detectCores()
 #################################################################
 ##                      Original datasets                      ##
 #################################################################
-cov.original = readRDS("data/Covars_toy.rds")
-bio.original= readRDS("data/Biomarkers_toy.rds")
-bio.dict = readxl::read_xlsx("Biomarker_annotation.xlsx")
-cov.dict = readxl::read_xlsx("Covariate_dictionary.xlsx")
-snp.original = readRDS('data/Genes_toy.rds')
-snp_info.original = readxl::read_xlsx("SNP_info.xlsx")
+cov.original = readRDS("../data/Covars_toy.rds")
+bio.original= readRDS("../data/Biomarkers_toy.rds")
+bio.dict = readxl::read_xlsx("../Biomarker_annotation.xlsx")
+cov.dict = readxl::read_xlsx("../Covariate_dictionary.xlsx")
+snp.original = readRDS('../data/Genes_toy.rds')
+snp_info.original = readxl::read_xlsx("../SNP_info.xlsx")
 
 ##################################################################
 ##                        Cluster add-in                        ##
@@ -146,23 +146,23 @@ cov$vit_status = as.factor(cov$vit_status)
 cov$dc_cvd_st = as.factor(cov$dc_cvd_st)
 cov$cvd_death = as.factor(cov$cvd_death)
 
-saveRDS(cov, file = "data/preprocessed/covProcessed.rds")
+saveRDS(cov, file = "../data/preprocessed/covProcessed.rds")
 
 
 ##################################################################
 ##                   Processing of biomarkers                   ##
 ##################################################################
 
-saveRDS(bio, file = "data/preprocessed/bioUnfiltered.rds")
+saveRDS(bio, file = "../data/preprocessed/bioUnfiltered.rds")
 # drop columns with more than 50% missing values i.e. Rheumatoid factor
 # and oestradiol
 bio = bio[,!colMeans(is.na(bio))>0.5]
 # drop rows with more than 50% biomarkers missing
 bio = bio[!rowMeans(is.na(bio))>0.5,]
-saveRDS(bio, file = "data/preprocessed/bioProcessed.rds")
+saveRDS(bio, file = "../data/preprocessed/bioProcessed.rds")
 
 bioMCAR = bio[complete.cases(bio),]
-saveRDS(bioMCAR, file = "data/preprocessed/bioMCAR.rds")
+saveRDS(bioMCAR, file = "../data/preprocessed/bioMCAR.rds")
 
 # impute biomarkers based on biomarkers only
 # t0 = Sys.time()
@@ -296,7 +296,7 @@ bio.imp = sweep(sweep(bio.scaled.imp,MARGIN = 2,sd.cols,'*'),2,mean.cols,"+")
 print(Sys.time() - t0) # takes about 1 minute
 
 
-saveRDS(bio.imp, file = "data/preprocessed/bioImputed.rds")
+saveRDS(bio.imp, file = "../data/preprocessed/bioImputed.rds")
 
 
 
@@ -308,7 +308,7 @@ saveRDS(bio.imp, file = "data/preprocessed/bioImputed.rds")
 snps = colnames(snp.original)
 snp.info = snp_info.original[snp_info.original$markername %in% snps, ]
 
-saveRDS(snp.info, file = "data/preprocessed/snpInfo.rds")
+saveRDS(snp.info, file = "../data/preprocessed/snpInfo.rds")
 
 
 # recoding 00 as NA,  01 as 0, 02 as 1, and 03 as 2
@@ -342,21 +342,22 @@ best.k.med.snps = which.min(apply(RMSE.snps, 2, median))
 best.k.mean.snps = which.min(colMeans(RMSE.snps))
 
 #### FOR NOW, QUICK AND DIRTY SOLUTION
-snp.imp = as.integer(impute.knn(as.matrix(snp))$data)
+snp.imp = data.frame(impute.knn(as.matrix(snp))$data)
 
-saveRDS(snp.imp, "data/preprocessed/snpImputed.rds")
+saveRDS(snp.imp, "../data/preprocessed/snpImputed.rds")
 
-saveRDS(snp, "data/preprocessed/snpProcessed.rds")
+saveRDS(snp, "../data/preprocessed/snpProcessed.rds")
 
 ###Can do imputation of snps
-#First check that no people have all missing values and no snps have all missing values 
+# First check that no people have all missing values and 
+# no snps have all missing values 
 max(rowSums(is.na(snp)))
 #max number of missing values for one person is 15/177
 max(colSums(is.na(snp)))
 #max number of missing values for one snp is 226/2000
 
 list <-lapply(1:10,
-              function(col) ggplot2::qplot(snp[[col]],
+              function(col) ggplot2::qplot(snp.imp[[col]],
                                            geom = "histogram",
                                            binwidth = 1))
 
