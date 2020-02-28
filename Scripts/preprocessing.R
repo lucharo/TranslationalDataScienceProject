@@ -324,7 +324,7 @@ snp[snp==2] <- 1
 snp[snp==3] <- 2
 
 # SNP'S DATA A BIT HARDER TO IMPUTE BECAUSE VALUES ARE EITHER 0,1 OR 2, 
-# SOME ENTRIES (PARTICUARLY LINEARLY 77 HAS A LOT OF THE SAME VALUES, =2 FOR COLUMN 77)
+# SOME ENTRIES (PARTICUARLY COLUMN 77 HAS A LOT OF THE SAME VALUES, =2 FOR COLUMN 77)
 # WHICH MAKES IT EASY TO DO IMPUTATION:
 # -- mean(snp[,77]==2, na.rm = T) == 0.995998
 # -- sum(colMeans(snp==0, na.rm = T)>0.7) = 0
@@ -338,6 +338,13 @@ snp = snp[,!(colMeans(snp==2,na.rm= T)>0.9)]
 
 RMSE.snps = t(sapply(1:10,function(x) kNNImputeOptimization(data.in = snp, seed = x)))
 boxplot(RMSE.snps)
+best.k.med.snps = which.min(apply(RMSE.snps, 2, median))
+best.k.mean.snps = which.min(colMeans(RMSE.snps))
+
+#### FOR NOW, QUICK AND DIRTY SOLUTION
+snp.imp = as.integer(impute.knn(as.matrix(snp))$data)
+
+saveRDS(snp.imp, "data/preprocessed/snpImputed.rds")
 
 saveRDS(snp, "data/preprocessed/snpProcessed.rds")
 
@@ -347,4 +354,11 @@ max(rowSums(is.na(snp)))
 #max number of missing values for one person is 15/177
 max(colSums(is.na(snp)))
 #max number of missing values for one snp is 226/2000
+
+list <-lapply(1:10,
+              function(col) ggplot2::qplot(snp[[col]],
+                                           geom = "histogram",
+                                           binwidth = 1))
+
+cowplot::plot_grid(plotlist = list)
 
