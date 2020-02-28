@@ -80,12 +80,12 @@ snp_info.original = readxl::read_xlsx("../SNP_info.xlsx")
 cluster = 0
 
 if (cluster == 1){
-  cov.original = readRDS("data/Covariates.rds")
-  bio.original= readRDS("data/Biomarkers_full.rds")
-  bio.dict = readxl::read_xlsx("Biomarker_annotation.xlsx")
-  cov.dict = readxl::read_xlsx("Covariate_dictionary.xlsx")
-  snp.original = readRDS('data/genetic_data_cvd_snps.rds')
-  snp_info.original = readxl::read_xlsx("SNP_info.xlsx")
+  cov.original = readRDS("..FULLDATA/Covariates.rds")
+  bio.original= readRDS("..FULLDATA/Biomarkers_full.rds")
+  bio.dict = readxl::read_xlsx("../Biomarker_annotation.xlsx")
+  cov.dict = readxl::read_xlsx("../Covariate_dictionary.xlsx")
+  snp.original = readRDS('..FULLDATA/genetic_data_cvd_snps.rds')
+  snp_info.original = readxl::read_xlsx("../SNP_info.xlsx")
   
   rownames(bio.original) = bio.original$`mydata$eid`
   bio.original = bio.original[,-1]
