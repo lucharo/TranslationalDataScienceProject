@@ -24,9 +24,9 @@ library(e1071)
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 #Load Data
-cov = readRDS("data/preprocessed/covProcessed.rds")
-bio = readRDS("data/preprocessed/bioImputed.rds")
-snp = readRDS("data/preprocessed/snpImputed.rds")
+cov = readRDS("../data/preprocessed/covProcessed.rds")
+bio = readRDS("../data/preprocessed/bioImputed.rds")
+snp = readRDS("../data/preprocessed/snpImputed.rds")
 
 # Preparing our Data and selecting features -------------------------------
 
