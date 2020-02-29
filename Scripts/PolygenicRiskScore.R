@@ -9,8 +9,8 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 library(ggplot2)
 
-snp.info <- readRDS("data/preprocessed/snpInfo.rds")
-snp <- readRDS("data/preprocessed/snpProcessed.rds")
+snp.info <- readRDS("../data/preprocessed/snpInfo.rds")
+snp <- readRDS("../data/preprocessed/snpProcessed.rds")
 
 
 ##################################################################
