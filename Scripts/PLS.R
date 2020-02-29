@@ -4,7 +4,6 @@
 ##                 Prepare libraries and data                   ##
 ##################################################################
 
-
 ## PROBLEM WITH PLS NOT WORKING HAS TO DO WITH CASE-CONTROLSIMBALANCE,
 # OUT OF 2000 LIKE 73 CASES OR SO
 
@@ -15,17 +14,20 @@ library(devtools)
 if (!require(mixOmics)) devtools::install_github("mixOmicsTeam/mixOmics")
 library(sgPLS)
 library(pheatmap)
+library(ggplot2)
 
-bio <- readRDS("data/preprocessed/bioImputed.rds")
-cov <- readRDS("data/preprocessed/covProcessed.rds")
+bio <- readRDS("../data/preprocessed/bioImputed.rds")
+cov <- readRDS("../data/preprocessed/covProcessed.rds")
 
 bio.cov <- merge(bio, cov['CVD_status'], by='row.names')
-X = as.data.frame(bio)
-y = bio.cov$CVD_status
+
 
 ##################################################################
 ##                    Running PLS-DA model                    ##
 ##################################################################
+
+X = as.data.frame(bio)
+y = bio.cov$CVD_status
 
 #Non-penalised plsda (i.e. no feature selection)
 PLSDA <- plsda(X, y, ncomp=1, mode="regression")
@@ -108,6 +110,7 @@ sgPLSDA <- sgPLSda(X_fran, y, ncomp = 1,
 sgPLSDA$loadings$X
 
 
+
 #################################################################
 ##               Model calibration for group PLS               ##
 #################################################################
@@ -119,10 +122,6 @@ res_sgplsda = CalibratesgPLSDA(dataX = X_fran, dataY = y, ncomp = 1,
 PlotCalib(res = res_sgplsda, type = "sgPLSDA")
 
 
-
-#################################################################
-##            Visualising the loadings coefficients            ##
-#################################################################
 
 #################################################################
 ##            Visualising the loadings coefficients            ##
@@ -142,6 +141,7 @@ abline(h = 0, lty = 2)
 
 #This plot visualises the loadings coefficients obtained from both sPLSDA and sgPLSDA models
 
+pdf('../Results/PLSDA_loadings.pdf')
 Loadings = cbind(sPLSDA$loadings$X, sgPLSDA$loadings$X,
                  rep(NA, 28), rep(NA, 28))
 Loadings = as.vector(t(Loadings))
@@ -152,10 +152,73 @@ plot(Loadings, col = c('red', 'blue', NA, NA),
      lwd = 3, xlab = "")
 axis(1, at = seq(1.5, 28 * 4, by = 4), labels = colnames(PLSDA$X), las = 2)
 axis(1, at = c(0, X_cuts_fran, 28) * 4, line = 6, labels = NA)
-#axis(1, at = c(X_cuts_fran) * 4, 
- #    labels = c("Liver","Metabolic", "Immune","Endocrine","Kidney"),
-  #   line = 6, tick = FALSE)
-abline(v = c(0, Xgroups, 28) * 4, lty = 3, col = "black")
+axis(1, at = c(4, 13, 19, 22.5, 26.5) * 4, 
+     labels = c("Liver","Metabolic", "Immune","Endocrine","Kidney"),
+     line = 6, tick = FALSE)
+abline(v = c(0, X_cuts_fran, 28)*4, lty = 3, col = "black")
 abline(h = 0, lty = 2)
 legend("topleft", legend = c("sPLS-DA", "sgPLS-DA"),
-       lty = 1, lwd = 3, col = c('red', 'blue'), cex = 0.5)
+       lty = 1, lwd = 3, col = c('red', 'blue'), cex = 0.6)
+dev.off()
+
+##sPLS-DA and sgPLS-DA models are not consistent - what does this mean?
+
+
+#################################################################
+##                     Stratified analyses                     ##
+#################################################################
+
+#Aim: apply PLS models on subsets of the data with all controls and cases of one particular subtype only (like univariate analyses). From full data, selected CVD subtypes (based on ICD10 code for death) with more than 100 cases: G454, G459, I200, I209, I210, I211, I214, I219, I249, I251, I259, I635, I639 and I64. 
+
+bio.icd <- merge(bio, cov['cvd_final_icd10'], by='row.names')
+X = as.data.frame(bio.icd)
+y = bio.cov$CVD_status
+
+#Create the stratified datasets 
+for (subtype in c("G454", "G459", "I200", "I209", "I210", "I211", "I214",
+                  "I219", "I249", "I251", "I259", "I635", "I639", "I64")) {
+  Xtemp = X[X$cvd_final_icd10 %in% subtype, ]
+  Ytemp = y[X$cvd_final_icd10 %in% subtype]
+  assign(paste0("X_", subtype), Xtemp)
+  assign(paste0("Y_", subtype), Ytemp)
+}
+
+#Computing the misclassification rate by subtype of CVD, for the sPLS-DA and sgPLS-DA models
+y_pred <- predict(sPLSDA, newdata = as.data.frame(bio))
+fitted = y_pred$class$max.dist
+table(fitted)
+
+MSEP_sPLSDA = NULL
+for (subtype in c("","G454","G459","I200","I209","I210","I211","I214",
+                  "I219","I249","I251","I259","I635","I639","I64")) {
+  idx = which(cov$cvd_final_icd10 == subtype)
+  MSEP_sPLSDA[[subtype]] = 1 - sum(diag(table(y[idx],
+                               y_pred$class$max.dist[idx])))/length(idx)
+}
+
+y_pred_g = predict(sgPLSDA, newdata = as.data.frame(bio))
+MSEP_sgPLSDA = NULL
+for (subtype in c("","G454","G459","I200","I209","I210","I211","I214",
+                  "I219","I249","I251","I259","I635","I639","I64")) {
+  idx = which(cov$cvd_final_icd10 == subtype)
+  MSEP_sgPLSDA[[subtype]] = 1 - sum(diag(table(y[idx],
+                               y_pred_g$class$max.dist[idx])))/length(idx)
+}
+
+
+#Creating a plot of these misclassification rates by CVD subtype 
+
+MSEP = cbind(MSEP_sPLSDA, MSEP_sgPLSDA)
+rownames(MSEP) = c("Controls", "G454","G459","I200","I209","I210","I211",
+                   "I214","I219","I249","I251","I259","I635","I639","I64")
+MSEP = cbind(MSEP, rep(NA, 5), rep(NA, 5))
+MSEP = as.vector(t(MSEP))
+MSEP = MSEP[-c(length(MSEP) - 1, length(MSEP))]
+pdf('../results/PLSDA_Stratified.pdf')
+plot(MSEP, type = "h", lwd = 3, xaxt = "n", 
+     ylab = "Misclassification Rates", col = c('red', 'blue', NA, NA),
+     ylim = c(0, max(MSEP[!is.na(MSEP)])), las = 1)
+axis(1, at = seq(1.5, 15 * 4, by = 4), labels = c("Controls","G454","G459","I200","I209","I210","I211","I214","I219","I249","I251","I259","I635","I639","I64"))
+legend("topright", legend = c("sPLS-DA", "sgPLS-DA"),
+       lty = 1, lwd = 3, col = c('red', 'blue'), cex = 0.6)
+dev.off()
