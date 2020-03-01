@@ -19,11 +19,24 @@ library(ggplot2)
 bio <- readRDS("../data/preprocessed/bioImputed.rds")
 cov <- readRDS("../data/preprocessed/covProcessed.rds")
 
+
+# Cluster add-in ------------------------------------------------------
+cluster = 0
+
+if (cluster == 1){
+  cov <- readRDS("../FULLDATA/covProcessed.rds")
+  bio <- readRDS("../FULLDATA/bioImputed.rds")
+
+  rownames(bio.original) = bio.original$`mydata$eid`
+  bio.original = bio.original[,-1]
+}
+
+
 bio.cov <- merge(bio, cov['CVD_status'], by='row.names')
 
 
 ##################################################################
-##                    Running PLS-DA model                    ##
+##               Basic PLS-DA and sPLS-DA models                ##
 ##################################################################
 
 X = as.data.frame(bio)
@@ -39,6 +52,7 @@ sPLSDA <- splsda(X, y, ncomp=1, mode='regression', keepX=5)
 sPLSDA$loadings
 sPLSDA$explained_variance
 sPLSDA$loadings$X[sPLSDA$loadings$X != 0, ]
+
 
 
 #################################################################
@@ -57,7 +71,6 @@ sum(cov$CVD_status == 2)/length(cov$CVD_status)
 
 
 
-
 ##################################################################
 ##                      Stability analyses                      ##
 ##################################################################
@@ -72,7 +85,7 @@ pheatmap(Stability_results, cluster_rows = FALSE, cluster_cols = FALSE,
 
 
 ##################################################################
-##                       Trying group pls                       ##
+##                       Sparse group pls                       ##
 ##################################################################
 
 #List of biomarkers in order of groups (based on Fran's grouping): first 8 are liver, the next 10 are metabolic, next 2 immune, next 5 endocrine, and final 3 kidney. X_cuts defines these cuts. 
@@ -87,7 +100,6 @@ groups_paper = c('Alanine.aminotransferase','Aspartate.aminotransferase','Gamma.
 X_paper = X[, groups_paper]
 X_cuts_paper = c(3, 7, 9, 10)
   
-
 
 #Making the gPLSDA model with fran's groupings. Group membership is set with ind.block.x. The number of groups to be selected by the model is defined by keepX. 
 gPLSDA <- gPLSda(X_fran, y, ncomp = 1, 
@@ -139,7 +151,7 @@ axis(1, at = seq(1.5, 28 * 4, by = 4), labels = colnames(PLSDA$X),
 abline(h = 0, lty = 2)
 
 
-#This plot visualises the loadings coefficients obtained from both sPLSDA and sgPLSDA models
+#This plot visualises the loadings coefficients obtained from both sPLSDA and sgPLSDA models (using pdf() and dev.off() to save the plot made between these commands)
 
 pdf('../Results/PLSDA_loadings.pdf')
 Loadings = cbind(sPLSDA$loadings$X, sgPLSDA$loadings$X,
@@ -208,13 +220,13 @@ for (subtype in c("","G454","G459","I200","I209","I210","I211","I214",
 
 #Creating a plot of these misclassification rates by CVD subtype 
 
+pdf('../results/PLSDA_Stratified.pdf')
 MSEP = cbind(MSEP_sPLSDA, MSEP_sgPLSDA)
 rownames(MSEP) = c("Controls", "G454","G459","I200","I209","I210","I211",
                    "I214","I219","I249","I251","I259","I635","I639","I64")
 MSEP = cbind(MSEP, rep(NA, 5), rep(NA, 5))
 MSEP = as.vector(t(MSEP))
 MSEP = MSEP[-c(length(MSEP) - 1, length(MSEP))]
-pdf('../results/PLSDA_Stratified.pdf')
 plot(MSEP, type = "h", lwd = 3, xaxt = "n", 
      ylab = "Misclassification Rates", col = c('red', 'blue', NA, NA),
      ylim = c(0, max(MSEP[!is.na(MSEP)])), las = 1)
@@ -222,3 +234,10 @@ axis(1, at = seq(1.5, 15 * 4, by = 4), labels = c("Controls","G454","G459","I200
 legend("topright", legend = c("sPLS-DA", "sgPLS-DA"),
        lty = 1, lwd = 3, col = c('red', 'blue'), cex = 0.6)
 dev.off()
+
+
+##################################################################
+##                      Fitting PLS models                      ##
+##################################################################
+
+#Next step is to fit the sPLS-DA, sgPLS-DA and stratified PLS-DA models using the best parameters found earlier by calibration (which we can't do yet until we've run this on the full dataset?)
