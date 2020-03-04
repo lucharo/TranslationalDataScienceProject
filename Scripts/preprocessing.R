@@ -74,6 +74,8 @@ cov.dict = readxl::read_xlsx("../Covariate_dictionary.xlsx")
 snp.original = readRDS('../data/Genes_toy.rds')
 snp_info.original = readxl::read_xlsx("../SNP_info.xlsx")
 
+save_path = "../data/preprocessed/"
+
 ##################################################################
 ##                        Cluster add-in                        ##
 ##################################################################
@@ -89,6 +91,8 @@ if (cluster == 1){
   
   rownames(bio.original) = bio.original$`mydata$eid`
   bio.original = bio.original[,-1]
+  
+  save_path = "../FULLDATA/preprocessed/"
 }
 
 ##################################################################
@@ -146,23 +150,29 @@ cov$vit_status = as.factor(cov$vit_status)
 cov$dc_cvd_st = as.factor(cov$dc_cvd_st)
 cov$cvd_death = as.factor(cov$cvd_death)
 
-saveRDS(cov, file = "../data/preprocessed/covProcessed.rds")
+
+saveRDS(cov, file = paste0(save_path,"covProcessed.rds"))
 
 
 ##################################################################
 ##                   Processing of biomarkers                   ##
 ##################################################################
 
-saveRDS(bio, file = "../data/preprocessed/bioUnfiltered.rds")
+saveRDS(bio, file = paste0(save_path,"bioUnfiltered.rds"))
 # drop columns with more than 50% missing values i.e. Rheumatoid factor
 # and oestradiol
 bio = bio[,!colMeans(is.na(bio))>0.5]
 # drop rows with more than 50% biomarkers missing
 bio = bio[!rowMeans(is.na(bio))>0.5,]
-saveRDS(bio, file = "../data/preprocessed/bioProcessed.rds")
+saveRDS(bio, file = paste0(save_path,"bioProcessed.rds"))
 
 bioMCAR = bio[complete.cases(bio),]
-saveRDS(bioMCAR, file = "../data/preprocessed/bioMCAR.rds")
+saveRDS(bioMCAR, file = paste0(save_path,"bioMCAR.rds"))
+
+
+#################################################################
+##               IMPUTATION MOVED TO OTHER FILES               ##
+#################################################################
 
 # impute biomarkers based on biomarkers only
 # t0 = Sys.time()
@@ -179,44 +189,6 @@ saveRDS(bioMCAR, file = "../data/preprocessed/bioMCAR.rds")
 # here we assign the imputed data to bio.imp
 #bio.imp = complete(imp.model,2)
 
-# Impute with KNN -- using caret
-t0 = Sys.time()
-
-source("kNNImputeOptimization.R",print.eval = T)
-
-RMSE = t(sapply(1:5,
-                function(x) kNNImputeOptimization(bio, seed = x,
-                                                  perParam = T, scaled = T,
-                                                  plot = x==5)))
-boxplot(RMSE)
-best.k.med = which.min(apply(RMSE, 2, median))
-best.k.mean = which.min(colMeans(RMSE))
-
-RMSE = t(sapply(1:5,function(x) kNNImputeOptimization(log10(bio), seed = x)))
-boxplot(RMSE)
-best.k.med = which.min(apply(RMSE, 2, median))
-best.k.mean = which.min(colMeans(RMSE))
-
-# ?scaling: works weird man
-mean.cols = as.vector(colMeans(bio, na.rm = T))
-sd.cols = as.vector(apply(bio,2, function(col) sd(col, na.rm = T)))
-bio.scaled = sweep(sweep(bio,MARGIN = 2,mean.cols,'-'),2,sd.cols,"/")
-bio.scaled = as.matrix(bio.scaled)
-bio.scaled.imp = impute.knn(bio.scaled)$data
-
-#descale 0r rescale, however you wanna call it
-bio.imp = sweep(sweep(bio.scaled.imp,MARGIN = 2,sd.cols,'*'),2,mean.cols,"+")
-# this weird
-# matrix(c(1,2,3,5,3,4), nrow = 2, byrow = T)*c(2,3,2)
-# this works
-#sweep(matrix(c(1,2,3,5,3,4), nrow = 2, byrow = T), 2, 
-      # c(2,3,2), "*")
-print(Sys.time() - t0) # takes about 1 minute
-
-
-saveRDS(bio.imp, file = "../data/preprocessed/bioImputed.rds")
-
-
 
 #################################################################
 ##                     Proccessing of SNPs                     ##
@@ -226,7 +198,7 @@ saveRDS(bio.imp, file = "../data/preprocessed/bioImputed.rds")
 snps = colnames(snp.original)
 snp.info = snp_info.original[snp_info.original$markername %in% snps, ]
 
-saveRDS(snp.info, file = "../data/preprocessed/snpInfo.rds")
+saveRDS(snp.info, file = paste0(save_path,"snpInfo.rds"))
 
 
 # recoding 00 as NA,  01 as 0, 02 as 1, and 03 as 2
@@ -254,17 +226,17 @@ snp = snp[,!(colMeans(snp==2,na.rm= T)>0.9)]
 
 # NOT REALLY SURE HOW TO IMPUTE SNPs, ASK BARBS
 
-RMSE.snps = t(sapply(1:10,function(x) kNNImputeOptimization(data.in = snp, seed = x)))
-boxplot(RMSE.snps)
-best.k.med.snps = which.min(apply(RMSE.snps, 2, median))
-best.k.mean.snps = which.min(colMeans(RMSE.snps))
+# RMSE.snps = t(sapply(1:10,function(x) kNNImputeOptimization(data.in = snp, seed = x)))
+# boxplot(RMSE.snps)
+# best.k.med.snps = which.min(apply(RMSE.snps, 2, median))
+# best.k.mean.snps = which.min(colMeans(RMSE.snps))
 
 #### FOR NOW, QUICK AND DIRTY SOLUTION
 snp.imp = data.frame(impute.knn(as.matrix(snp))$data)
 
-saveRDS(snp.imp, "../data/preprocessed/snpImputed.rds")
+saveRDS(snp.imp, paste0(save_path,"snpImputed.rds"))
 
-saveRDS(snp, "../data/preprocessed/snpProcessed.rds")
+saveRDS(snp, paste0(save_path,"snpProcessed.rds"))
 
 ###Can do imputation of snps
 # First check that no people have all missing values and 
@@ -274,10 +246,10 @@ max(rowSums(is.na(snp)))
 max(colSums(is.na(snp)))
 #max number of missing values for one snp is 226/2000
 
-list <-lapply(1:10,
-              function(col) ggplot2::qplot(snp.imp[[col]],
-                                           geom = "histogram",
-                                           binwidth = 1))
-
-cowplot::plot_grid(plotlist = list)
+# list <-lapply(1:10,
+#               function(col) ggplot2::qplot(snp.imp[[col]],
+#                                            geom = "histogram",
+#                                            binwidth = 1))
+# 
+# cowplot::plot_grid(plotlist = list)
 

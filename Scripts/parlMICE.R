@@ -26,7 +26,13 @@ if (!require(impute)) BiocManager::install("impute")
 library(impute)
 library(parallel)
 
-bio = readRDS("data/preprocessed/bioProcessed.rds")
+cluster = 0
+save_folder = data_folder = "../data/preprocessed/"
+if (cluster == 1){
+  save_folder = data_folder = "../FULLDATA/preprocessed/"
+}
+
+bio = readRDS(paste0(data_folder,"bioProcessed.rds"))
 
 # Impute with parallelisation
 t0 = Sys.time()
@@ -38,4 +44,4 @@ print(Sys.time() - t0) # takes about 1 minute
 # # here we assign the imputed data to bio.imp
 bio.imp = complete(imp.model,2)
 
-saveRDS(bio.imp, file = "data/preprocessed/bioImputedMICE.rds")
+saveRDS(bio.imp, file = paste0(save_folder,"bioImputedMICE.rds"))
