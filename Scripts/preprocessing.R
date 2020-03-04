@@ -25,7 +25,7 @@
 ###########################################################################
 ###########################################################################
 
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
 if (!require(devtools)) install.packages('devtools')
 library(devtools)
 if (!require(remotes)) install.packages('remotes')
@@ -64,22 +64,12 @@ cores = detectCores()
 ############################################################################
 ############################################################################
 
-#################################################################
-##                      Original datasets                      ##
-#################################################################
-cov.original = readRDS("../data/Covars_toy.rds")
-bio.original= readRDS("../data/Biomarkers_toy.rds")
-bio.dict = readxl::read_xlsx("../Biomarker_annotation.xlsx")
-cov.dict = readxl::read_xlsx("../Covariate_dictionary.xlsx")
-snp.original = readRDS('../data/Genes_toy.rds')
-snp_info.original = readxl::read_xlsx("../SNP_info.xlsx")
 
-save_path = "../data/preprocessed/"
 
 ##################################################################
 ##                        Cluster add-in                        ##
 ##################################################################
-cluster = 0
+cluster = 1
 
 if (cluster == 1){
   cov.original = readRDS("../FULLDATA/Covariates.rds")
@@ -93,6 +83,19 @@ if (cluster == 1){
   bio.original = bio.original[,-1]
   
   save_path = "../FULLDATA/preprocessed/"
+} else {
+    setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+    #################################################################
+    ##                      Original datasets                      ##
+    #################################################################
+    cov.original = readRDS("../data/Covars_toy.rds")
+    bio.original= readRDS("../data/Biomarkers_toy.rds")
+    bio.dict = readxl::read_xlsx("../Biomarker_annotation.xlsx")
+    cov.dict = readxl::read_xlsx("../Covariate_dictionary.xlsx")
+    snp.original = readRDS('../data/Genes_toy.rds')
+    snp_info.original = readxl::read_xlsx("../SNP_info.xlsx")
+
+    save_path = "../data/preprocessed/"
 }
 
 ##################################################################
