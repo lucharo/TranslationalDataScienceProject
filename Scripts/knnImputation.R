@@ -3,10 +3,11 @@ library(impute)
 library(tidyverse)
 library(ggplot2)
 
-cluster = 0
+cluster = 1
 
 if (cluster == 1){
- data_folder = "../FULLDATA/preprocessed/"
+ save_data = data_folder = "../FULLDATA/preprocessed/"
+ save_plots = "..FULLResults/"
 } else {
   setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
   save_data = data_folder = "../data/preprocessed/"
@@ -30,7 +31,7 @@ source("kNNImputeOptimization.R",print.eval = T)
 ############################################################################
 ############################################################################
 
-CV = 5
+CV = 10
 results = t(sapply(1:CV,
                 function(x) kNNImputeOptimization(bio, seed = x,
                                                   perParam = T, scaled = T,
