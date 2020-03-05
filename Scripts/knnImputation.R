@@ -7,7 +7,7 @@ cluster = 1
 
 if (cluster == 1){
  save_data = data_folder = "../FULLDATA/preprocessed/"
- save_plots = "..FULLResults/"
+ save_plots = "../FULLResults/"
 } else {
   setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
   save_data = data_folder = "../data/preprocessed/"
