@@ -26,7 +26,7 @@ if (!require(impute)) BiocManager::install("impute")
 library(impute)
 library(parallel)
 
-cluster = 0
+cluster = 1
 save_folder = data_folder = "../data/preprocessed/"
 if (cluster == 1){
   save_folder = data_folder = "../FULLDATA/preprocessed/"
