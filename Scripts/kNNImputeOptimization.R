@@ -162,36 +162,39 @@ kNNImputeOptimization = function(data.in, log = 0, scaled = T,perParam = F, seed
       print("average RMSE per covariate (over 50 k values)")
       print(colMeans(MSEperParam))
       MSEperParam$k = 1:50
-      print(MSEperParam %>% pivot_longer(-k) %>% 
-              ggplot(aes(x = k, y = value))+
-              facet_wrap(~name)+geom_point())
+      factplot = MSEperParam %>% pivot_longer(-k) %>% 
+        ggplot(aes(x = k, y = value))+
+        facet_wrap(~name)+geom_point()
+      print(factplot)
       # sort data.scaled in right order
       data.scaled = data.scaled[,sort(colnames(data.scaled))]
       
-      print(MSEperParam %>% pivot_longer(-k) %>%
-              group_by(name) %>% summarise(RMSE = mean(value)) %>% 
-              mutate(RMSE = ifelse(is.na(RMSE), 0, RMSE)) %>%
-              mutate(AmountNA = colMeans(is.na(data.scaled)))%>%
-              ggplot(aes(x = reorder(name, RMSE), y = RMSE))+
-              geom_col()+
-              geom_text(aes(
-                label = paste0(as.character(round(AmountNA,4)*100),
-                               "%"), hjust = 1.2))+
-              coord_flip())
-
-      print(MSEperParam %>% pivot_longer(-k) %>%
-              group_by(name) %>% summarise(RMSE = mean(value)) %>%
-              mutate(RMSE = ifelse(is.na(RMSE), 0, RMSE)) %>% 
-              mutate(AmountNA = colMeans(is.na(data.scaled)))%>%
-              ggplot(aes(x = AmountNA, y = RMSE, label = name))+
-              geom_point()+geom_text(aes(label = name), hjust = 0, vjust = 0)+
-              ylim(0,2.5)+xlim(0,0.3))
+      bplot = MSEperParam %>% pivot_longer(-k) %>%
+        group_by(name) %>% summarise(RMSE = mean(value)) %>% 
+        mutate(RMSE = ifelse(is.na(RMSE), 0, RMSE)) %>%
+        mutate(AmountNA = colMeans(is.na(data.scaled)))%>%
+        ggplot(aes(x = reorder(name, RMSE), y = RMSE))+
+        geom_col()+
+        geom_text(aes(
+          label = paste0(as.character(round(AmountNA,4)*100),
+                         "%"), hjust = 1.2))+
+        coord_flip()
+      print(bplot)
+      
+      scatplot = MSEperParam %>% pivot_longer(-k) %>%
+        group_by(name) %>% summarise(RMSE = mean(value)) %>%
+        mutate(RMSE = ifelse(is.na(RMSE), 0, RMSE)) %>% 
+        mutate(AmountNA = colMeans(is.na(data.scaled)))%>%
+        ggplot(aes(x = AmountNA, y = RMSE, label = name))+
+        geom_point()+geom_text(aes(label = name), hjust = 0, vjust = 0)+
+        ylim(0,2.5)+xlim(0,0.3)
+      print(scatplot)
     }
 
   }
   
   # calculate RMSE to have 
   RMSE = sqrt(MSE)
-  RMSE
+  list(RMSE, factplot, bplot, scatplot)
   
 }

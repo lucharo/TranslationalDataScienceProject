@@ -69,7 +69,7 @@ cores = detectCores()
 ##################################################################
 ##                        Cluster add-in                        ##
 ##################################################################
-cluster = 1
+cluster = 0
 
 if (cluster == 1){
   cov.original = readRDS("../FULLDATA/Covariates.rds")
