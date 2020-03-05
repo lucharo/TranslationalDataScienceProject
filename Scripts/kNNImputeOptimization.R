@@ -162,9 +162,11 @@ kNNImputeOptimization = function(data.in, log = 0, scaled = T,perParam = F, seed
       print("average RMSE per covariate (over 50 k values)")
       print(colMeans(MSEperParam))
       MSEperParam$k = 1:50
+      
       factplot = MSEperParam %>% pivot_longer(-k) %>% 
         ggplot(aes(x = k, y = value))+
         facet_wrap(~name)+geom_point()
+      
       print(factplot)
       # sort data.scaled in right order
       data.scaled = data.scaled[,sort(colnames(data.scaled))]
@@ -176,8 +178,8 @@ kNNImputeOptimization = function(data.in, log = 0, scaled = T,perParam = F, seed
         ggplot(aes(x = reorder(name, RMSE), y = RMSE))+
         geom_col()+
         geom_text(aes(
-          label = paste0(as.character(round(AmountNA,4)*100),
-                         "%"), hjust = 1.2))+
+          label = paste0(as.character(round(AmountNA,4)*100),"%"),
+          hjust = 1.2))+
         coord_flip()
       print(bplot)
       
@@ -195,6 +197,9 @@ kNNImputeOptimization = function(data.in, log = 0, scaled = T,perParam = F, seed
   
   # calculate RMSE to have 
   RMSE = sqrt(MSE)
-  list(RMSE, factplot, bplot, scatplot)
+  if (plot == 1 & perParam == 1){
+    return(list(RMSE, factplot, bplot, scatplot))
+  } else {return(RMSE)}
+  
   
 }
