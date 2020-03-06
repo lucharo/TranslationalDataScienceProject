@@ -1,5 +1,5 @@
-#PBS -l walltime=24:00:00
-#PBS -l select=1:ncpus=8:mem=24gb
+#PBS -l walltime=48:00:00
+#PBS -l select=1:ncpus=20:mem=240gb
 #PBS -N knnImpute
 
 module load anaconda3/personal

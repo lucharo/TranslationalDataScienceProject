@@ -31,11 +31,18 @@ source("kNNImputeOptimization.R",print.eval = T)
 ############################################################################
 ############################################################################
 
+# set up cluster
+library(parallel)
+cl = makeCluster(detectCores()-2, type = "FORK")
+
 CV = 10
-results = t(sapply(1:CV,
-                function(x) kNNImputeOptimization(bio, seed = x,
+results = t(parSapply(cl = cl,
+                      1:CV,
+                      function(x) kNNImputeOptimization(bio, seed = x,
                                                   perParam = T, scaled = T,
                                                   plot = x==CV)))
+stopCluster(cl) 
+                      
 RMSE = results[[1]]
 for (i in 2:CV){
   if (i != CV){
@@ -87,10 +94,11 @@ bio.imp = sweep(sweep(bio.scaled.imp,MARGIN = 2,sd.cols,'*'),2,mean.cols,"+")
 # this works
 #sweep(matrix(c(1,2,3,5,3,4), nrow = 2, byrow = T), 2, 
 # c(2,3,2), "*")
+                                      
 print(Sys.time() - t0) # takes about 1 minute
 
 
-saveRDS(bio.imp, file = paste0(save_data,"bioImputed.rds"))
+saveRDS(bio.imp, file = paste0(save_data,"bioImputedKNN.rds"))
 
 ############################################################################
 ############################################################################
@@ -100,9 +108,14 @@ saveRDS(bio.imp, file = paste0(save_data,"bioImputed.rds"))
 ############################################################################
 ############################################################################
 
-results = t(sapply(1:CV,function(x) kNNImputeOptimization(log10(bio), seed = x,
+cl = makeCluster(detectCores()-2, type = "FORK")                          
+results = t(parSapply(cl = cl,
+                      1:CV,
+                      function(x) kNNImputeOptimization(log10(bio), seed = x,
                                                       perParam = T, scaled = T,
                                                       plot = x == CV)))
+stopCluster(cl)
+                      
 RMSE = results[[1]]
 for (i in 2:CV){
   if (i != CV){
@@ -155,4 +168,4 @@ bio.imp = sweep(sweep(bio.scaled.imp,MARGIN = 2,sd.cols,'*'),2,mean.cols,"+")
 print(Sys.time() - t0) # takes about 1 minute
 
 
-saveRDS(bio.imp, file = paste0(save_data,"LOGbioImputed.rds"))
+saveRDS(bio.imp, file = paste0(save_data,"LOGbioImputedKNN.rds"))
