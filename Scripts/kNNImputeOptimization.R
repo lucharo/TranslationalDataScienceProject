@@ -83,7 +83,7 @@ kNNImputeOptimization = function(data.in, log = 0, scaled = T,perParam = F, seed
   # BARE IN MIND THERE IS NO RANDOMNESS REGARDING impute.knn
   # it has a default random seed inside it
   # get list of imputed datasets for k = 1:20
-  predictions.k = lapply(c(1:50),
+  predictions.k = lapply(c(1:20),
                          function(x) 
                            #knn.impute(data.scaled, k = x, cat.var = NULL)
                            #knnImputation(data.scaled, k = x, scale = F)
