@@ -5,12 +5,23 @@
 ##################################################################
 
 rm(list=ls())
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 library(ggplot2)
 
-snp.info <- readRDS("../data/preprocessed/snpInfo.rds")
-snp <- readRDS("../data/preprocessed/snpProcessed.rds")
+cluster = 0
+
+if (cluster == 1){
+  save_data = data_folder = "../FULLDATA/preprocessed/"
+  save_plots = "../FULLResults/"
+} else {
+  setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+  save_data = data_folder = "../data/preprocessed/"
+  save_plots = "../results/"
+}
+
+snp = readRDS(paste0(data_folder,"snpImputed.rds"))
+cov = readRDS(paste0(data_folder,"covProcessed.rds"))
+snp.info = readRDS(paste0(data_folder,"snpInfo.rds"))
 
 
 ##################################################################
@@ -34,22 +45,21 @@ PRS_matrix = sweep(snp, MARGIN=2, betas, `*`)
 PRS_sums = rowSums(PRS_matrix, na.rm=TRUE)
 
 PRS = cbind(rownames(snp), PRS_sums)
-saveRDS(PRS, "data/preprocessed/PolygenicRiskScore.rds")
+saveRDS(PRS, paste0(save_data,"PolygenicRiskScore.rds"))
 
 
 #################################################################
 ##                Comparison between CVD status                ##
 #################################################################
 
-cov <- readRDS("data/preprocessed/covProcessed.rds")
-
 ## CODE WARNING: careful with the name of stuff, check the second 
 # to last column of cov.prs (it's called V1)
 cov.prs <- cbind(cov, PRS['PRS_Sums'])
 
 #Boxplot of PRS by CVD status
-ggplot(cov.prs, aes(x=CVD_status, y=PRS_sums))+
+prs_boxplot <- ggplot(cov.prs, aes(x=CVD_status, y=PRS_sums)) +
   geom_boxplot()
+saveRDS(prs_boxplot, paste0(save_plots,"PRS_boxplot.rds"))
 
 #t-test - no sig difference in mean PRS between groups...
 t.test(PRS_sums ~ CVD_status, data=cov.prs)
