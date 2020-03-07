@@ -36,7 +36,7 @@ BHSCalculator = function(reference, stratified = F){
   # or
   # -- "More_is_bad_paper
   
-  quantile_check = function(column, reference){
+  quantile_check = function(column, reference, dataset){
     # the "reference" column in this function is the one containing the info on whether or not
     # a given molecule is harmful in excess or in shortage, there are two references:
     # -- One from the biomarkers available in the paper
@@ -49,7 +49,7 @@ BHSCalculator = function(reference, stratified = F){
     
     if (bio.dict[bio.dict$`Biomarker name` == column,
                  reference] == 1){
-        output = quantile(bio.imp[,column])[4]
+        output = quantile(dataset[,column])[4]
         quartile = "3rd"
     }
     # in the case the value of the reference column for a given biomarker is 0, it means the biomarker 
@@ -57,7 +57,7 @@ BHSCalculator = function(reference, stratified = F){
     # LESS than this kind of benchmark ==> +1 BHS
     else if (bio.dict[bio.dict$`Biomarker name` == column,
                       reference] == 0){
-        output = quantile(bio.imp[,column])[2]
+        output = quantile(dataset[,column])[2]
         quartile = "1st"
       }
     # Store info on biomarker with missing reference value, still will be removed later
@@ -71,8 +71,12 @@ BHSCalculator = function(reference, stratified = F){
     list(output, quartile)
   }
   
-  # store relevant quartile info in a dataframe
   
+  ##################################################################
+  ##        First make a 'dictionary' storing the relevant        ##
+  ##         quantiles for each biomarker and each strata         ##
+  ##################################################################
+  # store relevant quartile info in a dataframe
   if (stratified){
     relevant_quantiles = data.frame(Biomarker = character(0),
                                     Quantile.value = numeric(0),
@@ -89,7 +93,7 @@ BHSCalculator = function(reference, stratified = F){
                           data.frame(matrix(
                             unlist(
                               lapply(colnames(bio.per.class),
-                                     function(x) quantile_check(x, reference = reference))),
+                                     function(x) quantile_check(x, reference = reference, bio.per.class))),
                             nrow=length(colnames(bio.per.class)),
                             byrow=T), stringsAsFactors = F), 
                           stringsAsFactors = F)
@@ -107,7 +111,7 @@ BHSCalculator = function(reference, stratified = F){
                                     data.frame(matrix(
                                       unlist(
                                         lapply(colnames(bio.imp[,-ncol(bio.imp)]),
-                                               function(x) quantile_check(x, reference = reference))),
+                                               function(x) quantile_check(x, reference = reference, bio.imp))),
                                       nrow=length(colnames(bio.imp[,-ncol(bio.imp)])),
                                       byrow=T), stringsAsFactors = F), 
                                     stringsAsFactors = F)
@@ -119,6 +123,11 @@ BHSCalculator = function(reference, stratified = F){
     relevant_quantiles = relevant_quantiles[complete.cases(relevant_quantiles),]
   }
 
+  
+  #######################################################################
+  ##  Second go through every biomarker (and each strata if relevant)  ##
+  ##                and get the score for each biomarker               ##
+  #######################################################################
   # bio.scores stores for each individual whether its values are over/under the relevant quantiles
   # compare individual values for each biomark to their "benchmark"
   if (stratified){
@@ -184,7 +193,10 @@ BHSCalculator = function(reference, stratified = F){
   # This is going on for every row (in code above)
   # bio.imp$Testosterone < relevant_quantiles$Quantile.value[relevant_quantiles$Biomarker == "Testosterone"]
   
-  
+  ##################################################################
+  ##    3rd and finally get the mean score for each individual    ##
+  ##              and sort in same order as bio.imp               ##
+  ##################################################################
   # get average "grade" over all the biomarkers
   bio.score$total_score = rowMeans(bio.score)
   
@@ -198,6 +210,8 @@ BHSCalculator = function(reference, stratified = F){
 scores_paper = BHSCalculator("More_is_bad_paper",T)
 
 scores_Mantej = BHSCalculator("More_is_bad_Mantej",T)
+
+
 
 
 ##################################################################
