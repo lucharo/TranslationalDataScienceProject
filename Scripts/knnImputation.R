@@ -35,7 +35,7 @@ source("kNNImputeOptimization.R",print.eval = T)
 library(parallel)
 cl = makeCluster(detectCores()-2, type = "FORK")
 
-CV = 10
+CV = 5
 results = t(parSapply(cl = cl,
                       1:CV,
                       function(x) kNNImputeOptimization(bio, seed = x,
