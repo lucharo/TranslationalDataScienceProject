@@ -30,6 +30,7 @@ kNNImputeOptimization = function(data.in, log = 0, scaled = T,perParam = F, seed
   require(ggplot2)
   
   set.seed(seed) # this makes the sampling of different indices random
+  print(seed)
   # take complete data
   data.complete = data.in[complete.cases(data.in),]
   # within the range of rows from data.in grab as many rows as there are

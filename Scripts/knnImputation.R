@@ -15,9 +15,11 @@ if (cluster == 1){
 }
 
 bio = readRDS(paste0(data_folder,"bioProcessed.rds"))
-log.bio = log10(bio)
-saveRDS(log.bio, paste0(save_data,"LOGbioProcessed.rds"))
+# log.bio = log10(bio)
+# saveRDS(log.bio, paste0(save_data,"LOGbioProcessed.rds"))
+log.bio = readRDS(paste0(data_folder,"LOGbioProcessed.rds"))
 
+print("Starting Imputation #1...")
 # Impute with KNN -- using caret
 t0 = Sys.time()
 
@@ -34,14 +36,20 @@ source("kNNImputeOptimization.R",print.eval = T)
 # set up cluster
 library(parallel)
 cl = makeCluster(detectCores()-2, type = "FORK")
-
+print("Cluster initialised")
 CV = 5
 results = t(parSapply(cl = cl,
                       1:CV,
                       function(x) kNNImputeOptimization(bio, seed = x,
                                                   perParam = T, scaled = T,
                                                   plot = x==CV)))
+
 stopCluster(cl) 
+
+# results = t(sapply(1:CV,
+#                       function(x) kNNImputeOptimization(bio, seed = x,
+#                                                   perParam = T, scaled = T,
+#                                                   plot = x==CV))) 
                       
 RMSE = results[[1]]
 for (i in 2:CV){
@@ -81,14 +89,17 @@ best.k.med = which.min(apply(RMSE, 2, median))
 best.k.mean = which.min(colMeans(RMSE))
 
 # ?scaling: works weird man
-mean.cols = as.vector(colMeans(bio, na.rm = T))
-sd.cols = as.vector(apply(bio,2, function(col) sd(col, na.rm = T)))
-bio.scaled = sweep(sweep(bio,MARGIN = 2,mean.cols,'-'),2,sd.cols,"/")
-bio.scaled = as.matrix(bio.scaled)
-bio.scaled.imp = impute.knn(bio.scaled, k = best.k.mean)$data
+# mean.cols = as.vector(colMeans(bio, na.rm = T))
+# sd.cols = as.vector(apply(bio,2, function(col) sd(col, na.rm = T)))
+# bio.scaled = sweep(sweep(bio,MARGIN = 2,mean.cols,'-'),2,sd.cols,"/")
+# bio.scaled = as.matrix(bio.scaled)
+# bio.scaled.imp = impute.knn(bio.scaled, k = best.k.mean)$data
 
 #descale 0r rescale, however you wanna call it
-bio.imp = sweep(sweep(bio.scaled.imp,MARGIN = 2,sd.cols,'*'),2,mean.cols,"+")
+# bio.imp = sweep(sweep(bio.scaled.imp,MARGIN = 2,sd.cols,'*'),2,mean.cols,"+")
+                      
+                      
+                      
 # this weird
 # matrix(c(1,2,3,5,3,4), nrow = 2, byrow = T)*c(2,3,2)
 # this works
@@ -96,9 +107,9 @@ bio.imp = sweep(sweep(bio.scaled.imp,MARGIN = 2,sd.cols,'*'),2,mean.cols,"+")
 # c(2,3,2), "*")
                                       
 print(Sys.time() - t0) # takes about 1 minute
+print("Imputation number 1 finished.")
 
-
-saveRDS(bio.imp, file = paste0(save_data,"bioImputedKNN.rds"))
+#saveRDS(bio.imp, file = paste0(save_data,"bioImputedKNN.rds"))
 
 ############################################################################
 ############################################################################
@@ -108,6 +119,10 @@ saveRDS(bio.imp, file = paste0(save_data,"bioImputedKNN.rds"))
 ############################################################################
 ############################################################################
 
+                          
+print("Starting imputation number 2")
+                          
+t0 = Sys.time()
 cl = makeCluster(detectCores()-2, type = "FORK")                          
 results = t(parSapply(cl = cl,
                       1:CV,
@@ -115,6 +130,11 @@ results = t(parSapply(cl = cl,
                                                       perParam = T, scaled = T,
                                                       plot = x == CV)))
 stopCluster(cl)
+                    
+# results = t(sapply(1:CV,
+#                       function(x) kNNImputeOptimization(log10(bio), seed = x,
+#                                                       perParam = T, scaled = T,
+#                                                       plot = x == CV)))
                       
 RMSE = results[[1]]
 for (i in 2:CV){
@@ -151,15 +171,17 @@ dev.off()
 best.k.med = which.min(apply(RMSE, 2, median))
 best.k.mean = which.min(colMeans(RMSE))
 
-# ?scaling: works weird man
-mean.cols = as.vector(colMeans(bio, na.rm = T))
-sd.cols = as.vector(apply(bio,2, function(col) sd(col, na.rm = T)))
-bio.scaled = sweep(sweep(bio,MARGIN = 2,mean.cols,'-'),2,sd.cols,"/")
-bio.scaled = as.matrix(bio.scaled)
-bio.scaled.imp = impute.knn(bio.scaled, k = best.k.mean)$data
+# # ?scaling: works weird man
+# mean.cols = as.vector(colMeans(bio, na.rm = T))
+# sd.cols = as.vector(apply(bio,2, function(col) sd(col, na.rm = T)))
+# bio.scaled = sweep(sweep(bio,MARGIN = 2,mean.cols,'-'),2,sd.cols,"/")
+# bio.scaled = as.matrix(bio.scaled)
+# bio.scaled.imp = impute.knn(bio.scaled, k = best.k.mean)$data
 
-#descale 0r rescale, however you wanna call it
-bio.imp = sweep(sweep(bio.scaled.imp,MARGIN = 2,sd.cols,'*'),2,mean.cols,"+")
+# #descale 0r rescale, however you wanna call it
+# bio.imp = sweep(sweep(bio.scaled.imp,MARGIN = 2,sd.cols,'*'),2,mean.cols,"+")
+                      
+                      
 # this weird
 # matrix(c(1,2,3,5,3,4), nrow = 2, byrow = T)*c(2,3,2)
 # this works
@@ -168,4 +190,4 @@ bio.imp = sweep(sweep(bio.scaled.imp,MARGIN = 2,sd.cols,'*'),2,mean.cols,"+")
 print(Sys.time() - t0) # takes about 1 minute
 
 
-saveRDS(bio.imp, file = paste0(save_data,"LOGbioImputedKNN.rds"))
+#saveRDS(bio.imp, file = paste0(save_data,"LOGbioImputedKNN.rds"))
