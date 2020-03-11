@@ -9,9 +9,11 @@
 
 rm(list=ls())
 
+if (!require(devtools)) install.packages('devtools')
 library(devtools)
 if (!require(mixOmics)) devtools::install_github("mixOmicsTeam/mixOmics")
 library(sgPLS)
+if (!require(pheatmap)) install.packages('pheatmap')
 library(pheatmap)
 library(ggplot2)
 library(dplyr)
