@@ -9,14 +9,13 @@
 
 rm(list=ls())
 
-if (!require(devtools)) install.packages('devtools')
-library(devtools)
-if (!require(mixOmics)) devtools::install_github("mixOmicsTeam/mixOmics")
-library(sgPLS)
-if (!require(pheatmap)) install.packages('pheatmap')
-library(pheatmap)
-library(ggplot2)
-library(dplyr)
+suppressPackageStartupMessages(library(devtools))
+#if (!require(mixOmics)) devtools::install_github("mixOmicsTeam/mixOmics")
+suppressPackageStartupMessages(library(sgPLS))
+suppressPackageStartupMessages(library(pheatmap))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(dplyr))
+
 
 cluster = 1
 
@@ -29,9 +28,9 @@ if (cluster == 1){
   save_plots = "../results/"
 }
 
-bio <- readRDS(paste0(data_folder,"bioImputed.rds"))
+bio <- readRDS(paste0(data_folder,"bioImputedKNN.rds"))
 cov <- readRDS(paste0(data_folder,"covProcessed.rds"))
-bio.cov <- merge(bio, cov['CVD_status'], by='row.names')#
+bio.cov <- merge(bio, cov$CVD_status, by='row.names')
 bio.cov = select(bio.cov, -1) 
 
 
@@ -40,7 +39,7 @@ bio.cov = select(bio.cov, -1)
 ##################################################################
 
 X = as.data.frame(bio)
-y = bio.cov$CVD_status
+y = bio.cov$y
 
 #Non-penalised plsda (i.e. no feature selection)
 PLSDA <- plsda(X, y, ncomp=1, mode="regression")
