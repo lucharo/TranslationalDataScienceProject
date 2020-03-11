@@ -18,7 +18,7 @@ library(pheatmap)
 library(ggplot2)
 library(dplyr)
 
-cluster = 0
+cluster = 1
 
 if (cluster == 1){
   save_data = data_folder = "../FULLDATA/preprocessed/"
