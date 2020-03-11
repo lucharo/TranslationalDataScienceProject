@@ -9,14 +9,16 @@
 
 rm(list=ls())
 
+if (!require(devtools)) install.packages('devtools')
 library(devtools)
 if (!require(mixOmics)) devtools::install_github("mixOmicsTeam/mixOmics")
 library(sgPLS)
+if (!require(pheatmap)) install.packages('pheatmap')
 library(pheatmap)
 library(ggplot2)
 library(dplyr)
 
-cluster = 0
+cluster = 1
 
 if (cluster == 1){
   save_data = data_folder = "../FULLDATA/preprocessed/"
