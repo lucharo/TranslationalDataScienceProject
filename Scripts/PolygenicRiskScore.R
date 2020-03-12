@@ -62,7 +62,9 @@ prs_boxplot <- ggplot(cov.prs, aes(x=CVD_status, y=PRS_sums)) +
 saveRDS(prs_boxplot, paste0(save_plots,"PRS_boxplot.rds"))
 
 #t-test - no sig difference in mean PRS between groups...
-t.test(PRS_sums ~ CVD_status, data=cov.prs)
+t_test = t.test(PRS_sums ~ CVD_status, data=cov.prs)
+saveRDS(t_test, paste0(save_plots,"PRS_ttest"))
+
 
 
 
