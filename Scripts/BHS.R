@@ -229,9 +229,10 @@ fig = data.frame(rbind(cbind(BHS = scores_paper, Reference = "Paper"),
                      label.x = 1.5, label.y = 0.9)+
   stat_summary(geom = "point", shape = 23)+
   theme_minimal()
+fig
 
 ggsave(paste0(save_plots, "MantejvPaper.pdf"))
-saveRDS(fig, paste0(save_plots, "MantejvPaper.pdf"))
+saveRDS(fig, paste0(save_plots, "MantejvPaper.rds"))
 
 
 ##################################################################
