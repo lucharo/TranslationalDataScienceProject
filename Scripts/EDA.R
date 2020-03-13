@@ -19,50 +19,68 @@
 ###                                                                     ###
 ###########################################################################
 ###########################################################################
-rm(list = ls())
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-if (!require(devtools)) install.packages('devtools')
-library(devtools)
-if (!require(remotes)) install.packages('remotes')
-library(remotes)
+
 if (!require(ggbiplot)) install_github("vqv/ggbiplot")
 library(ggbiplot)
-if (!require(GGally)) install_github("GGally")
-library(GGally)
 if (!require(tidyverse)) install.packagaes("tidyverse")
 library(tidyverse)
 if (!require(naniar)) install.packages("naniar")
 library(naniar)
-if (!require(factoextra)) install.packages("factoextra")
-library(factoextra)
+if (!require(ggplot2)) install.packages("ggplot2")
+library(ggplot2)
 if (!require(ggfortify)) install.packages("ggfortify")
 library(ggfortify)
-if (!require(stats)) install.packages("stats")
-library(stats)
-if (!require(mice)) install.packages('mice')
-library(mice)
+if (!require(dplyr)) install.packages("dplyr")
+library(dplyr)
+if (!require(stringr)) install.packages("stringr")
+library(stringr)
+
 
 library(parallel)
 cores = detectCores()
 
-# Set global theme
-source("ggPalettes.R")
-paperPalette()
-scale_color_global = scale_color_gdocs
-scale_fill_global = scale_fill_gdocs
+#################################################################
+##                     Setting environment                     ##
+#################################################################
+cluster = 0
 
+if (cluster == 1){
+  save_data = data_folder = "../FULLDATA/preprocessed/"
+  save_plots = "../FULLResults/"
+} else {
+  setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+  save_data = data_folder = "../data/preprocessed/"
+  save_plots = "../results/"
+}
+
+ifelse(!dir.exists(file.path(save_plots, "EDA/")), dir.create(file.path(save_plots, "EDA/")), FALSE)
+save_plots = paste0(save_plots,"EDA/")
+
+#################################################################
+##                       Saving function                       ##
+#################################################################
+
+save.results = function(figure, name, ggsv = T){
+  if (ggsv){
+    ggsave(paste0(save_plots,name,".pdf"))
+  }
+  saveRDS(figure, paste0(save_plots,name,".rds"))
+}
 
 ##################################################################
 ##                  Load preprocessed datasets                  ##
 ##################################################################
-bio.unfiltered = readRDS("data/preprocessed/bioUnfiltered.rds")
-bio = readRDS("data/preprocessed/bioProcessed.rds")
-cov = readRDS("data/preprocessed/covProcessed.rds")
-bio.imp = readRDS("data/preprocessed/bioImputed.rds")
-snp = readRDS("data/preprocessed/snpProcessed.rds")
+bio.unfiltered = readRDS(paste0(data_folder,"bioUnfiltered.rds"))
+bio = readRDS(paste0(data_folder,"bioProcessed.rds"))
+cov = readRDS(paste0(data_folder,"covProcessed.rds"))
+cov$CVD_status = as.factor(cov$CVD_status)
+bio.imp = readRDS(paste0(data_folder,"bioImputedKNN.rds"))
+snp = readRDS(paste0(data_folder,"snpProcessed.rds"))
 
 # change dots for spaces in colnames bio for appropriate plotting
 colnames(bio) = str_replace_all(colnames(bio), "\\."," ")
+
+
 
 ##################################################################
 ##                      Missing Data plots                      ##
@@ -75,16 +93,43 @@ bio.unfiltered.CVD = merge(bio.unfiltered,
 rownames(bio.unfiltered.CVD) = bio.unfiltered.CVD$Row.names
 bio.unfiltered.CVD = bio.unfiltered.CVD[-1]
 
-gg_miss_fct(x = bio.unfiltered.CVD, fct = CVD_status)+
+# gg_miss_fct(x = bio.unfiltered.CVD, fct = CVD_status)+
+fig = bio.unfiltered.CVD %>%
+  dplyr::group_by(CVD_status) %>%
+  miss_var_summary() %>%
+  ggplot(aes(CVD_status,
+             variable,
+             fill = pct_miss)) +
+  geom_tile() +
+  viridis::scale_fill_viridis(name = "% Miss") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1))+
   ggtitle("Missing data patterns by CVD status for all biomarkers")
-ggsave("results/MissBioDataALLbyCVD.pdf")
+
+save.results(fig, "MissBioDataALLbyCVD")
+# ggsave(paste0(save_plots,"MissBioDataALLbyCVD.pdf"))
 
 bio.CVD = merge(bio,cov[,"CVD_status"],
                 by="row.names",all.x=TRUE)
+rownames(bio.CVD) = bio.CVD$Row.names
+bio.CVD = bio.CVD[-1]
 
-gg_miss_fct(x = bio.CVD, fct = CVD_status)+
+# gg_miss_fct(x = bio.CVD, fct = CVD_status)+
+fig = bio.CVD %>%
+  dplyr::group_by(CVD_status) %>%
+  miss_var_summary() %>%
+  ggplot(aes(CVD_status,
+             variable,
+             fill = pct_miss)) +
+  geom_tile() +
+  viridis::scale_fill_viridis(name = "% Miss") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1))+
   ggtitle("Missing data patterns by CVD status updated")
-ggsave("results/MissBioDatabyCVD.pdf")
+save.results(fig, "MissBioDatabyCVD")
+# ggsave(paste0(save_plots,"MissBioDatabyCVD.pdf"))
 
 
 # explanation of upset plot: the variables on the left are the set
@@ -98,46 +143,61 @@ ggsave("results/MissBioDatabyCVD.pdf")
 # intersection you want to look at
 
 # upset plots are not cool with ggsave method
-pdf(file = "results/upset_biofull_unfiltered.pdf", onefile = F)
-gg_miss_upset(bio.unfiltered.CVD, 
+pdf(file = paste0(save_plots,"upset_biofull_unfiltered.pdf", onefile = F))
+fig = gg_miss_upset(bio.unfiltered.CVD, 
                       nsets = 10,
                       nintersects = 10)
 dev.off()
+save.results(fig, "upset_biofull_unfiltered", ggsv = F)
 
 
-pdf(file = "results/upset_biofull.pdf", onefile = F)
-gg_miss_upset(bio.CVD, 
+pdf(file = paste0(save_plots,"upset_biofull.pdf", onefile = F))
+fig = gg_miss_upset(bio.CVD, 
               nsets = 10,
               nintersects = 10)
 dev.off()
+save.results(fig, "upset_biofull", ggsv = F)
 
-if (!require(cowplot)) install.packages("cowplot")
-library(cowplot)
 
 miss1 = vis_miss(bio.unfiltered.CVD)+
   scale_y_continuous(position = 'right')+
   theme(axis.text.x = element_text(angle = 0))+
   scale_x_discrete(position = "bottom")+
   coord_flip()
-ggsave("results/missBioDataPatterns_unfiltered.png")
+ggsave(paste0(save_plots,"missBioDataPatterns_unfiltered.png")) # save as png because pdf creates artifact
+saveRDS(miss1, paste0(save_plots,"missBioDataPatterns_unfiltered.rds"))
 
-vis_miss(bio.CVD)+
+miss2 = vis_miss(bio.CVD)+
   scale_y_continuous(position = 'right')+
   theme(axis.text.x = element_text(angle = 0))+
   scale_x_discrete(position = "bottom")+
   coord_flip()
-ggsave("results/missBioDataPatterns.png")
+ggsave(paste0(save_plots,"missBioDataPatterns.png")) 
+saveRDS(miss2, paste0(save_plots,"missBioDataPatterns.rds"))
 
 
 # missing data plots for covariates
 
-gg_miss_fct(x = cov, fct = CVD_status) +
+# gg_miss_fct(x = cov, fct = CVD_status) +
+fig = cov %>%
+  dplyr::group_by(CVD_status) %>%
+  miss_var_summary() %>%
+  ggplot(aes(CVD_status,
+             variable,
+             fill = pct_miss)) +
+  geom_tile() +
+  viridis::scale_fill_viridis(name = "% Miss") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1))+
   ggtitle('Missing data patterns by CVD status for covariates')
-ggsave("results/MissCovDatabyCVD.pdf")
+# ggsave(paste0(save_plots,"MissCovDatabyCVD.pdf"))
+save.results(fig, "MissCovDatabyCVD")
 
-pdf(file = "results/upset_covfull.pdf", onefile = F)
-gg_miss_upset(cov)
+pdf(file = paste0(save_plots,"upset_covfull.pdf", onefile = F))
+fig = gg_miss_upset(cov)
 dev.off()
+save.results(fig, "upset_covfull", ggsv = F)
 
 
 
@@ -145,12 +205,24 @@ dev.off()
 
 snp.cvd = merge(snp, cov[,"CVD_status"], by="row.names", all.x=TRUE)
 
-gg_miss_fct(x = snp.cvd, fct = CVD_status) +
+# gg_miss_fct(x = snp.cvd, fct = CVD_status) +
+snp.cvd %>%
+  dplyr::group_by(CVD_status) %>%
+  miss_var_summary() %>%
+  ggplot(aes(CVD_status,
+             variable,
+             fill = pct_miss)) +
+  geom_tile() +
+  viridis::scale_fill_viridis(name = "% Miss") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1))+
   ggtitle("Missing data patterns by CVD status for all snps")
 
-pdf(file = "results/upset_snp.pdf", onefile = F)
-gg_miss_upset(snp)
+pdf(file = paste0(save_plots,"upset_snp.pdf", onefile = F))
+fig = gg_miss_upset(snp)
 dev.off()
+save.results(fig, "upset_snp", ggsv = F)
 
 
 
@@ -167,7 +239,7 @@ biomarker.labeller = function(original){
 }
 
 
-bio.imp.CVD %>% pivot_longer(-CVD_status, 
+fig = bio.imp.CVD %>% pivot_longer(-CVD_status, 
                              names_to = "Biomarker",
                              values_to = "Amount") %>%
   ggplot(aes(x = Amount, color = CVD_status)) +
@@ -177,12 +249,12 @@ bio.imp.CVD %>% pivot_longer(-CVD_status,
              labeller = labeller(Biomarker = biomarker.labeller))+
   #theme_minimal()+
   #scale_color_brewer(palette = "Set1")+
-  scale_color_global()+
   ggtitle("Biomarker distribution for imputed data")
 
-ggsave("results/bio_dist_imp.pdf")
+# ggsave(paste0(save_plots,"bio_dist_imp.pdf"))
+save.results(fig, "bio_dist_imp")
 
-bio.imp.CVD %>% pivot_longer(-CVD_status, 
+fig = bio.imp.CVD %>% pivot_longer(-CVD_status, 
                              names_to = "Biomarker",
                              values_to = "Amount") %>%
   ggplot(aes(x = log10(Amount), color = CVD_status)) +
@@ -193,11 +265,12 @@ bio.imp.CVD %>% pivot_longer(-CVD_status,
   #scale_color_brewer(palette = "Set1")+
   ggtitle("Biomarker distribution for imputed data(log scaled)")
 
-ggsave("results/bio_dist_impLOG.pdf")
+# ggsave(paste0(save_plots,"bio_dist_impLOG.pdf"))
+save.results(fig, "bio_dist_impLOG")
 
 rownames(bio.CVD) = bio.CVD$Row.names
 bio.CVD = bio.CVD[,-1]
-bio.CVD %>% pivot_longer(-CVD_status, 
+fig = bio.CVD %>% pivot_longer(-CVD_status, 
                          names_to = "Biomarker",
                          values_to = "Amount") %>%
   ggplot(aes(x = Amount, color = CVD_status)) +
@@ -207,7 +280,8 @@ bio.CVD %>% pivot_longer(-CVD_status,
   #scale_color_brewer(palette = "Set1")+
   #scale_colour_Publication()+
   ggtitle("Biomarker distribution for MCAR data")
-ggsave("results/bio_dist_MCAR.pdf")
+# ggsave(paste0(save_plots,"bio_dist_MCAR.pdf"))
+save.results(fig, "bio_dist_MCAR")
 
 ##################################################################
 ##                        PCA + PCA plot                        ##
@@ -220,64 +294,23 @@ b.pca = prcomp(bio.imp.CVD[,-ncol(bio.imp.CVD)],
 
 # scree plot
 scree = ggscreeplot(b.pca)+ylim(0,1)
-ggsave("results/Biomarkers_scree_plot.pdf")
+# ggsave(paste0(save_plots,"Biomarkers_scree_plot.pdf"))
+save.results(scree, "Biomarkers_scree_plot")
 
 # ellipses with labels of CVD_status levels
 ellipses = autoplot(b.pca, data = bio.imp.CVD,
                     colour = 'CVD_status',
                     alpha = 0.5,
                     loadings = T, loadings.colour = 'black',
-                    loadings.label = T, loadings.label.colour = 'black')+
-  scale_color_global()
-ggsave("results/PCA_plot_biomarkers.pdf")
+                    loadings.label = T, loadings.label.colour = 'black')
+# ggsave(paste0(save_plots,"PCA_plot_biomarkers.pdf"))
+save.results(ellipses, "PCA_plot_biomarkers")
+
 
 # print summary of pca
 summary(b.pca)
-save(b.pca, file = "results/PCA_results_biomarkers.rds")
+saveRDS(b.pca, file = paste0(save_plots,"PCA_results_biomarkers.rds"))
 
 # plotting original feature vectors and measurements projected onto top 2 PCAs
 #ggbiplot(b.pca, groups = CVD_status)
 
-
-
-
-##################################################################
-##                         ggpairs plot                         ##
-##################################################################
-
-#get "interesting" biomarkers name from the non-complete dataset to plot
-# ggpairs of those
-
-# interesting_biomarkers = colnames(readRDS("data/Biomarkers_toy.rds"))
-# interesting_biomarkers = sub(".0.0", "", interesting_biomarkers)
-# interesting_biomarkers = gsub("_", ".", interesting_biomarkers)
-
-# this would be good but the biomarkers do not even match
-
-# pairs plot of biomarkers separated by vital status
-
-#ggpairs(bio.imp,
-#aes(color=CVD_status), progress = FALSE)
-
-
-
-
-##################################################################
-##                         First models                         ##
-##################################################################
-## Running basic models
-#Covariates
-# glm_cov <- glm(CVD_status ~ age_cl + BS2_all, data=cov, family=binomial)
-# summary(glm_cov)
-# round(cbind("odds" = exp(coef(glm_cov)), exp(confint(glm_cov))), 3)
-# 
-# if (!require(jtools)) install.packages('jtools')
-# library(jtools)
-# glm_cov_plot <- effect_plot(glm_cov, pred = BS2_all, interval = TRUE, int.width = 0.95) 
-# glm_cov_plot
-# 
-# #Biomarkers
-# # all_cols <- colnames(bio.joint[1:30]) ---- this line's not needed
-# glm_bio <- glm(CVD_status ~., data=bio.joint, family=binomial)
-# summary(glm_bio)
-# round(cbind("odds" = exp(coef(glm_bio)), exp(confint(glm_bio))), 3)

@@ -15,7 +15,7 @@ if (cluster == 1){
 #### ADD COMPARISONS BY SUBGROUP and add some more comments
 
 bio = readRDS(paste0(data_folder,"bioProcessed.rds"))
-bio.imp = readRDS(paste0(data_folder,"bioImputed.rds"))
+bio.imp = readRDS(paste0(data_folder,"bioImputedKNN.rds"))
 cov = readRDS(paste0(data_folder,"covProcessed.rds"))
 
 bio.dict = readxl::read_xlsx("../Biomarker_annotation.xlsx")
