@@ -154,6 +154,7 @@ cov$dc_cvd_st = as.factor(cov$dc_cvd_st)
 cov$cvd_death = as.factor(cov$cvd_death)
 
 rownames(cov) = rownames(cov.original)
+cov = cov[!rowMeans(is.na(cov))>0.5,]
 saveRDS(cov, file = paste0(save_path,"covProcessed.rds"))
 
 
