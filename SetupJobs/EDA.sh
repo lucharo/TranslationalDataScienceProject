@@ -3,6 +3,6 @@
 
 module load anaconda3/personal
 
-cd /rdsgpfs/general/user/lc5415/home/hda_tds_ukbiobank
+cd /rdsgpfs/general/user/lc5415/home/BEES_TDS/Scripts
 
 Rscript EDA.R
