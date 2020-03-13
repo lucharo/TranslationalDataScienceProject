@@ -12,6 +12,9 @@ if (cluster == 1){
   save_plots = "../results/"
 }
 
+ifelse(!dir.exists(file.path(save_plots, "BHS/")), dir.create(file.path(save_plots, "BHS/")), FALSE)
+save_plots = paste0(save_plots,"BHS/")
+
 #### ADD COMPARISONS BY SUBGROUP and add some more comments
 
 bio = readRDS(paste0(data_folder,"bioProcessed.rds"))
@@ -212,12 +215,10 @@ scores_paper = BHSCalculator("More_is_bad_paper",T)
 scores_Mantej = BHSCalculator("More_is_bad_Mantej",T)
 
 
-
-
 ##################################################################
 ##                             Plot                             ##
 ##################################################################
-data.frame(rbind(cbind(BHS = scores_paper, Reference = "Paper"),
+fig = data.frame(rbind(cbind(BHS = scores_paper, Reference = "Paper"),
       cbind(BHS = scores_Mantej, Reference = "Mantej")),
       stringsAsFactors = F) %>% 
   ggplot(aes(x = Reference, y = as.numeric(BHS), fill = Reference))+
@@ -229,11 +230,14 @@ data.frame(rbind(cbind(BHS = scores_paper, Reference = "Paper"),
   stat_summary(geom = "point", shape = 23)+
   theme_minimal()
 
+ggsave(paste0(save_plots, "MantejvPaper.pdf"))
+saveRDS(fig, paste0(save_plots, "MantejvPaper.pdf"))
+
 
 ##################################################################
 ##                            t-test                            ##
 ##################################################################
-t.test(as.numeric(BHS) ~ Reference, data = data.frame(
+print(t.test(as.numeric(BHS) ~ Reference, data = data.frame(
   rbind(cbind(BHS = scores_paper, Reference = "Paper"),
         cbind(BHS = scores_Mantej, Reference = "Mantej")),
-  stringsAsFactors = F), paired = T)
+  stringsAsFactors = F), paired = T))
