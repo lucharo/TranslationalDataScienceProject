@@ -143,18 +143,20 @@ save.results(fig, "MissBioDatabyCVD")
 # intersection you want to look at
 
 # upset plots are not cool with ggsave method
-pdf(file = paste0(save_plots,"upset_biofull_unfiltered.pdf", onefile = F))
+pdf(file = paste0(save_plots,"upset_biofull_unfiltered.pdf"))
 fig = gg_miss_upset(bio.unfiltered.CVD, 
                       nsets = 10,
                       nintersects = 10)
+fig
 dev.off()
 save.results(fig, "upset_biofull_unfiltered", ggsv = F)
 
 
-pdf(file = paste0(save_plots,"upset_biofull.pdf", onefile = F))
+pdf(file = paste0(save_plots,"upset_biofull.pdf"))
 fig = gg_miss_upset(bio.CVD, 
               nsets = 10,
               nintersects = 10)
+fig
 dev.off()
 save.results(fig, "upset_biofull", ggsv = F)
 
@@ -194,8 +196,9 @@ fig = cov %>%
 # ggsave(paste0(save_plots,"MissCovDatabyCVD.pdf"))
 save.results(fig, "MissCovDatabyCVD")
 
-pdf(file = paste0(save_plots,"upset_covfull.pdf", onefile = F))
+pdf(file = paste0(save_plots,"upset_covfull.pdf"))
 fig = gg_miss_upset(cov)
+fig
 dev.off()
 save.results(fig, "upset_covfull", ggsv = F)
 
@@ -219,8 +222,9 @@ snp.cvd %>%
                                    hjust = 1))+
   ggtitle("Missing data patterns by CVD status for all snps")
 
-pdf(file = paste0(save_plots,"upset_snp.pdf", onefile = F))
+pdf(file = paste0(save_plots,"upset_snp.pdf"))
 fig = gg_miss_upset(snp)
+fig
 dev.off()
 save.results(fig, "upset_snp", ggsv = F)
 
