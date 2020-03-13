@@ -1,7 +1,20 @@
 library(glmnet)
 library(lme4)
+library(dplyr)
+library(ggplot2)
 # Aim of this script is to replicate the work from practical 3 and 4 on the
 # TDS dataset
+
+cluster = 0
+
+if (cluster == 1){
+  save_data = data_folder = "../FULLDATA/preprocessed/"
+  save_plots = "../FULLResults/"
+} else {
+  setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+  save_data = data_folder = "../data/preprocessed/"
+  save_plots = "../results/"
+}
 
 ###########################################################################
 ###########################################################################
@@ -11,9 +24,9 @@ library(lme4)
 ###########################################################################
 ###########################################################################
 
-bio = readRDS("data/preprocessed/bioProcessed.rds")
-bio.imp = readRDS("data/preprocessed/bioImputed.rds")
-cov = readRDS("data/preprocessed/covProcessed.rds")
+bio = readRDS(paste0(data_folder,"bioProcessed.rds"))
+bio.imp = readRDS(paste0(data_folder,"bioImputed.rds"))
+cov = readRDS(paste0(data_folder,"covProcessed.rds"))
 
 bio.imp_cov = merge(bio.imp,cov,by="row.names",all.x=TRUE)
 rownames(bio.imp_cov) = bio.imp_cov$Row.names
@@ -65,7 +78,11 @@ Univariate.analysis = function(merged.dataset){
 univ_nonimputed = Univariate.analysis(bio_cov)
 univ_imputed = Univariate.analysis(bio.imp_cov)
 
-rbind(cbind(univ_nonimputed, Data = "Not-imputed"),
+##################################################################
+##                           Plotting                           ##
+##################################################################
+
+figure = rbind(cbind(univ_nonimputed, Data = "Not-imputed"),
       cbind(univ_imputed, Data = "MICE")) %>% 
   ggplot(aes(x = Biomarkers,
              y = -log10(p.value),
@@ -82,5 +99,10 @@ rbind(cbind(univ_nonimputed, Data = "Not-imputed"),
   labs(shape = "Sign of the\nassociation")+
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
+##################################################################
+##                         Saving Plots                         ##
+##################################################################
 
+ggsave(paste0(save_plots,"UnivariateAnalysis.pdf")) # as pdf
+saveRDS(figure, paste0(save_plots,"UnivariateAnalysis.rds")) # as object
 

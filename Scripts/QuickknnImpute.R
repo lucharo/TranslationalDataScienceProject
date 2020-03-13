@@ -3,7 +3,7 @@ library(impute)
 library(tidyverse)
 library(ggplot2)
 
-cluster = 1
+cluster = 0
 
 if (cluster == 1){
  save_data = data_folder = "../FULLDATA/preprocessed/"
