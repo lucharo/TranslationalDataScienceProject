@@ -25,7 +25,7 @@ if (cluster == 1){
 ###########################################################################
 
 bio = readRDS(paste0(data_folder,"bioProcessed.rds"))
-bio.imp = readRDS(paste0(data_folder,"bioImputed.rds"))
+bio.imp = readRDS(paste0(data_folder,"bioImputedKNN.rds"))
 cov = readRDS(paste0(data_folder,"covProcessed.rds"))
 
 bio.imp_cov = merge(bio.imp,cov,by="row.names",all.x=TRUE)
