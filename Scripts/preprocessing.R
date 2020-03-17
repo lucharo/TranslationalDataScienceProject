@@ -69,7 +69,7 @@ cores = detectCores()
 ##################################################################
 ##                        Cluster add-in                        ##
 ##################################################################
-cluster = 1
+cluster = 0
 t0 = Sys.time()
 if (cluster == 1){
   cov.original = readRDS("../FULLDATA/Covariates.rds")
@@ -88,6 +88,12 @@ if (cluster == 1){
   cov.original = cbind(ID = rownames(cov.original), cov.original)
   snp.original = cbind(ID = rownames(snp.original), snp.original)
   
+  cov.original$ID = ifelse(class(cov.original$ID)=="factor",
+                           as.numeric(levels(cov.original$ID)[cov.original$ID]),
+                           cov.original$ID)
+  snp.original$ID = ifelse(class(snp.original$ID)=="factor",
+                           as.numeric(levels(snp.original$ID)[snp.original$ID]),
+                           snp.original$ID)
   
   save_path = "../FULLDATA/preprocessed/"
 } else {
@@ -102,19 +108,14 @@ if (cluster == 1){
     snp.original = readRDS('../data/Genes_toy.rds')
     snp_info.original = readxl::read_xlsx("../SNP_info.xlsx")
 
-    bio.original = cbind(ID = rownames(bio.original), bio.original)
-    cov.original = cbind(ID = rownames(cov.original), cov.original)
-    snp.original = cbind(ID = rownames(snp.original), snp.original)
+    bio.original = cbind(ID = 1:nrow(bio.original), bio.original)
+    cov.original = cbind(ID = 1:nrow(cov.original), cov.original)
+    snp.original = cbind(ID = 1:nrow(snp.original), snp.original)
     
     save_path = "../data/preprocessed/"
 }
 
-cov.original$ID = ifelse(class(cov.original$ID)=="factor",
-                         as.numeric(levels(cov.original$ID)[cov.original$ID]),
-                                    cov.original$ID)
-snp.original$ID = ifelse(class(snp.original$ID)=="factor",
-                         as.numeric(levels(snp.original$ID)[snp.original$ID]),
-                         snp.original$ID)
+
 
 ##################################################################
 
@@ -270,6 +271,7 @@ snp[snp==1] <- 0
 snp[snp==2] <- 1
 snp[snp==3] <- 2
 
+snp$ID = snp.original$ID
 # SNP'S DATA A BIT HARDER TO IMPUTE BECAUSE VALUES ARE EITHER 0,1 OR 2, 
 # SOME ENTRIES (PARTICUARLY COLUMN 77 HAS A LOT OF THE SAME VALUES, =2 FOR COLUMN 77)
 # WHICH MAKES IT EASY TO DO IMPUTATION:
