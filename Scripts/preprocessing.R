@@ -71,16 +71,24 @@ cores = detectCores()
 ##################################################################
 cluster = 1
 
+rowsToTake = sample(1:500000, 40000)
 if (cluster == 1){
-  cov.original = readRDS("../FULLDATA/Covariates.rds")
-  bio.original= readRDS("../FULLDATA/Biomarkers_full.rds")
+  cov.original = readRDS("../FULLDATA/Covariates.rds")[rowsToTake,]
+  bio.original= readRDS("../FULLDATA/Biomarkers_full.rds")[rowsToTake,]
   bio.dict = readxl::read_xlsx("../Biomarker_annotation.xlsx")
   cov.dict = readxl::read_xlsx("../Covariate_dictionary.xlsx")
-  snp.original = readRDS('../FULLDATA/genetic_data_cvd_snps.rds')
+  snp.original = readRDS('../FULLDATA/genetic_data_cvd_snps.rds')[rowsToTake,]
   snp_info.original = readxl::read_xlsx("../SNP_info.xlsx")
   
-  rownames(bio.original) = bio.original$`mydata$eid`
-  bio.original = bio.original[,-1]
+  # id's into columnss, not doing this anymore
+  # rownames(bio.original) = bio.original$`mydata$eid`
+  # bio.original = bio.original[,-1]
+  
+  # setting up ID column
+  colnames(bio.original)[1] = 'ID'
+  cov.original = cbind(ID = rownames(cov.original), cov.original)
+  snp.original = cbind(ID = rownames(snp.original), snp.original)
+  
   
   save_path = "../FULLDATA/preprocessed/"
 } else {
@@ -95,8 +103,19 @@ if (cluster == 1){
     snp.original = readRDS('../data/Genes_toy.rds')
     snp_info.original = readxl::read_xlsx("../SNP_info.xlsx")
 
+    bio.original = cbind(ID = rownames(bio.original), bio.original)
+    cov.original = cbind(ID = rownames(cov.original), cov.original)
+    snp.original = cbind(ID = rownames(snp.original), snp.original)
+    
     save_path = "../data/preprocessed/"
 }
+
+cov.original$ID = ifelse(class(cov.original$ID)=="factor",
+                         as.numeric(levels(cov.original$ID)[cov.original$ID]),
+                                    cov.original$ID)
+snp.original$ID = ifelse(class(snp.original$ID)=="factor",
+                         as.numeric(levels(snp.original$ID)[snp.original$ID]),
+                         snp.original$ID)
 
 ##################################################################
 
@@ -109,7 +128,7 @@ colnames(bio.dict) = make.names(colnames(bio.dict), unique=TRUE)
 
 #get column numbers of columns with name containing pattern *(.)1(.)*
 # use (.) to match the dot as opposed to using . as a wildcard
-bio = bio.original[,!grepl("*(.)1(.)0", colnames(bio.original))]
+bio = bio.original[,c(T, !grepl("*(.)1(.)0", colnames(bio.original)[-1]))]
 
 # Match code with biomarker name to change column names of b
 # get element 2 to 6 of all string in vector colnames(b)
@@ -119,11 +138,11 @@ bio = bio.original[,!grepl("*(.)1(.)0", colnames(bio.original))]
 # Alternative: order UK.bionbank.field entries and match them
 #---- bio.dict = bio.dict %>% arrange(UK.Biobank.Field)
 
-colnames(bio) = bio.dict$Biomarker.name[
-  match(substring(colnames(bio),2,6),bio.dict$UK.Biobank.Field)] 
+colnames(bio)[-1] = bio.dict$Biomarker.name[
+  match(substring(colnames(bio)[-1],2,6),bio.dict$UK.Biobank.Field)] 
 
-colnames(bio) = make.names(colnames(bio), unique=TRUE)
-colnames(bio) = sub("\\.\\.",".", colnames(bio))
+colnames(bio)[-1] = make.names(colnames(bio)[-1], unique=TRUE)
+colnames(bio)[-1] = sub("\\.\\.",".", colnames(bio)[-1])
 
 # safety-check for all vars being numeric
 stopifnot(all(apply(bio, 2, is.numeric)))
@@ -133,12 +152,10 @@ stopifnot(all(apply(bio, 2, is.numeric)))
 ##               Processing of covariates dataset               ##
 ##################################################################
 ## preprocessing c
-# replace empty strings by NA
-values_to_replace_w_na = c("")
-cov = cov.original %>% replace_with_na_all(condition = ~.x %in%
-                                             values_to_replace_w_na)
+
 #remove anything to do wih cancer or external deaths
-cov = cov[,!grepl("cancer|external", colnames(cov))]
+cov = cov.original[,!grepl("cancer|external", colnames(cov.original))]
+
 #remove codes except for icd10
 cov = cov[,!(colnames(cov) %in% c("cvd_final_icd9",
                                   "cvd_final_nc_illness_code",
@@ -146,14 +163,44 @@ cov = cov[,!(colnames(cov) %in% c("cvd_final_icd9",
                                   "cvd_final_ukb_oper_code",
                                   "other_cause_death"))]
 
-# change numerical binary outcome variables to categorical
-str(cov)
-cov$CVD_status = as.factor(cov$CVD_status)
-cov$vit_status = as.factor(cov$vit_status)
-cov$dc_cvd_st = as.factor(cov$dc_cvd_st)
-cov$cvd_death = as.factor(cov$cvd_death)
+unfactor = function(column, df){
+  #' Check if column in integer or string and  turn to the correct type
+  #' to avoid other function turning into factor indices
+  
+  if (class(df[1,column]) == "factor"){
+    if (typeof(levels(df[1,column])[df[1,column]]) == "integer"){
+      out = as.numeric(levels(df[,column]))[df[,column]]
+    } else if (typeof(levels(df[1,column])[df[1,column]])  == "character") {
+      out = as.character(levels(df[,column]))[df[,column]]
+    } else { #NA
+      out = as.character(levels(df[,column]))[df[,column]]
+    }
+  } else {
+    out = df[,column]
+  }
 
-rownames(cov) = rownames(cov.original)
+  return(out)
+}
+
+names.cov = colnames(cov)
+
+cov = as.data.frame(
+  lapply(colnames(cov),
+       function(column) {
+         print(column)
+       unfactor(column, cov)}), stringsAsFactors = F
+  )
+
+colnames(cov) = names.cov
+
+# replace empty strings by NA
+values_to_replace_w_na = c("")
+#################################################################
+##                     This line is GUILTY                     ##
+#################################################################
+cov = cov %>% replace_with_na_all(condition = ~.x %in%
+                                             values_to_replace_w_na)
+
 cov = cov[!rowMeans(is.na(cov))>0.5,]
 saveRDS(cov, file = paste0(save_path,"covProcessed.rds"))
 
@@ -204,13 +251,20 @@ snp.info = snp_info.original[snp_info.original$markername %in% snps, ]
 
 saveRDS(snp.info, file = paste0(save_path,"snpInfo.rds"))
 
+snp = cbind(ID = snp.original$ID, 
+             as.data.frame(
+  apply(snp.original[,-1], 2,
+        as.numeric)
+  ))
 
 # recoding 00 as NA,  01 as 0, 02 as 1, and 03 as 2
-snp <- snp.original
-
-for (i in colnames(snp)){
-  snp[,i] = as.numeric(snp[,i], multiple=TRUE)
-}
+# snp <- snp.original
+##################################################################
+##           See code above for same thing with apply           ##
+##################################################################
+# for (i in colnames(snp)){
+#   snp[,i] = as.numeric(snp[,i], multiple=TRUE)
+# }
 
 snp[snp==0] <- NA
 snp[snp==1] <- 0
@@ -256,4 +310,6 @@ max(colSums(is.na(snp)))
 #                                            binwidth = 1))
 # 
 # cowplot::plot_grid(plotlist = list)
+print(paste0("Common rows between bio and cov: ",table(bio$ID %in% cov$ID)))
 
+      
