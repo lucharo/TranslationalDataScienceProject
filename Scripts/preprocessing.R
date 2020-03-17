@@ -309,6 +309,6 @@ max(colSums(is.na(snp)))
 #                                            binwidth = 1))
 # 
 # cowplot::plot_grid(plotlist = list)
-print(paste0("Common rows between bio and cov: ",table(bio$ID %in% cov$ID)))
+print(paste0("Common rows between bio and cov: ",sum(bio$ID %in% cov$ID)))
 print(Sys.time()-t0)
       
