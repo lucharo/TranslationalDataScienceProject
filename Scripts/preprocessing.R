@@ -72,7 +72,7 @@ cores = detectCores()
 cluster = 0
 t0 = Sys.time()
 if (cluster == 1){
-  cov.original = readRDS("../FULLDATA/Covariates.rds")
+  cov.original = readRDS("../FULLDATA/Covariates_full.rds")
   bio.original= readRDS("../FULLDATA/Biomarkers_full.rds")
   bio.dict = readxl::read_xlsx("../Biomarker_annotation.xlsx")
   cov.dict = readxl::read_xlsx("../Covariate_dictionary.xlsx")
