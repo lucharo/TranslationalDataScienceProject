@@ -70,14 +70,13 @@ cores = detectCores()
 ##                        Cluster add-in                        ##
 ##################################################################
 cluster = 1
-
-rowsToTake = sample(1:500000, 40000)
+t0 = Sys.time()
 if (cluster == 1){
-  cov.original = readRDS("../FULLDATA/Covariates.rds")[rowsToTake,]
-  bio.original= readRDS("../FULLDATA/Biomarkers_full.rds")[rowsToTake,]
+  cov.original = readRDS("../FULLDATA/Covariates.rds")
+  bio.original= readRDS("../FULLDATA/Biomarkers_full.rds")
   bio.dict = readxl::read_xlsx("../Biomarker_annotation.xlsx")
   cov.dict = readxl::read_xlsx("../Covariate_dictionary.xlsx")
-  snp.original = readRDS('../FULLDATA/genetic_data_cvd_snps.rds')[rowsToTake,]
+  snp.original = readRDS('../FULLDATA/genetic_data_cvd_snps.rds')
   snp_info.original = readxl::read_xlsx("../SNP_info.xlsx")
   
   # id's into columnss, not doing this anymore
@@ -311,5 +310,5 @@ max(colSums(is.na(snp)))
 # 
 # cowplot::plot_grid(plotlist = list)
 print(paste0("Common rows between bio and cov: ",table(bio$ID %in% cov$ID)))
-
+print(Sys.time()-t0)
       
