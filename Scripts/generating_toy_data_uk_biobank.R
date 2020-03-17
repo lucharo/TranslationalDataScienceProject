@@ -39,9 +39,9 @@ GenerateToyData=function(x,n=2000,p=NULL,seed=1,observation_consistency=FALSE){
 
 
 # Loading the original (real) data
-mydata=readRDS("data/Biomarkers_full.rds")
-covars=readRDS("data/Covariates.rds")
-genes = readRDS("data/genetic_data_cvd_snps.rds")
+mydata=readRDS("../FULLDATA/Biomarkers_full.rds")
+covars=readRDS("../FULLDATA/Covariates_full.rds")
+genes = readRDS("../FULLDATA/genetic_data_cvd_snps.rds")
 
 # Make sure that ID is not one of the variables
 rownames(mydata)=mydata$eid
@@ -49,15 +49,15 @@ mydata=mydata[,-1]
 
 # Generate a toy example dataset with all variables and a subset of 100 observations
 toy_biomarkers=GenerateToyData(x=mydata, seed=1)
-saveRDS(toy_biomarkers, "data/Biomarkers_toy.rds")
+saveRDS(toy_biomarkers, "../data/Biomarkers_toy.rds")
 
 # Change the seed to generate the covariate toy example dataset
 toy_covars=GenerateToyData(x=covars, seed=2, observation_consistency=TRUE)
-saveRDS(toy_covars, "data/Covars_toy.rds")
+saveRDS(toy_covars, "../data/Covars_toy.rds")
 
 # same for genes
 toy_genes = GenerateToyData(x=genes, seed=2, observation_consistency=TRUE)
-saveRDS(toy_genes, "data/Genes_toy.rds")
+saveRDS(toy_genes, "../data/Genes_toy.rds")
 
 # The observation_consistency argument prevents re-shuffling within the variables so that the dataset is consistent
 table(toy_covars$vit_status, toy_covars$dc_cancer_st)
