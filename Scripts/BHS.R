@@ -1,9 +1,9 @@
 library(tidyverse)
 library(ggpubr)
 
-cluster = 1
-
-if (cluster == 1){
+cluster = 0
+platform = Sys.info()['sysname']
+if (platform=='Linux'){
   save_data = data_folder = "../FULLDATA/preprocessed/"
   save_plots = "../FULLResults/"
 } else {
@@ -29,9 +29,12 @@ bio.dict$`Biomarker name` = sub("\\.\\.",".",
                                 bio.dict$`Biomarker name`)
 
 # for simplicity we merge cov and bio here
-bio.imp = merge(bio.imp, cov[,c("age_cl")], by = "row.names")
+bio.imp = merge(bio.imp, cov[,c("ID","age_cl","gender")], by = "ID")
 rownames(bio.imp) = bio.imp[,1]
 bio.imp = bio.imp[,-1]
+
+bio.imp$age_cl = as.factor(bio.imp$age_cl)
+bio.imp$gender = as.factor(bio.imp$gender)
 
 BHSCalculator = function(reference, stratified = F){
   # reference can take values: 
@@ -84,28 +87,34 @@ BHSCalculator = function(reference, stratified = F){
     relevant_quantiles = data.frame(Biomarker = character(0),
                                     Quantile.value = numeric(0),
                                     Quartile = character(0),
-                                    AgeClass = numeric(0))
-    for (age.class in 1:3){
-      
-      # getting the entries from the bio dataset where the cov$age_cl values are 
-      # equal to age.class
-      bio.per.class = bio.imp[bio.imp$age_cl==age.class,-ncol(bio.imp)]
-                                        # -ncol(bio.imp) everywhere to avoid age_cl column
-      
-      result = data.frame(Biomarker = colnames(bio.per.class),
-                          data.frame(matrix(
-                            unlist(
-                              lapply(colnames(bio.per.class),
-                                     function(x) quantile_check(x, reference = reference, bio.per.class))),
-                            nrow=length(colnames(bio.per.class)),
-                            byrow=T), stringsAsFactors = F), 
-                          stringsAsFactors = F)
-      
-      colnames(result)[2:3] = c("Quantile.value", "Quartile")
-      result = cbind(result, AgeClass = age.class)
-      
-      relevant_quantiles = rbind(relevant_quantiles, result)
+                                    AgeClass = character(0),
+                                    Gender = character(0))
+    
+    for (gender in unique(bio.imp$gender)){
+      for (age.class in unique(bio.imp$age_cl)){
+        
+        # getting the entries from the bio dataset where the cov$age_cl values are 
+        # equal to age.class
+        bio.per.class = bio.imp[bio.imp$age_cl==age.class & bio.imp$gender == gender,
+                                -c(ncol(bio.imp)-1, ncol(bio.imp))]
+        # -ncol(bio.imp) everywhere to avoid age_cl column
+        
+        result = data.frame(Biomarker = colnames(bio.per.class),
+                            data.frame(matrix(
+                              unlist(
+                                lapply(colnames(bio.per.class),
+                                       function(x) quantile_check(x, reference = reference, bio.per.class))),
+                              nrow=length(colnames(bio.per.class)),
+                              byrow=T), stringsAsFactors = F), 
+                            stringsAsFactors = F)
+        
+        colnames(result)[2:3] = c("Quantile.value", "Quartile")
+        result = cbind(result, AgeClass = age.class, Gender = gender)
+        
+        relevant_quantiles = rbind(relevant_quantiles, result)
+      }
     }
+
     # take only complete cases
     relevant_quantiles = relevant_quantiles[complete.cases(relevant_quantiles),]
     
@@ -138,36 +147,41 @@ BHSCalculator = function(reference, stratified = F){
     # initialising empty dataframe with dims of bio.imp
     bio.score = bio.imp[F,1:(length(unique(relevant_quantiles$Biomarker))+1)]
     
-    for (age in 1:3){
-      # select entries of biomarker for which age is equal to iterations
-      bio.sub  = bio.imp[bio.imp$age_cl==age,-ncol(bio.imp)]
-      # select quantiles for which age is equal to age iterations
-      relevant_quantiles.age = relevant_quantiles[relevant_quantiles$AgeClass==age,]
-      attach(relevant_quantiles.age)
-      res = lapply(Biomarker,
-                         function(x){
-                           ifelse(Quartile[Biomarker == x] == "3rd",
-                                  return(bio.sub[,x] > 
-                                           Quantile.value[Biomarker == x]),
-                                  return(bio.sub[,x] < 
-                                           Quantile.value[Biomarker == x]))
-                         })
-      res = data.frame(matrix(unlist(res),
-                                    ncol = length(Biomarker), byrow = F),
-                             stringsAsFactors = F)
-      rownames(res) = rownames(bio.sub)
-      colnames(res) = Biomarker
-      res$AgeCl = age
-      bio.score = rbind(bio.score, res)
-      
-      stopifnot(all(bio.imp$age_cl[bio.imp$age_cl==age]==res$AgeCl))
-      stopifnot(all(rownames(bio.imp$age_cl[bio.imp$age_cl==age])==rownames(res$AgeCl)))
-      
-      detach(relevant_quantiles.age)
+    for (gender in unique(bio.imp$gender)){
+      for (age in unique(bio.imp$age_cl)){
+        # select entries of biomarker for which age is equal to iterations
+        bio.sub  = bio.imp[bio.imp$age_cl==age & bio.imp$gender == gender,
+                           -c(ncol(bio.imp)-1, ncol(bio.imp))]
+        # select quantiles for which age is equal to age iterations
+        relevant_quantiles.age.gender = relevant_quantiles[relevant_quantiles$AgeClass==age & 
+                                                             relevant_quantiles$Gender == gender,]
+        attach(relevant_quantiles.age.gender)
+        res = lapply(Biomarker,
+                     function(x){
+                       ifelse(Quartile[Biomarker == x] == "3rd",
+                              return(bio.sub[,x] > 
+                                       Quantile.value[Biomarker == x]),
+                              return(bio.sub[,x] < 
+                                       Quantile.value[Biomarker == x]))
+                     })
+        res = data.frame(matrix(unlist(res),
+                                ncol = length(Biomarker), byrow = F),
+                         stringsAsFactors = F)
+        rownames(res) = rownames(bio.sub)
+        colnames(res) = Biomarker
+        res$AgeCl = age
+        bio.score = rbind(bio.score, res)
+        
+        # stopifnot(all(bio.imp$age_cl[bio.imp$age_cl==age]==res$AgeCl))
+        # stopifnot(all(rownames(bio.imp$age_cl[bio.imp$age_cl==age])==rownames(res$AgeCl)))
+        
+        detach(relevant_quantiles.age.gender)
+      }
     }
+
   
     # I actually don't need the age class column just need them to keep the original index
-    bio.score = bio.score[,-ncol(bio.score)]
+    bio.score = bio.score[,-c(ncol(bio.score)-1, ncol(bio.score))]
  
   }else{
     attach(relevant_quantiles)
