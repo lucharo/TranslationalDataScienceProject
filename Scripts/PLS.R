@@ -11,6 +11,7 @@ rm(list=ls())
 
 suppressPackageStartupMessages(library(devtools))
 #if (!require(mixOmics)) devtools::install_github("mixOmicsTeam/mixOmics")
+suppressPackageStartupMessages(library(mixOmics))
 suppressPackageStartupMessages(library(sgPLS))
 suppressPackageStartupMessages(library(pheatmap))
 suppressPackageStartupMessages(library(ggplot2))
@@ -28,18 +29,20 @@ if (cluster == 1){
   save_plots = "../results/"
 }
 
-bio <- readRDS(paste0(data_folder,"bioImputedKNN.rds"))
+bio <- readRDS(paste0(data_folder,"bioProcessed.rds"))
 cov <- readRDS(paste0(data_folder,"covProcessed.rds"))
-bio.cov <- merge(bio, cov$CVD_status, by='row.names')
-bio.cov = select(bio.cov, -1) 
+
+cvd <- cov %>% select(ID, CVD_status)
+bio.cov <- merge(bio, cvd, by='ID')
 
 
 ##################################################################
 ##               Basic PLS-DA and sPLS-DA models                ##
 ##################################################################
 
-X = as.data.frame(bio)
-y = bio.cov$y
+#Select all biomarkers from bio.cov for X
+X = bio.cov[, 2:29]
+y = bio.cov$CVD_status
 
 #Non-penalised plsda (i.e. no feature selection)
 PLSDA <- plsda(X, y, ncomp=1, mode="regression")
