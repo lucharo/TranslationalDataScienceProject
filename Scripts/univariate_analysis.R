@@ -5,9 +5,9 @@ library(ggplot2)
 # Aim of this script is to replicate the work from practical 3 and 4 on the
 # TDS dataset
 
-cluster = 0
-
-if (cluster == 1){
+cluster = 1
+platform = Sys.info()['sysname']
+if (platform == 'Linux'){
   save_data = data_folder = "../FULLDATA/preprocessed/"
   save_plots = "../FULLResults/"
 } else {

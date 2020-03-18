@@ -43,8 +43,8 @@ cores = detectCores()
 ##                     Setting environment                     ##
 #################################################################
 cluster = 0
-
-if (cluster == 1){
+platform = Sys.info()['sysname']
+if (platform == 'Linux'){
   save_data = data_folder = "../FULLDATA/preprocessed/"
   save_plots = "../FULLResults/"
 } else {
@@ -161,7 +161,7 @@ dev.off()
 save.results(fig, "upset_biofull", ggsv = F)
 
 
-miss1 = vis_miss(bio.unfiltered.CVD)+
+miss1 = vis_miss(bio.unfiltered.CVD, warn_large_data = F)+
   scale_y_continuous(position = 'right')+
   theme(axis.text.x = element_text(angle = 0))+
   scale_x_discrete(position = "bottom")+
@@ -169,7 +169,7 @@ miss1 = vis_miss(bio.unfiltered.CVD)+
 ggsave(paste0(save_plots,"missBioDataPatterns_unfiltered.png")) # save as png because pdf creates artifact
 saveRDS(miss1, paste0(save_plots,"missBioDataPatterns_unfiltered.rds"))
 
-miss2 = vis_miss(bio.CVD)+
+miss2 = vis_miss(bio.CVD,  warn_large_data = F)+
   scale_y_continuous(position = 'right')+
   theme(axis.text.x = element_text(angle = 0))+
   scale_x_discrete(position = "bottom")+
