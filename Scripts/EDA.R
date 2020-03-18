@@ -88,9 +88,9 @@ colnames(bio) = str_replace_all(colnames(bio), "\\."," ")
 
 # missing data plot with all (for biomarkers)
 bio.unfiltered.CVD = merge(bio.unfiltered,
-                           cov[,"CVD_status"],
-                           by="row.names",all.x=TRUE)
-rownames(bio.unfiltered.CVD) = bio.unfiltered.CVD$Row.names
+                           cov[,c("ID","CVD_status")],
+                           by="ID")
+# remove ID column as not needed for analysis
 bio.unfiltered.CVD = bio.unfiltered.CVD[-1]
 
 # gg_miss_fct(x = bio.unfiltered.CVD, fct = CVD_status)+
