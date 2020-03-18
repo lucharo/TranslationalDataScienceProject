@@ -1,8 +1,0 @@
-Warning messages:
-1: package ‘sgPLS’ was built under R version 3.6.2 
-2: In rgl.init(initValue, onlyNULL) : RGL: unable to open X11 display
-3: 'rgl_init' failed, running with rgl.useNULL = TRUE 
-Error in `[<-`(`*tmp*`, classification == groups[j], j, value = 1) : 
-  subscript out of bounds
-Calls: plsda -> unmap
-Execution halted
