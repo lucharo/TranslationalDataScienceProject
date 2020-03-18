@@ -29,6 +29,7 @@ bio.dict$`Biomarker name` = sub("\\.\\.",".",
                                 bio.dict$`Biomarker name`)
 
 # for simplicity we merge cov and bio here
+ids = bio.imp$ID
 bio.imp = merge(bio.imp, cov[,c("ID","age_cl","gender")], by = "ID")
 rownames(bio.imp) = bio.imp[,1]
 bio.imp = bio.imp[,-1]
@@ -217,17 +218,23 @@ BHSCalculator = function(reference, stratified = F){
   # get average "grade" over all the biomarkers
   bio.score$total_score = rowMeans(bio.score)
   
-  # sort bio.score in the same order as bio.imp
+  # sort bio.score in by the row.name as bio.imp
   bio.score = bio.score[rownames(bio.imp),]
   stopifnot(all(rownames(bio.imp)==rownames(bio.score)))
-  print(paste(length(colnames(bio.score))," biomarkers where assessed for this BHS calculation"))
+  print(paste(ncol(bio.score)-1," biomarkers where assessed for this BHS calculation"))
   bio.score$total_score
 }
 
 scores_paper = BHSCalculator("More_is_bad_paper",T)
-
+# at the end of the BHS calculator I have a function that ensures
+# bio.imp and bio.score are in the same order
+ScoresPaper = as.data.frame(
+  cbind(ID = ids, BHS = scores_paper), stringsAsFactors = F)
+saveRDS(ScoresPaper, paste0(save_plots, "ScoresPaper.rds"))
 scores_Mantej = BHSCalculator("More_is_bad_Mantej",T)
-
+ScoresMantej = as.data.frame(
+  cbind(ID = ids, BHS = scores_Mantej), stringsAsFactors = F)
+saveRDS(ScoresMantej, paste0(save_plots, "ScoresMantej.rds"))
 
 ##################################################################
 ##                             Plot                             ##
@@ -242,7 +249,7 @@ fig = data.frame(rbind(cbind(BHS = scores_paper, Reference = "Paper"),
   stat_compare_means(method = "t.test", paired = T,
                      label.x = 1.5, label.y = 0.9)+
   stat_summary(geom = "point", shape = 23)+
-  theme_minimal()
+  theme_minimal()+ggtitle("Distribution of the BHS Scores")
 fig
 
 ggsave(paste0(save_plots, "MantejvPaper.pdf"))
@@ -256,3 +263,27 @@ print(t.test(as.numeric(BHS) ~ Reference, data = data.frame(
   rbind(cbind(BHS = scores_paper, Reference = "Paper"),
         cbind(BHS = scores_Mantej, Reference = "Mantej")),
   stringsAsFactors = F), paired = T))
+
+
+## BasicModel
+Scores.CVD.Mantej = merge(ScoresMantej,
+                          cov[, c("CVD_status","ID")], by = "ID")
+Scores.CVD.Paper = merge(ScoresPaper,
+                         cov[, c("CVD_status","ID")], by = "ID")
+
+Scores.CVD.Mantej$CVD_status = as.factor(Scores.CVD.Mantej$CVD_status)
+Scores.CVD.Paper$CVD_status = as.factor(Scores.CVD.Paper$CVD_status)
+
+mod1 = glm(CVD_status~BHS, data = Scores.CVD.Mantej, family = "binomial")
+print("Mantej score:")
+print(mod1)
+print(exp(coef(mod1)))
+print(exp(confint(mod1)))
+
+mod2 = glm(CVD_status~BHS, data = Scores.CVD.Paper, family = "binomial")
+print("Paper score:")
+print(mod2)
+print(exp(coef(mod2)))
+print(exp(confint(mod2)))
+
+
