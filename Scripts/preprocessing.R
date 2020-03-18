@@ -72,7 +72,7 @@ cores = detectCores()
 cluster = 1
 t0 = Sys.time()
 platform = Sys.info()['sysname']
-if (cluster == 1 & platform == "Linux"){
+if (cluster == 1 | platform == "Linux"){
   cov.original = readRDS("../FULLDATA/Covariates_full.rds")
   bio.original= readRDS("../FULLDATA/Biomarkers_full.rds")
   bio.dict = readxl::read_xlsx("../Biomarker_annotation.xlsx")
@@ -89,12 +89,8 @@ if (cluster == 1 & platform == "Linux"){
   cov.original = cbind(ID = rownames(cov.original), cov.original)
   snp.original = cbind(ID = rownames(snp.original), snp.original)
   
-  cov.original$ID = ifelse(class(cov.original$ID)=="factor",
-                           as.numeric(levels(cov.original$ID)[cov.original$ID]),
-                           cov.original$ID)
-  snp.original$ID = ifelse(class(snp.original$ID)=="factor",
-                           as.numeric(levels(snp.original$ID)[snp.original$ID]),
-                           snp.original$ID)
+  cov.original$ID = as.numeric(levels(cov.original$ID)[cov.original$ID])
+  snp.original$ID = as.numeric(levels(snp.original$ID)[snp.original$ID])
   
   save_path = "../FULLDATA/preprocessed/"
 } else {
