@@ -112,10 +112,17 @@ figure = rbind(cbind(univ_nonimputed, Data = "Not-imputed"),
   geom_point(position = position_dodge(0.9))+
   geom_hline(yintercept = -log10(0.05/length(colnames(bio))),
              linetype = "dashed")+
+  geom_text(aes(x = Biomarkers, y = -log10(p.value)+0.4,
+                label = ifelse(Data == "MICE" &
+                                 -log10(p.value)> -log10(0.05/length(colnames(bio))),
+                               colnames(bio)[Biomarkers], "")),
+            angle = 90, show.legend = F, color = "black", size = 3)+
   scale_shape_manual(values = c(6,2))+
   scale_color_brewer(palette = "Set1")+
   labs(shape = "Sign of the\nassociation")+
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  theme(axis.text.x = element_blank(),
+        # axis.text.x = element_text(angle = 90, hjust = 1),
+        axis.ticks.x = element_blank())+ylim(0, NA)
 
 ##################################################################
 ##                         Saving Plots                         ##
