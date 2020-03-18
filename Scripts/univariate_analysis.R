@@ -5,7 +5,7 @@ library(ggplot2)
 # Aim of this script is to replicate the work from practical 3 and 4 on the
 # TDS dataset
 
-cluster = 1
+cluster = 0
 
 if (cluster == 1){
   save_data = data_folder = "../FULLDATA/preprocessed/"
@@ -28,22 +28,40 @@ bio = readRDS(paste0(data_folder,"bioProcessed.rds"))
 bio.imp = readRDS(paste0(data_folder,"bioImputedKNN.rds"))
 cov = readRDS(paste0(data_folder,"covProcessed.rds"))
 
-bio.imp_cov = merge(bio.imp,cov,by="row.names",all.x=TRUE)
-rownames(bio.imp_cov) = bio.imp_cov$Row.names
+bio.imp_cov = merge(bio.imp,cov,by="ID")
 bio.imp_cov = bio.imp_cov[,-1]
 
-bio_cov = merge(bio,cov,by="row.names",all.x=TRUE)
-rownames(bio_cov) = bio_cov$Row.names
+bio_cov = merge(bio,cov,by="ID")
 bio_cov = bio_cov[,-1]
 
 confounders = c("age_CVD","BS2_all", "qual2","smok_ever_2",
                 "physical_activity_2", "alcohol_2", "BMI_5cl_2",
-                "no_cmrbt_cl2", "no_medicines")
+                "no_cmrbt_cl2", "no_medicines", "gender")
+
+factorize = function(column, df){
+  #' Check if column in integer or string and  turn to the correct type
+  #' to avoid other function turning into factor indices
+  
+  if (class(df[1,column]) == "character"){
+    out = as.factor(df[,column])
+  } else {
+    out = df[,column]
+  }
+  return(out)
+}
+
+bio_cov[,c("CVD_status",confounders)]  = lapply(c("CVD_status",confounders),
+                                function(column) factorize(column, bio_cov))
+bio.imp_cov[,c("CVD_status",confounders)]  = lapply(c("CVD_status",confounders),
+                                function(column) factorize(column, bio.imp_cov))
+# bio_cov = bio_cov[,c("CVD_status",confounders)]
+# bio.imp_cov = bio.imp_cov[,c("CVD_status",confounders)]
 
 DoYouMatter = function(biomarker, data = bio.imp_cov){
   # I guess I would ideally not have to precise a data argument and allow
   # the data to be the global proteins.covars object, though lmer throws an
   # error
+  
   
   formula = as.formula(paste("CVD_status",
                              paste(c(confounders, biomarker),
@@ -59,7 +77,7 @@ DoYouMatter = function(biomarker, data = bio.imp_cov){
 Univariate.analysis = function(merged.dataset){
   
   
-  bio.names = colnames(bio.imp)
+  bio.names = colnames(bio.imp)[-1]
   
   pvals = data.frame(
     matrix(unlist(lapply(bio.names,
