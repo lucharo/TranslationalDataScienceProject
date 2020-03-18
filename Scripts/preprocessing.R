@@ -288,7 +288,7 @@ snp = snp[,!(colMeans(snp==2,na.rm= T)>0.9)]
 # best.k.mean.snps = which.min(colMeans(RMSE.snps))
 
 #### FOR NOW, QUICK AND DIRTY SOLUTION
-snp.imp = data.frame(impute.knn(as.matrix(snp[,-1]))$data)
+snp.imp = data.frame(round(impute.knn(as.matrix(snp[,-1]))$data,0))
 snp.imp = cbind(ID = snp$ID, snp.imp)
 snp.imp = as.data.frame(snp.imp, stringsAsFactors = FALSE)
 saveRDS(snp.imp, paste0(save_path,"snpImputed.rds"))
