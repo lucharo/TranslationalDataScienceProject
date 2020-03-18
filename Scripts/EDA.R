@@ -160,7 +160,6 @@ fig
 dev.off()
 save.results(fig, "upset_biofull", ggsv = F)
 
-
 miss1 = vis_miss(bio.unfiltered.CVD, warn_large_data = F)+
   scale_y_continuous(position = 'right')+
   theme(axis.text.x = element_text(angle = 0))+
@@ -196,7 +195,7 @@ fig = cov %>%
 # ggsave(paste0(save_plots,"MissCovDatabyCVD.pdf"))
 save.results(fig, "MissCovDatabyCVD")
 
-pdf(file = paste0(save_plots,"upset_covfull.pdf"))
+pdf(file = paste0(save_plots,"upset_covfull.pdf"), onefile = F)
 fig = gg_miss_upset(cov)
 fig
 dev.off()
