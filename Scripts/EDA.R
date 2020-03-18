@@ -42,7 +42,7 @@ cores = detectCores()
 #################################################################
 ##                     Setting environment                     ##
 #################################################################
-cluster = 1
+cluster = 0
 
 if (cluster == 1){
   save_data = data_folder = "../FULLDATA/preprocessed/"
@@ -110,9 +110,9 @@ fig = bio.unfiltered.CVD %>%
 save.results(fig, "MissBioDataALLbyCVD")
 # ggsave(paste0(save_plots,"MissBioDataALLbyCVD.pdf"))
 
-bio.CVD = merge(bio,cov[,"CVD_status"],
-                by="row.names",all.x=TRUE)
-rownames(bio.CVD) = bio.CVD$Row.names
+bio.CVD = merge(bio,cov[,c("ID","CVD_status")],
+                by="ID")
+# remove ID col for plotting
 bio.CVD = bio.CVD[-1]
 
 # gg_miss_fct(x = bio.CVD, fct = CVD_status)+
@@ -206,8 +206,8 @@ save.results(fig, "upset_covfull", ggsv = F)
 
 # missing data plots for snps
 
-snp.cvd = merge(snp, cov[,"CVD_status"], by="row.names", all.x=TRUE)
-
+snp.cvd = merge(snp, cov[,c("ID","CVD_status")], by="ID")
+snp.cvd = snp.cvd[,-1]
 # gg_miss_fct(x = snp.cvd, fct = CVD_status) +
 snp.cvd %>%
   dplyr::group_by(CVD_status) %>%
@@ -222,6 +222,7 @@ snp.cvd %>%
                                    hjust = 1))+
   ggtitle("Missing data patterns by CVD status for all snps")
 
+snp = snp[,-1]
 pdf(file = paste0(save_plots,"upset_snp.pdf"))
 fig = gg_miss_upset(snp)
 fig
@@ -234,8 +235,8 @@ save.results(fig, "upset_snp", ggsv = F)
 ##                   Biomarker distributions                    ##
 ##################################################################
 
-bio.imp.CVD = merge(bio.imp,cov[,"CVD_status"],by="row.names",all.x=TRUE)
-rownames(bio.imp.CVD) = bio.imp.CVD$Row.names
+bio.imp.CVD = merge(bio.imp,cov[,c("ID","CVD_status")],by="ID")
+#rownames(bio.imp.CVD) = bio.imp.CVD$Row.names
 bio.imp.CVD = bio.imp.CVD[,-1]
 
 biomarker.labeller = function(original){
@@ -272,7 +273,6 @@ fig = bio.imp.CVD %>% pivot_longer(-CVD_status,
 # ggsave(paste0(save_plots,"bio_dist_impLOG.pdf"))
 save.results(fig, "bio_dist_impLOG")
 
-rownames(bio.CVD) = bio.CVD$Row.names
 bio.CVD = bio.CVD[,-1]
 fig = bio.CVD %>% pivot_longer(-CVD_status, 
                          names_to = "Biomarker",

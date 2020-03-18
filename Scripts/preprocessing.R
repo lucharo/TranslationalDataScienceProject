@@ -72,7 +72,7 @@ cores = detectCores()
 cluster = 1
 t0 = Sys.time()
 platform = Sys.info()['sysname']
-if (cluster == 1 | platform == "Linux"){
+if (cluster == 1 & platform == "Linux"){
   cov.original = readRDS("../FULLDATA/Covariates_full.rds")
   bio.original= readRDS("../FULLDATA/Biomarkers_full.rds")
   bio.dict = readxl::read_xlsx("../Biomarker_annotation.xlsx")
