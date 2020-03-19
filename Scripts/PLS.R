@@ -18,7 +18,7 @@ suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(dplyr))
 
 
-cluster = 1
+cluster = 0
 
 if (cluster == 1){
   save_data = data_folder = "../FULLDATA/preprocessed/"
@@ -65,7 +65,9 @@ sPLSDA <- splsda(X, y, ncomp=1, mode='regression', keepX=5)
 source("pls_functions.R")
 set.seed(1)
 res_splsda = CalibratesPLSDA(X, y, ncomp=1, Nrepeat=10)
+pdf(paste0(save_plots,"sPLSDA_calibration.pdf"))
 splsda_calibration <- PlotCalib(res = res_splsda)
+dev.off()
 saveRDS(splsda_calibration, paste0(save_plots,"sPLSDA_calibration.rds"))
 
 
@@ -135,6 +137,7 @@ sgPLSDA$loadings$X
 set.seed(1)
 res_sgplsda = CalibratesgPLSDA(dataX = X_fran, dataY = y, ncomp = 1,
                                Nrepeat = 5, Xgroups = X_cuts_fran)
+pdf(paste0(save_plots,"sgPLSDA_calibration.rds"))
 sgplsda_calibration <- PlotCalib(res = res_sgplsda, type = "sgPLSDA")
 saveRDS(sgplsda_calibration, paste0(save_plots,"sgPLSDA_calibration.rds"))
 
