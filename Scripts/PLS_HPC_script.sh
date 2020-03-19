@@ -1,5 +1,5 @@
-#PBS -l walltime=12:00:00
-#PBS -l select=1:ncpus=1:mem=15gb
+#PBS -l walltime=25:00:00
+#PBS -l select=1:ncpus=1:mem=20gb
 
 module load anaconda3/personal
 source activate BEES_env
