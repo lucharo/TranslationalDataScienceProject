@@ -8,6 +8,7 @@ rm(list=ls())
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 library(ggplot2)
+library(jtools)
 
 cluster = 1
 
@@ -20,7 +21,7 @@ if (cluster == 1){
   save_plots = "../results/"
 }
 
-snp = readRDS(paste0(data_folder,"snpCorrected.rds"))
+snp = readRDS(paste0(data_folder,"snpImputed.rds"))
 cov = readRDS(paste0(data_folder,"covProcessed.rds"))
 snp.info = readRDS(paste0(data_folder,"snpInfo.rds"))
 
@@ -65,8 +66,23 @@ cov.prs <- merge(cov, PRS, by="ID")
 #Boxplot of PRS by CVD status
 prs_boxplot <- ggplot(cov.prs, aes(x=CVD_status, y=PRS)) +
   geom_boxplot()
+ggsave(paste0(save_plots,"PRS_boxplot.pdf"), prs_boxplot)
 saveRDS(prs_boxplot, paste0(save_plots,"PRS_boxplot.rds"))
 
-#t-test - no sig difference in mean PRS between groups...
+#t-test - sig difference in mean PRS between groups
 t_test = t.test(PRS ~ CVD_status, data=cov.prs)
 saveRDS(t_test, paste0(save_plots,"PRS_ttest.rds"))
+
+#Prediction of CVD by PRS
+cov.prs$CVD_status <- as.numeric(cov.prs$CVD_status)
+glm <- glm(CVD_status ~ PRS, data=cov.prs, family=binomial)
+summary(glm)
+odds <- round(cbind("odds" = exp(coef(glm)), exp(confint(glm))), 3)
+saveRDS(odds, paste0(save_plots,"PRS_Odds"))
+
+#Visualising the relationship between PRS and risk of CVD
+pdf(paste0(save_plots,"PRS_EffectPlot"))
+glm_plot <- effect_plot(glm, pred = PRS, interval = TRUE, int.width = 0.95) 
+glm_plot + labs(x = 'Polygenic Risk Score', y = 'Probability of having CVD')
+dev.off()
+saveRDS(glm_plot, paste0(save_plots,"PRS_EffectPlot"))
