@@ -34,6 +34,8 @@ if (!require(dplyr)) install.packages("dplyr")
 library(dplyr)
 if (!require(stringr)) install.packages("stringr")
 library(stringr)
+if (!require(tidyr)) install.packages("tidyr")
+library(tidyr)
 
 
 library(parallel)
@@ -250,7 +252,7 @@ biomarker.labeller = function(original){
 }
 
 
-fig = bio.imp.CVD %>% pivot_longer(-CVD_status, 
+fig = bio.imp.CVD %>% tidyr::pivot_longer(-CVD_status, 
                              names_to = "Biomarker",
                              values_to = "Amount") %>%
   ggplot(aes(x = Amount, color = CVD_status)) +
@@ -266,7 +268,7 @@ fig = bio.imp.CVD %>% pivot_longer(-CVD_status,
 save.results(fig, "bio_dist_imp")
 print("plot progress: 10/14")
 
-fig = bio.imp.CVD %>% pivot_longer(-CVD_status, 
+fig = bio.imp.CVD %>% tidyr::pivot_longer(-CVD_status, 
                              names_to = "Biomarker",
                              values_to = "Amount") %>%
   ggplot(aes(x = log10(Amount), color = CVD_status)) +
@@ -282,7 +284,7 @@ save.results(fig, "bio_dist_impLOG")
 print("plot progress: 11/14")
 
 bio.CVD = bio.CVD[,-1]
-fig = bio.CVD %>% pivot_longer(-CVD_status, 
+fig = bio.CVD %>% tidyr::pivot_longer(-CVD_status, 
                          names_to = "Biomarker",
                          values_to = "Amount") %>%
   ggplot(aes(x = Amount, color = CVD_status)) +
