@@ -29,7 +29,7 @@ if (cluster == 1){
   save_plots = "../results/"
 }
 
-bio <- readRDS(paste0(data_folder,"bioProcessed.rds"))
+bio <- readRDS(paste0(data_folder,"bioImputedKNN.rds"))
 cov <- readRDS(paste0(data_folder,"covProcessed.rds"))
 
 cvd <- cov %>% select(ID, CVD_status)
@@ -64,7 +64,7 @@ sPLSDA <- splsda(X, y, ncomp=1, mode='regression', keepX=5)
 #Sourcing from Barbz code, this function performs 5-fold cross-validation to find which number of selected variables gives the lowest misclassification rate (of CVD status). 
 source("pls_functions.R")
 set.seed(1)
-res_splsda = CalibratesPLSDA(X,y, ncomp=1, Nrepeat=10)
+res_splsda = CalibratesPLSDA(X, y, ncomp=1, Nrepeat=10)
 splsda_calibration <- PlotCalib(res = res_splsda)
 saveRDS(splsda_calibration, paste0(save_plots,"sPLSDA_calibration.rds"))
 
@@ -158,10 +158,10 @@ abline(h = 0, lty = 2)
 #This plot visualises the loadings coefficients obtained from both sPLSDA and sgPLSDA models
 
 results = data.frame(rbind(
-  cbind(Biomarker = colnames(bio),
+  cbind(Biomarker = colnames(X),
         Model = 'sPLSDA',
         Loadings = sPLSDA$loadings$X),
-  cbind(Biomarker = colnames(bio),
+  cbind(Biomarker = colnames(X),
         Model = 'sgPLSDA',
         Loadings = sgPLSDA$loadings$X)
 ))
@@ -198,8 +198,8 @@ saveRDS(PLSDA_loadings, paste0(save_plots,"PLSDA_loadings.rds"))
 
 #Aim: apply PLS models on subsets of the data with all controls and cases of one particular subtype only. From full data, selected CVD subtypes (based on ICD10 code for death) with more than 100 cases: G454, G459, I200, I209, I210, I211, I214, I219, I249, I251, I259, I635, I639 and I64. 
 
-bio.icd <- merge(bio, cov['cvd_final_icd10'], by='row.names')
-X = as.data.frame(bio.icd)
+cvd_icd <- cov %>% select(ID, cvd_final_icd10)
+bio.icd <- merge(bio, cvd_icd, by='ID')
 y = bio.cov$CVD_status
 
 #Create the stratified datasets 
@@ -212,7 +212,7 @@ for (subtype in c("G454", "G459", "I200", "I209", "I210", "I211", "I214",
 }
 
 #Computing the misclassification rate by subtype of CVD, for the sPLS-DA and sgPLS-DA models
-y_pred <- predict(sPLSDA, newdata = as.data.frame(bio))
+y_pred <- predict(sPLSDA, newdata = X)
 fitted = y_pred$class$max.dist
 table(fitted)
 
@@ -224,7 +224,7 @@ for (subtype in c("","G454","G459","I200","I209","I210","I211","I214",
                                y_pred$class$max.dist[idx])))/length(idx)
 }
 
-y_pred_g = predict(sgPLSDA, newdata = as.data.frame(bio))
+y_pred_g = predict(sgPLSDA, newdata = X)
 fitted_g = y_pred_g$class$max.dist
 MSEP_sgPLSDA = NULL
 for (subtype in c("","G454","G459","I200","I209","I210","I211","I214",
