@@ -43,8 +43,8 @@ cores = detectCores()
 ##                     Setting environment                     ##
 #################################################################
 cluster = 0
-
-if (cluster == 1){
+platform = Sys.info()['sysname']
+if (platform == 'Linux'){
   save_data = data_folder = "../FULLDATA/preprocessed/"
   save_plots = "../FULLResults/"
 } else {
@@ -109,6 +109,8 @@ fig = bio.unfiltered.CVD %>%
 
 save.results(fig, "MissBioDataALLbyCVD")
 # ggsave(paste0(save_plots,"MissBioDataALLbyCVD.pdf"))
+print("plot progress: 1/14")
+
 
 bio.CVD = merge(bio,cov[,c("ID","CVD_status")],
                 by="ID")
@@ -129,6 +131,7 @@ fig = bio.CVD %>%
                                    hjust = 1))+
   ggtitle("Missing data patterns by CVD status updated")
 save.results(fig, "MissBioDatabyCVD")
+print("plot progress: 2/14")
 # ggsave(paste0(save_plots,"MissBioDatabyCVD.pdf"))
 
 
@@ -150,6 +153,7 @@ fig = gg_miss_upset(bio.unfiltered.CVD,
 fig
 dev.off()
 save.results(fig, "upset_biofull_unfiltered", ggsv = F)
+print("plot progress: 3/14")
 
 
 pdf(file = paste0(save_plots,"upset_biofull.pdf"), onefile = F)
@@ -159,24 +163,25 @@ fig = gg_miss_upset(bio.CVD,
 fig
 dev.off()
 save.results(fig, "upset_biofull", ggsv = F)
+print("plot progress: 4/14")
 
-
-miss1 = vis_miss(bio.unfiltered.CVD)+
+miss1 = vis_miss(bio.unfiltered.CVD, warn_large_data = F)+
   scale_y_continuous(position = 'right')+
   theme(axis.text.x = element_text(angle = 0))+
   scale_x_discrete(position = "bottom")+
   coord_flip()
 ggsave(paste0(save_plots,"missBioDataPatterns_unfiltered.png")) # save as png because pdf creates artifact
 saveRDS(miss1, paste0(save_plots,"missBioDataPatterns_unfiltered.rds"))
+print("plot progress: 5/14")
 
-miss2 = vis_miss(bio.CVD)+
+miss2 = vis_miss(bio.CVD,  warn_large_data = F)+
   scale_y_continuous(position = 'right')+
   theme(axis.text.x = element_text(angle = 0))+
   scale_x_discrete(position = "bottom")+
   coord_flip()
 ggsave(paste0(save_plots,"missBioDataPatterns.png")) 
 saveRDS(miss2, paste0(save_plots,"missBioDataPatterns.rds"))
-
+print("plot progress: 6/14")
 
 # missing data plots for covariates
 
@@ -195,13 +200,14 @@ fig = cov %>%
   ggtitle('Missing data patterns by CVD status for covariates')
 # ggsave(paste0(save_plots,"MissCovDatabyCVD.pdf"))
 save.results(fig, "MissCovDatabyCVD")
+print("plot progress: 7/14")
 
-pdf(file = paste0(save_plots,"upset_covfull.pdf"))
+pdf(file = paste0(save_plots,"upset_covfull.pdf"), onefile = F)
 fig = gg_miss_upset(cov)
 fig
 dev.off()
 save.results(fig, "upset_covfull", ggsv = F)
-
+print("plot progress: 8/14")
 
 
 # missing data plots for snps
@@ -228,7 +234,7 @@ fig = gg_miss_upset(snp)
 fig
 dev.off()
 save.results(fig, "upset_snp", ggsv = F)
-
+print("plot progress: 9/14")
 
 
 ##################################################################
@@ -258,6 +264,7 @@ fig = bio.imp.CVD %>% pivot_longer(-CVD_status,
 
 # ggsave(paste0(save_plots,"bio_dist_imp.pdf"))
 save.results(fig, "bio_dist_imp")
+print("plot progress: 10/14")
 
 fig = bio.imp.CVD %>% pivot_longer(-CVD_status, 
                              names_to = "Biomarker",
@@ -272,6 +279,7 @@ fig = bio.imp.CVD %>% pivot_longer(-CVD_status,
 
 # ggsave(paste0(save_plots,"bio_dist_impLOG.pdf"))
 save.results(fig, "bio_dist_impLOG")
+print("plot progress: 11/14")
 
 bio.CVD = bio.CVD[,-1]
 fig = bio.CVD %>% pivot_longer(-CVD_status, 
@@ -286,6 +294,7 @@ fig = bio.CVD %>% pivot_longer(-CVD_status,
   ggtitle("Biomarker distribution for MCAR data")
 # ggsave(paste0(save_plots,"bio_dist_MCAR.pdf"))
 save.results(fig, "bio_dist_MCAR")
+print("plot progress: 12/14")
 
 ##################################################################
 ##                        PCA + PCA plot                        ##
@@ -300,6 +309,7 @@ b.pca = prcomp(bio.imp.CVD[,-ncol(bio.imp.CVD)],
 scree = ggscreeplot(b.pca)+ylim(0,1)
 # ggsave(paste0(save_plots,"Biomarkers_scree_plot.pdf"))
 save.results(scree, "Biomarkers_scree_plot")
+print("plot progress: 13/14")
 
 # ellipses with labels of CVD_status levels
 ellipses = autoplot(b.pca, data = bio.imp.CVD,
@@ -309,7 +319,7 @@ ellipses = autoplot(b.pca, data = bio.imp.CVD,
                     loadings.label = T, loadings.label.colour = 'black')
 # ggsave(paste0(save_plots,"PCA_plot_biomarkers.pdf"))
 save.results(ellipses, "PCA_plot_biomarkers")
-
+print("plot progress: 14/14")
 
 # print summary of pca
 summary(b.pca)
