@@ -102,7 +102,7 @@ univ_imputed = Univariate.analysis(bio.imp_cov)
 
 figure = rbind(cbind(univ_nonimputed, Data = "Not-imputed"),
       cbind(univ_imputed, Data = "MICE")) %>% 
-  ggplot(aes(x = Biomarkers,
+  ggplot(aes(x = reorder(Biomarkers, -log10(p.value)),
              y = -log10(p.value),
              shape = as.factor(
                ifelse(OR>0,"Positive",
@@ -112,11 +112,11 @@ figure = rbind(cbind(univ_nonimputed, Data = "Not-imputed"),
   geom_point(position = position_dodge(0.9))+
   geom_hline(yintercept = -log10(0.05/length(colnames(bio))),
              linetype = "dashed")+
-  geom_text(aes(x = Biomarkers, y = -log10(p.value)+0.4,
-                label = ifelse(Data == "MICE" &
-                                 -log10(p.value)> -log10(0.05/length(colnames(bio))),
-                               colnames(bio)[Biomarkers], "")),
-            angle = 90, show.legend = F, color = "black", size = 3)+
+  # geom_text(aes(x = Biomarkers, y = -log10(p.value)+0.4,
+  #               label = ifelse(Data == "MICE" &
+  #                                -log10(p.value)> -log10(0.05/length(colnames(bio))),
+  #                              colnames(bio)[Biomarkers], "")),
+  #           angle = 90, show.legend = F, color = "black", size = 3)+
   scale_shape_manual(values = c(6,2))+
   scale_color_brewer(palette = "Set1")+
   labs(shape = "Sign of the\nassociation")+

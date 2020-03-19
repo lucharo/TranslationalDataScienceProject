@@ -9,13 +9,30 @@
 # LASSO AND PLS MAY BE MORE FOR EXPLORATORY ANALYSIS IN A WAY
 
 library(glmnet)
+library(ggplot2)
+library(dplyr)
 
-bio = readRDS("data/preprocessed/bioImputed.rds")
-cov = readRDS("data/preprocessed/covProcessed.rds")
-bio.CVD = merge(bio,cov[,"CVD_status"],
-                by="row.names",all.x=TRUE)
-rownames(bio.CVD) = bio.CVD$Row.names
+platform = Sys.info()['sysname']
+if (platform == 'Linux'){
+  save_data = data_folder = "../FULLDATA/preprocessed/"
+  save_plots = "../FULLResults/"
+} else {
+  setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+  save_data = data_folder = "../data/preprocessed/"
+  save_plots = "../results/"
+}
+
+ifelse(!dir.exists(file.path(save_plots, "PenalisedReg/")),
+       dir.create(file.path(save_plots, "PenalisedReg/")), FALSE)
+save_plots = paste0(save_plots,"PenalisedReg/")
+
+bio = readRDS(paste0(data_folder,"bioImputedKNN.rds"))
+cov = readRDS(paste0(data_folder,"covProcessed.rds"))
+bio.CVD = merge(bio,cov[,c("ID","CVD_status")],
+                by="ID")
+rownames(bio.CVD) = bio.CVD[,1]
 bio.CVD = bio.CVD[,-1]
+bio.CVD$CVD_status = as.factor(bio.CVD$CVD_status)
 
 y = dplyr::select(bio.CVD, CVD_status)
 X = dplyr::select(bio.CVD, -CVD_status)
@@ -36,26 +53,52 @@ y.test = as.numeric(y[-train.index,1])
 ###########################################################################
 ###########################################################################
 
-best.lam = "lambda.min"
+best.lam = "lambda.1se"
 
-model_selector = function(alpha){
+model_selector = function(alpha, plot = TRUE, save = T){
   set.seed(100) 
   # run cross validation
-  model <- cv.glmnet(X.train, y.train, alpha = alpha,
+  model.cv <- cv.glmnet(X.train, y.train, alpha = alpha,
                      family = "binomial")
   
-  plot(model)
+  betas = coef(model.cv, s = best.lam)[-1]
+  ## Plots:
+  #' 1. Calibration plot -> Deviance vs Lambda
+  #' 2. Beta value for each covariate
+  if (plot){
+    if (save){
+      # 1. Calibration plot
+      pdf(file = paste0(save_plots,"CalibrationPlotAlpha",
+                        as.character(alpha), ".pdf"), onefile = F)
+      plot(model.cv)
+      dev.off()
+      # 2. Beta coefficients
+      ggplot(data = data.frame(BetaValue = betas,
+                               Biomarker = colnames(X)),
+             aes(x = Biomarker, y = BetaValue))+
+        geom_bar(stat = "identity")
+      ggsave(paste0(save_plots, "BetaValuesSingleRunAlpha",
+                    as.character(alpha), ".pdf"))
+    }
+    plot(model.cv)
+    
+    print(ggplot(data = data.frame(BetaValue = betas,
+                             Biomarker = colnames(X)),
+           aes(x = Biomarker, y = BetaValue))+
+      geom_bar(stat = "identity")+coord_flip()+theme_minimal())
+  }
+
   
-  bestlam = model[[best.lam]]
+  bestlam = model.cv[[best.lam]]
   
-  model_pred = predict(model, s = bestlam,
+  model_pred = predict(model.cv, s = bestlam,
                        newx = X.test )
   testMSE = mean((model_pred - y.test)^2)
   
-  results = t(data.frame(c(round(alpha,2), round(model$lambda.min,2),
-                           round(model$lambda.1se,2),
+  results = t(data.frame(c(round(alpha,2), round(model.cv$lambda.min,2),
+                           round(model.cv$lambda.1se,2),
                            # get number of coefs with best
-                           sum(coef(model, s = bestlam)!=0)-1,
+                           sum(coef(model.cv, s = bestlam)!=0)-1,
                            testMSE)))
   
   colnames(results) = c("Alpha","lambda.min","lambda.1se",
@@ -89,6 +132,6 @@ alpha.opt = optimise(cvm, c(0, 1))
 total_results = rbind(model_selector(0),
                       model_selector(1),
                       model_selector(alpha.opt$minimum))
-total_results
+print(total_results)
 
 
