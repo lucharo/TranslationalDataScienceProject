@@ -76,7 +76,7 @@ model_selector = function(alpha, plot = TRUE, save = T){
       ggplot(data = data.frame(BetaValue = betas,
                                Biomarker = colnames(X)),
              aes(x = Biomarker, y = BetaValue))+
-        geom_bar(stat = "identity")
+        geom_bar(stat = "identity")+coord_flip()+theme_minimal()
       ggsave(paste0(save_plots, "BetaValuesSingleRunAlpha",
                     as.character(alpha), ".pdf"))
     }
