@@ -55,7 +55,7 @@ y.test = as.numeric(y[-train.index,1])
 
 best.lam = "lambda.1se"
 
-model_selector = function(alpha, plot = TRUE, save = T){
+model_selector = function(alpha, plot = TRUE, save = F){
   set.seed(100) 
   # run cross validation
   model.cv <- cv.glmnet(X.train, y.train, alpha = alpha,
@@ -133,9 +133,3 @@ total_results = rbind(model_selector(0),
                       model_selector(1),
                       model_selector(alpha.opt$minimum))
 print(total_results)
-
-
-## Sensitivity analysis
-
-
-
