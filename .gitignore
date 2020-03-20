@@ -1,3 +1,8 @@
 FULLDATA/
 BEES_env_requirements.txt
 BEES_env.yml
+
+Biomarkers_scree_plot.rds
+PCA_results_biomarkers.rds
+PCA_plot_biomarkers.rds
+

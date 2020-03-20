@@ -21,7 +21,7 @@ if (cluster == 1){
   save_plots = "../results/"
 }
 
-snp = readRDS(paste0(data_folder,"snpImputed.rds"))
+snp = readRDS(paste0(data_folder,"snpProcessed.rds"))
 cov = readRDS(paste0(data_folder,"covProcessed.rds"))
 snp.info = readRDS(paste0(data_folder,"snpInfo.rds"))
 
@@ -47,10 +47,13 @@ betas <- snp.info$beta
 PRS_matrix = sweep(snp[,-1], MARGIN=2, betas, `*`)
 
 
-#Now calculate the weighted sum for each person (have included na.rm=TRUE to make it work for now, can remove when we've done imputation)
+#Calculate the weighted sum for each person (na.rm=TRUE to ignore missing values)
 PRS_sums = rowSums(PRS_matrix, na.rm=TRUE)
 
-PRS = cbind(snp$ID, PRS_sums)
+#Calculate the average (divide by the number of SNPs with data available)
+PRS = PRS_sums/rowSums(!is.na(snp))
+
+PRS = cbind(snp$ID, PRS)
 PRS = as.data.frame(PRS)
 colnames(PRS) = c("ID", "PRS")
 saveRDS(PRS, paste0(save_data,"PolygenicRiskScore.rds"))
@@ -82,7 +85,7 @@ saveRDS(odds, paste0(save_plots,"PRS_Odds.rds"))
 
 #Visualising the relationship between PRS and risk of CVD
 pdf(paste0(save_plots,"PRS_EffectPlot.pdf"))
-glm_plot <- effect_plot(glm, pred = PRS, interval = TRUE, int.width = 0.95) 
-glm_plot + labs(x = 'Polygenic Risk Score', y = 'Probability of having CVD')
+glm_plot <- effect_plot(glm, pred = PRS, interval = TRUE, int.width = 0.95) + labs(x = 'Polygenic Risk Score', y = 'Probability of having CVD')
+glm_plot
 dev.off()
 saveRDS(glm_plot, paste0(save_plots,"PRS_EffectPlot.rds"))
