@@ -86,5 +86,6 @@ saveRDS(odds, paste0(save_plots,"PRS_Odds.rds"))
 #Visualising the relationship between PRS and risk of CVD
 pdf(paste0(save_plots,"PRS_EffectPlot.pdf"))
 glm_plot <- effect_plot(glm, pred = PRS, interval = TRUE, int.width = 0.95) + labs(x = 'Polygenic Risk Score', y = 'Probability of having CVD')
+glm_plot
 dev.off()
 saveRDS(glm_plot, paste0(save_plots,"PRS_EffectPlot.rds"))
