@@ -55,7 +55,7 @@ y.test = as.numeric(y[-train.index,1])
 
 best.lam = "lambda.1se"
 
-model_selector = function(alpha, plot = TRUE, save = T){
+model_selector = function(alpha, plot = TRUE, save = F){
   set.seed(100) 
   # run cross validation
   model.cv <- cv.glmnet(X.train, y.train, alpha = alpha,
@@ -76,7 +76,7 @@ model_selector = function(alpha, plot = TRUE, save = T){
       ggplot(data = data.frame(BetaValue = betas,
                                Biomarker = colnames(X)),
              aes(x = Biomarker, y = BetaValue))+
-        geom_bar(stat = "identity")
+        geom_bar(stat = "identity")+coord_flip()+theme_minimal()
       ggsave(paste0(save_plots, "BetaValuesSingleRunAlpha",
                     as.character(alpha), ".pdf"))
     }
@@ -133,5 +133,3 @@ total_results = rbind(model_selector(0),
                       model_selector(1),
                       model_selector(alpha.opt$minimum))
 print(total_results)
-
-
