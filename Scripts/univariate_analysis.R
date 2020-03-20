@@ -102,7 +102,7 @@ univ_imputed = Univariate.analysis(bio.imp_cov)
 
 figure = rbind(cbind(univ_nonimputed, Data = "Not-imputed"),
       cbind(univ_imputed, Data = "MICE")) %>% 
-  ggplot(aes(x = reorder(Biomarkers, -log10(p.value)),
+  ggplot(aes(x = reorder(Biomarkers, log10(p.value)),
              y = -log10(p.value),
              shape = as.factor(
                ifelse(OR>0,"Positive",
@@ -120,9 +120,11 @@ figure = rbind(cbind(univ_nonimputed, Data = "Not-imputed"),
   scale_shape_manual(values = c(6,2))+
   scale_color_brewer(palette = "Set1")+
   labs(shape = "Sign of the\nassociation")+
-  theme(axis.text.x = element_blank(),
-        # axis.text.x = element_text(angle = 90, hjust = 1),
-        axis.ticks.x = element_blank())+ylim(0, NA)
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+    # axis.text.x = element_blank(),
+        # axis.ticks.x = element_blank()
+    )+
+  ylim(0, NA)
 
 ##################################################################
 ##                         Saving Plots                         ##
