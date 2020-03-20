@@ -251,10 +251,16 @@ biomarker.labeller = function(original){
   str_replace_all(original, "\\."," ")
 }
 
-
-fig = bio.imp.CVD %>% tidyr::pivot_longer(-CVD_status, 
-                             names_to = "Biomarker",
-                             values_to = "Amount") %>%
+# pivvot_longer only works at version R later than 3.6.2
+# when this comment was written the cluster only supports 3.5.1
+# therefore I am using gather instead of pivot_longer
+fig = bio.imp.CVD %>% 
+  # tidyr::pivot_longer(-CVD_status, 
+  #                            names_to = "Biomarker",
+  #                            values_to = "Amount") %>%
+  tidyr::gather(-CVD_status,
+                key = "Biomarker",
+                value= "Amount") %>%
   ggplot(aes(x = Amount, color = CVD_status)) +
   geom_density(alpha = 0)+
   facet_wrap(Biomarker~.,
@@ -268,9 +274,13 @@ fig = bio.imp.CVD %>% tidyr::pivot_longer(-CVD_status,
 save.results(fig, "bio_dist_imp")
 print("plot progress: 10/14")
 
-fig = bio.imp.CVD %>% tidyr::pivot_longer(-CVD_status, 
-                             names_to = "Biomarker",
-                             values_to = "Amount") %>%
+fig = bio.imp.CVD %>% 
+  # tidyr::pivot_longer(-CVD_status, 
+  #                            names_to = "Biomarker",
+  #                            values_to = "Amount") %>%
+  tidyr::gather(-CVD_status,
+                key = "Biomarker",
+                value= "Amount") %>%
   ggplot(aes(x = log10(Amount), color = CVD_status)) +
   geom_density(alpha = 0)+
   facet_wrap(Biomarker~.,
@@ -284,9 +294,13 @@ save.results(fig, "bio_dist_impLOG")
 print("plot progress: 11/14")
 
 bio.CVD = bio.CVD[,-1]
-fig = bio.CVD %>% tidyr::pivot_longer(-CVD_status, 
-                         names_to = "Biomarker",
-                         values_to = "Amount") %>%
+fig = bio.CVD %>%
+  # tidyr::pivot_longer(-CVD_status, 
+  #                        names_to = "Biomarker",
+  #                        values_to = "Amount") %>%
+  tidyr::gather(-CVD_status,
+                key = "Biomarker",
+                value= "Amount") %>%
   ggplot(aes(x = Amount, color = CVD_status)) +
   geom_density(alpha = 0)+
   facet_wrap(Biomarker~., scales = "free")+

@@ -45,6 +45,7 @@ LassoSub = function(k = 1, Xdata, Ydata, family = "binomial",
                         family = family,
                         penalty.factor = penalty.factor)
   coef.sub = coef(model.sub, s = best.lam)[-1]
+  ## add test score and return 
   return(coef.sub)          
 }
 
@@ -74,7 +75,7 @@ fig = resStabAnalysis %>%
 fig
 
 ggsave(paste0(save_plots, "StabAnalysisLasso.pdf"))
-saveRDS(fig, paste0(save_plots, "StabAnalysisLasso.pdf"))
+saveRDS(fig, paste0(save_plots, "StabAnalysisLasso.rds"))
 
 
 
