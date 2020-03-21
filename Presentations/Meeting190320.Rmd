@@ -1,0 +1,47 @@
+---
+title: "Group 1 - Meeting (TDS)"
+author: "Catriona, Fatima & Luis"
+date: "19/03/2020"
+output: beamer_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r, message=F, warnings=F}
+if (!require(here)) install.packages("here")
+library(here)
+library(ggplot2)
+curr.dir = here()
+knitr::opts_knit$set(root.dir = curr.dir)
+knitr::opts_knit$get()$root.dir
+```
+
+
+## Refresher - Our aim 
+
+> Aim 1: What model and what combination of data (demographics, biomarkers, SNPs) better predict CVD incidence?
+
+> Aim 2: What factors are the strongest predictors of CVD?
+
+
+## Today's meeting
+
+* Exploratory Analysis
+* Univariate Analysis
+* Biological Health Score
+* Penalised Regression
+* Polygenic Risk Score
+* Partial Least-Square
+
+## Exploratory Analysis - Missing data
+
+![](../FULLResults/BHS/MantejvPaper.pdf)
+
+## Slide with Plot
+
+```{r pressure}
+plot(pressure)
+```
+
