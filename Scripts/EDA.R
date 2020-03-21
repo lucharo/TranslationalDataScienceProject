@@ -37,7 +37,6 @@ library(stringr)
 if (!require(tidyr)) install.packages("tidyr")
 library(tidyr)
 
-
 library(parallel)
 cores = detectCores()
 
@@ -167,21 +166,26 @@ dev.off()
 save.results(fig, "upset_biofull", ggsv = F)
 print("plot progress: 4/14")
 
+pdf(file = paste0(save_plots,"missBioDataPatterns_unfiltered.pdf"), onefile = F)
+ # save as png because pdf creates artifact
 miss1 = vis_miss(bio.unfiltered.CVD, warn_large_data = F)+
   scale_y_continuous(position = 'right')+
   theme(axis.text.x = element_text(angle = 0))+
   scale_x_discrete(position = "bottom")+
   coord_flip()
-ggsave(paste0(save_plots,"missBioDataPatterns_unfiltered.png")) # save as png because pdf creates artifact
+miss1
+dev.off()
 saveRDS(miss1, paste0(save_plots,"missBioDataPatterns_unfiltered.rds"))
 print("plot progress: 5/14")
 
+pdf(file = paste0(save_plots,"missBioDataPatterns.pdf"), onefile = F)
 miss2 = vis_miss(bio.CVD,  warn_large_data = F)+
   scale_y_continuous(position = 'right')+
   theme(axis.text.x = element_text(angle = 0))+
   scale_x_discrete(position = "bottom")+
   coord_flip()
-ggsave(paste0(save_plots,"missBioDataPatterns.png")) 
+miss2
+dev.off()
 saveRDS(miss2, paste0(save_plots,"missBioDataPatterns.rds"))
 print("plot progress: 6/14")
 

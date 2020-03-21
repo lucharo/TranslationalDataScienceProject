@@ -19,6 +19,8 @@ ifelse(!dir.exists(file.path(save_plots, "PenalisedReg/")),
        dir.create(file.path(save_plots, "PenalisedReg/")), FALSE)
 save_plots = paste0(save_plots,"PenalisedReg/")
 
+print("Setting up data...")
+t0 = Sys.time()
 bio = readRDS(paste0(data_folder,"bioImputedKNN.rds"))
 cov = readRDS(paste0(data_folder,"covProcessed.rds"))
 bio.CVD = merge(bio,cov[,c("ID","CVD_status")],
@@ -30,8 +32,10 @@ bio.CVD$CVD_status = as.factor(bio.CVD$CVD_status)
 y = dplyr::select(bio.CVD, CVD_status)
 X = dplyr::select(bio.CVD, -CVD_status)
 
-## Sensitivity analysis - for lasso
+print("Data setup")
+print(Sys.time()-t0)
 
+## Sensitivity analysis - for lasso
 LassoSub = function(k = 1, Xdata, Ydata, family = "binomial",
                     penalty.factor = NULL){
   if (is.null(penalty.factor)){
@@ -50,14 +54,14 @@ LassoSub = function(k = 1, Xdata, Ydata, family = "binomial",
 }
 
 niter = 100 
-
+print("Setting up cluster...")
 cl = makeCluster(detectCores()-1, type="FORK")
-
+print("Cluter set up")
 lasso.stab = parSapply(cl = cl, 1:niter, FUN = LassoSub, Xdata = as.matrix(X),
                     Ydata = as.matrix(y))
 
 stopCluster(cl)
-
+print("Stability analysis finished.")
 lasso.prop = apply(lasso.stab, 1, FUN = function(x) {
   sum(x != 0)/length(x)
 }) 
