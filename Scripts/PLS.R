@@ -4,9 +4,6 @@
 ##                 Prepare libraries and data                   ##
 ##################################################################
 
-## PROBLEM WITH PLS NOT WORKING HAS TO DO WITH CASE-CONTROLSIMBALANCE,
-# OUT OF 2000 LIKE 73 CASES OR SO
-
 rm(list=ls())
 
 suppressPackageStartupMessages(library(devtools))
@@ -277,9 +274,3 @@ plsda_stratified <- mis_rate_plot %>% ggplot(aes(x = subtype, ymin = 0, ymax = r
 ggsave(paste0(save_plots,"PLSDA_stratified.pdf"), plot=plsda_stratified)
 saveRDS(plsda_stratified, paste0(save_plots,"PLSDA_stratified.rds"))
 
-
-##################################################################
-##                      Fitting PLS models                      ##
-##################################################################
-
-#Next step is to fit the sPLS-DA, sgPLS-DA and stratified PLS-DA models using the best parameters found earlier by calibration (which we can't do yet until we've run this on the full dataset?)
