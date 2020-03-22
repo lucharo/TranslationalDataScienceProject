@@ -16,6 +16,7 @@ suppressPackageStartupMessages(library(sgPLS))
 suppressPackageStartupMessages(library(pheatmap))
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(parallel))
 
 
 cluster = 1
@@ -64,7 +65,14 @@ sPLSDA <- splsda(X, y, ncomp=1, mode='regression', keepX=5)
 #Sourcing from Barbz code, this function performs 5-fold cross-validation to find which number of selected variables gives the lowest misclassification rate (of CVD status). 
 source("pls_functions.R")
 set.seed(1)
-res_splsda = CalibratesPLSDA(X, y, ncomp=1, Nrepeat=10)
+res_splsda = CalibratesPLSDA(X, y, ncomp=1, Nrepeat=100)
+
+#Make parallel
+#no_cores=detectCores()-1
+#cl <- makeCluster(no_cores) 
+#res_splsda = parSapply(cl = cl, X = X,
+#                       FUN = CalibratesPLSDA(X, y, ncomp=1, Nrepeat=100)) 
+
 pdf(paste0(save_plots,"sPLSDA_calibration.pdf"))
 splsda_calibration <- PlotCalib(res = res_splsda)
 dev.off()
@@ -136,7 +144,7 @@ sgPLSDA$loadings$X
 #The two parameters of the sgPLS-DA model can be calibrated using the function CalibratesgPLSDA()
 set.seed(1)
 res_sgplsda = CalibratesgPLSDA(dataX = X_fran, dataY = y, ncomp = 1,
-                               Nrepeat = 5, Xgroups = X_cuts_fran)
+                               Nrepeat = 50, Xgroups = X_cuts_fran)
 pdf(paste0(save_plots,"sgPLSDA_calibration.rds"))
 sgplsda_calibration <- PlotCalib(res = res_sgplsda, type = "sgPLSDA")
 saveRDS(sgplsda_calibration, paste0(save_plots,"sgPLSDA_calibration.rds"))
