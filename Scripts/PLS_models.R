@@ -157,30 +157,44 @@ for (subtype in c("G454", "G459", "I200", "I209", "I210", "I211", "I214",
 }
 
 #Computing the misclassification rate by subtype of CVD, for the sPLS-DA and sgPLS-DA models
+#And then creating a plot of these misclassification rates by CVD subtype
 y_pred <- predict(sPLSDA, newdata = X)
 fitted = y_pred$class$max.dist
 table(fitted)
 
-MSEP_sPLSDA = NULL
-for (subtype in c("","G454","G459","I200","I209","I210","I211","I214",
-                  "I219","I249","I251","I259","I635","I639","I64")) {
-  idx = which(cov$cvd_final_icd10 == subtype)
-  MSEP_sPLSDA[[subtype]] = 1 - sum(diag(table(y[idx],
-                                              y_pred$class$max.dist[idx])))/length(idx)
-}
-
 y_pred_g = predict(sgPLSDA, newdata = X)
 fitted_g = y_pred_g$class$max.dist
-MSEP_sgPLSDA = NULL
-for (subtype in c("","G454","G459","I200","I209","I210","I211","I214",
-                  "I219","I249","I251","I259","I635","I639","I64")) {
-  idx = which(cov$cvd_final_icd10 == subtype)
-  MSEP_sgPLSDA[[subtype]] = 1 - sum(diag(table(y[idx],
-                                               y_pred_g$class$max.dist[idx])))/length(idx)
-}
 
 
-#Creating a plot of these misclassification rates by CVD subtype
+#First, a plot of misclassification rates for sPLS-DA alone (as I have not calibrated the sgPLS-DA model)
+
+mis_rate = data.frame(cbind(Prediction=fitted, subtype = bio.icd$cvd_final_icd10, 
+                            truth=bio.cov$CVD_status))
+
+levels(mis_rate$subtype) = c(levels(mis_rate$subtype),"Control")
+
+mis_rate$subtype = replace(mis_rate$subtype, which(is.na(mis_rate$subtype)),
+                           "Control")
+
+mis_rate$IncorrectClass = !(mis_rate$comp1 == mis_rate$truth)
+
+mis_rate_plot <- mis_rate %>% filter(subtype %in% c("Control","G454","G459",
+                                                    "I200","I209","I210","I211","I214","I219","I249",
+                                                    "I251","I259","I635","I639","I64")) %>% 
+  group_by(subtype) %>% 
+  summarise(rate = mean(IncorrectClass)) %>% 
+  arrange(subtype)
+
+splsda_stratified <- mis_rate_plot %>% ggplot(aes(x = subtype, ymin = 0, ymax = rate)) + 
+  geom_linerange(stat = "identity", position = position_dodge(0.9)) + 
+  scale_color_brewer(palette = "Set1") + 
+  ylab("Misclassification Rate")
+
+ggsave(paste0(save_plots,"sPLSDA_stratified.pdf"), plot=splsda_stratified)
+saveRDS(splsda_stratified, paste0(save_plots,"sPLSDA_stratified.rds"))
+
+
+#Now for both sPLS-DA and sgPLS-DA 
 
 mis_rate = data.frame(rbind(
   cbind(Prediction=fitted, model="sPLSDA", 
@@ -188,9 +202,8 @@ mis_rate = data.frame(rbind(
   cbind(Prediction=fitted_g, model="sgPLSDA", 
         subtype = bio.icd$cvd_final_icd10, truth=bio.cov$CVD_status)))
 
-levels(mis_rate$subtype) = c("G454","G459","I200","I209","I210","I211","I214",
-                             "I219","I251","I259","I638","I639","I64","I679",
-                             "Control")
+levels(mis_rate$subtype) = c(levels(mis_rate$subtype),"Control")
+
 mis_rate$subtype = replace(mis_rate$subtype, which(is.na(mis_rate$subtype)),
                            "Control")
 
