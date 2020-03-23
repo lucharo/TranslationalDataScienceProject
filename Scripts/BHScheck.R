@@ -3,6 +3,8 @@
 library(ggplot2)
 library(dplyr)
 library(tidyr)
+library(ggsignif)
+
 
 cluster = 0
 platform = Sys.info()['sysname']
@@ -30,7 +32,12 @@ allBHS = merge(myBHS, mini.cov, by = "ID")
 
 allBHS %>% gather(key = "BHS", value = "value", -c(ID, CVD_status)) %>%
   ggplot(aes(x = as.factor(CVD_status), y = value)) +
-  geom_boxplot()+facet_wrap(~BHS)
+  geom_boxplot()+
+  facet_wrap(~BHS)+
+  stat_compare_means(method = "t.test", paired = F,
+                     label.x = 1.5, label.y = 0.9,
+                     comparisons = list(c(0, 1)))+
+  stat_summary(geom = "point", shape = 23, fun.data = 'mean_se')
                   
                   
                   

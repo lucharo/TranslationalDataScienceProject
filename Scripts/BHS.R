@@ -29,8 +29,8 @@ bio.dict$`Biomarker name` = sub("\\.\\.",".",
                                 bio.dict$`Biomarker name`)
 
 # for simplicity we merge cov and bio here
-ids = bio.imp$ID
 bio.imp = merge(bio.imp, cov[,c("ID","age_cl","gender")], by = "ID")
+ids = bio.imp$ID # wanna keep an explicit copy od the IDs
 rownames(bio.imp) = bio.imp[,1]
 bio.imp = bio.imp[,-1]
 
@@ -145,8 +145,9 @@ BHSCalculator = function(reference, stratified = F){
   # compare individual values for each biomark to their "benchmark"
   if (stratified){
 
-    # initialising empty dataframe with dims of bio.imp
-    bio.score = bio.imp[F,1:(length(unique(relevant_quantiles$Biomarker))+1)]
+    # initialising empty dataframe with dims of however many biomarkers are being considered
+    # could add two extra columns for each strata
+    bio.score = bio.imp[F,unique(relevant_quantiles$Biomarker)]
     
     for (gender in unique(bio.imp$gender)){
       for (age in unique(bio.imp$age_cl)){
@@ -157,8 +158,9 @@ BHSCalculator = function(reference, stratified = F){
         relevant_quantiles.age.gender = relevant_quantiles[relevant_quantiles$AgeClass==age & 
                                                              relevant_quantiles$Gender == gender,]
         attach(relevant_quantiles.age.gender)
-        res = lapply(Biomarker,
-                     function(x){
+        res = lapply(Biomarker, # for each biomarker from relevant_quantiles.age.gender
+                     function(x){ # if the biomarker is bad in excess (i.e. boundary is 3rd quartile)
+                       # return the element-wise comparison to the relevant quartile value
                        ifelse(Quartile[Biomarker == x] == "3rd",
                               return(bio.sub[,x] > 
                                        Quantile.value[Biomarker == x]),
@@ -166,11 +168,11 @@ BHSCalculator = function(reference, stratified = F){
                                        Quantile.value[Biomarker == x]))
                      })
         res = data.frame(matrix(unlist(res),
-                                ncol = length(Biomarker), byrow = F),
+                                ncol = length(Biomarker), byrow = F), # put in right format
                          stringsAsFactors = F)
         rownames(res) = rownames(bio.sub)
         colnames(res) = Biomarker
-        res$AgeCl = age
+        #res$AgeCl = age
         bio.score = rbind(bio.score, res)
         
         # stopifnot(all(bio.imp$age_cl[bio.imp$age_cl==age]==res$AgeCl))
@@ -182,7 +184,7 @@ BHSCalculator = function(reference, stratified = F){
 
   
     # I actually don't need the age class column just need them to keep the original index
-    bio.score = bio.score[,-c(ncol(bio.score)-1, ncol(bio.score))]
+    #bio.score = bio.score[,-c(ncol(bio.score)-1, ncol(bio.score))]
  
   }else{
     attach(relevant_quantiles)
@@ -231,6 +233,7 @@ scores_paper = BHSCalculator("More_is_bad_paper",T)
 ScoresPaper = as.data.frame(
   cbind(ID = ids, BHS = scores_paper), stringsAsFactors = F)
 saveRDS(ScoresPaper, paste0(save_plots, "ScoresPaper.rds"))
+
 scores_Mantej = BHSCalculator("More_is_bad_Mantej",T)
 ScoresMantej = as.data.frame(
   cbind(ID = ids, BHS = scores_Mantej), stringsAsFactors = F)
@@ -279,11 +282,19 @@ print("Mantej score:")
 print(mod1)
 print(exp(coef(mod1)))
 print(exp(confint(mod1)))
+print(summary(mod1)$coefficients)
 
 mod2 = glm(CVD_status~BHS, data = Scores.CVD.Paper, family = "binomial")
 print("Paper score:")
 print(mod2)
 print(exp(coef(mod2)))
 print(exp(confint(mod2)))
+print(summary(mod2)$coefficients)
 
+mod3 = glm(as.factor(CVD_status)~BS2_all, data = cov, family = "binomial")
+print("BS2_all score:")
+print(mod3)
+print(exp(coef(mod3)))
+print(exp(confint(mod3)))
+print(summary(mod3)$coefficients)
 
