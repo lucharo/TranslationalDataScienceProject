@@ -1,0 +1,15 @@
+[1] FALSE
+           Alpha lambda.min lambda.1se # of predictors Test MSE
+Ridge       0.00          0       0.03              28 20.86520
+Lasso       1.00          0       0.00              12 20.90565
+ElasticNet  0.35          0       0.01              13 20.83207
+
+============================================
+
+        Job resource usage summary 
+
+                 Memory (GB)    NCPUs
+ Requested  :        16             1
+ Used       :         2 (peak)   0.98 (ave)
+
+============================================
