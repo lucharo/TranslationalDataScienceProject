@@ -37,7 +37,7 @@ knitr::opts_knit$get()$root.dir
 
 ## Exploratory Analysis - Missing data
 
-![](../FULLResults/BHS/MantejvPaper.pdf)
+![](../FULLResults/EDA/upset_biofull_unfiltered.pdf)
 
 ## Slide with Plot
 
