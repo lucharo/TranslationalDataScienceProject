@@ -37,11 +37,13 @@ bio.imp = bio.imp[,-1]
 bio.imp$age_cl = as.factor(bio.imp$age_cl)
 bio.imp$gender = as.factor(bio.imp$gender)
 
-BHSCalculator = function(reference, stratified = F){
+BHSCalculator = function(reference, stratified = F, bySystems = T){
   # reference can take values: 
   # -- "More_is_bad_Mantej
   # or
   # -- "More_is_bad_paper
+  
+  MoreIsBad = paste0("MoreIsBad.",reference)
   
   quantile_check = function(column, reference, dataset){
     # the "reference" column in this function is the one containing the info on whether or not
@@ -104,7 +106,7 @@ BHSCalculator = function(reference, stratified = F){
                             data.frame(matrix(
                               unlist(
                                 lapply(colnames(bio.per.class),
-                                       function(x) quantile_check(x, reference = reference, bio.per.class))),
+                                       function(x) quantile_check(x, reference = MoreIsBad, bio.per.class))),
                               nrow=length(colnames(bio.per.class)),
                               byrow=T), stringsAsFactors = F), 
                             stringsAsFactors = F)
@@ -120,12 +122,12 @@ BHSCalculator = function(reference, stratified = F){
     relevant_quantiles = relevant_quantiles[complete.cases(relevant_quantiles),]
     
   } else {
-    relevant_quantiles = data.frame(Biomarker = colnames(bio.imp[,-ncol(bio.imp)]),
+    relevant_quantiles = data.frame(Biomarker = colnames(bio.imp[,-c(ncol(bio.imp)-1, ncol(bio.imp))]),
                                     data.frame(matrix(
                                       unlist(
-                                        lapply(colnames(bio.imp[,-ncol(bio.imp)]),
-                                               function(x) quantile_check(x, reference = reference, bio.imp))),
-                                      nrow=length(colnames(bio.imp[,-ncol(bio.imp)])),
+                                        lapply(colnames(bio.imp[,-c(ncol(bio.imp)-1, ncol(bio.imp))]),
+                                               function(x) quantile_check(x, reference = MoreIsBad, bio.imp))),
+                                      nrow=length(colnames(bio.imp[,-c(ncol(bio.imp)-1, ncol(bio.imp))])),
                                       byrow=T), stringsAsFactors = F), 
                                     stringsAsFactors = F)
     
@@ -212,60 +214,103 @@ BHSCalculator = function(reference, stratified = F){
 
   # This is going on for every row (in code above)
   # bio.imp$Testosterone < relevant_quantiles$Quantile.value[relevant_quantiles$Biomarker == "Testosterone"]
-  
+  numbersofBio = ncol(bio.score)
   ##################################################################
   ##    3rd and finally get the mean score for each individual    ##
   ##              and sort in same order as bio.imp               ##
   ##################################################################
-  # get average "grade" over all the biomarkers
-  bio.score$total_score = rowMeans(bio.score)
   
+  
+  if (bySystems){
+    systems.ref = paste0("System.",reference)
+    bio.score$ID = rownames(bio.score)
+    bio.score = bio.score %>% tidyr::gather(key = "Biomarker", value = "Amount", -ID) %>%
+      merge(y = bio.dict[,c(systems.ref, "Biomarker name")], all.x = T, by.x = "Biomarker", by.y = "Biomarker name")
+    colnames(bio.score)[ncol(bio.score)] = "System"
+    # get score for each individual by ID and individual system
+    bio.score = bio.score %>% group_by(ID, System) %>% summarise(BHSsystem = mean(Amount))
+    # the line below would give you dataframe with score by system
+    # bio.score %>% spread(System, BHS)
+    
+    bio.score = bio.score %>% group_by(ID) %>% summarise(total_score = mean(BHSsystem))
+    bio.score = as.data.frame(bio.score) # Setting row names on a tibble is deprecated.
+    rownames(bio.score) = bio.score$ID
+  }else {
+    # get average "grade" over all the biomarkers
+    bio.score$total_score = rowMeans(bio.score)
+  }
+
   # sort bio.score in by the row.name as bio.imp
   bio.score = bio.score[rownames(bio.imp),]
   stopifnot(all(rownames(bio.imp)==rownames(bio.score)))
-  print(paste(ncol(bio.score)-1," biomarkers where assessed for this BHS calculation"))
+  print(paste(numbersofBio," biomarkers where assessed for this BHS calculation"))
   bio.score$total_score
 }
 
-scores_paper = BHSCalculator("More_is_bad_paper",T)
+scores_paper = BHSCalculator("Paper",T)
 # at the end of the BHS calculator I have a function that ensures
 # bio.imp and bio.score are in the same order
 ScoresPaper = as.data.frame(
   cbind(ID = ids, BHS = scores_paper), stringsAsFactors = F)
 saveRDS(ScoresPaper, paste0(save_plots, "ScoresPaper.rds"))
 
-scores_Mantej = BHSCalculator("More_is_bad_Mantej",T)
+scores_Mantej = BHSCalculator("Mantej",T)
 ScoresMantej = as.data.frame(
   cbind(ID = ids, BHS = scores_Mantej), stringsAsFactors = F)
 saveRDS(ScoresMantej, paste0(save_plots, "ScoresMantej.rds"))
 
+scores_Barbara = BHSCalculator("Barbara",T)
+ScoresBarbara = as.data.frame(
+  cbind(ID = ids, BHS = scores_Barbara), stringsAsFactors = F)
+saveRDS(ScoresBarbara, paste0(save_plots, "ScoresBarbara.rds"))
+
 ##################################################################
 ##                             Plot                             ##
 ##################################################################
-fig = data.frame(rbind(cbind(BHS = scores_paper, Reference = "Paper"),
-      cbind(BHS = scores_Mantej, Reference = "Mantej")),
+
+my_comparisons <- list( c("Barbara", "Mantej"), c("Mantej", "Paper"), c("Barbara", "Paper") )
+
+fig = data.frame(rbind(
+  cbind(BHS = scores_paper, Reference = "Paper"),
+  cbind(BHS = scores_Mantej, Reference = "Mantej"),
+  cbind(BHS = scores_Barbara, Reference = "Barbara")),
       stringsAsFactors = F) %>% 
   ggplot(aes(x = Reference, y = as.numeric(BHS), fill = Reference))+
   geom_boxplot()+
   ylab("BHS")+
   scale_fill_brewer(palette = "Set1")+
-  stat_compare_means(method = "t.test", paired = T,
+  stat_compare_means(comparisons = my_comparisons, method = "t.test", paired = T,
                      label.x = 1.5, label.y = 0.9)+
   stat_summary(geom = "point", shape = 23)+
   theme_minimal()+ggtitle("Distribution of the BHS Scores")
 fig
 
-ggsave(paste0(save_plots, "MantejvPaper.pdf"))
-saveRDS(fig, paste0(save_plots, "MantejvPaper.rds"))
+ggsave(paste0(save_plots, "MantejPaperBarbara.pdf"))
+saveRDS(fig, paste0(save_plots, "MantejPaperBarbara.rds"))
 
 
 ##################################################################
 ##                            t-test                            ##
 ##################################################################
-print(t.test(as.numeric(BHS) ~ Reference, data = data.frame(
-  rbind(cbind(BHS = scores_paper, Reference = "Paper"),
-        cbind(BHS = scores_Mantej, Reference = "Mantej")),
-  stringsAsFactors = F), paired = T))
+# print(t.test(as.numeric(BHS) ~ Reference, data = data.frame(
+#   rbind(cbind(BHS = scores_paper, Reference = "Paper"),
+#         cbind(BHS = scores_Mantej, Reference = "Mantej"),
+#         cbind(BHS = scores_Barbara, Reference = "Barbara")),
+#   stringsAsFactors = F), paired = T))
+
+jointdata = data.frame(
+  rbind(
+    cbind(BHS = scores_paper, Reference = "Paper"),
+    cbind(BHS = scores_Mantej, Reference = "Mantej"),
+    cbind(BHS = scores_Barbara, Reference = "Barbara")
+  )
+)
+jointdata$BHS = as.numeric(jointdata$BHS)
+
+print(compare_means(BHS ~ Reference,
+              method = "t.test",
+              paired = T,
+              data = jointdata))
 
 
 ## BasicModel
@@ -273,9 +318,12 @@ Scores.CVD.Mantej = merge(ScoresMantej,
                           cov[, c("CVD_status","ID")], by = "ID")
 Scores.CVD.Paper = merge(ScoresPaper,
                          cov[, c("CVD_status","ID")], by = "ID")
+Scores.CVD.Barbara = merge(ScoresBarbara,
+                         cov[, c("CVD_status","ID")], by = "ID")
 
 Scores.CVD.Mantej$CVD_status = as.factor(Scores.CVD.Mantej$CVD_status)
 Scores.CVD.Paper$CVD_status = as.factor(Scores.CVD.Paper$CVD_status)
+Scores.CVD.Barbara$CVD_status = as.factor(Scores.CVD.Barbara$CVD_status)
 
 mod1 = glm(CVD_status~BHS, data = Scores.CVD.Mantej, family = "binomial")
 print("Mantej score:")
@@ -284,6 +332,8 @@ print(exp(coef(mod1)))
 print(exp(confint(mod1)))
 print(summary(mod1)$coefficients)
 
+print("##################################################################")
+
 mod2 = glm(CVD_status~BHS, data = Scores.CVD.Paper, family = "binomial")
 print("Paper score:")
 print(mod2)
@@ -291,10 +341,21 @@ print(exp(coef(mod2)))
 print(exp(confint(mod2)))
 print(summary(mod2)$coefficients)
 
-mod3 = glm(as.factor(CVD_status)~BS2_all, data = cov, family = "binomial")
-print("BS2_all score:")
+print("##################################################################")
+
+mod3 = glm(CVD_status~BHS, data = Scores.CVD.Barbara, family = "binomial")
+print("Barbara score:")
 print(mod3)
 print(exp(coef(mod3)))
 print(exp(confint(mod3)))
 print(summary(mod3)$coefficients)
+
+print("##################################################################")
+
+mod4 = glm(as.factor(CVD_status)~BS2_all, data = cov, family = "binomial")
+print("BS2_all score:")
+print(mod4)
+print(exp(coef(mod4)))
+print(exp(confint(mod4)))
+print(summary(mod4)$coefficients)
 
