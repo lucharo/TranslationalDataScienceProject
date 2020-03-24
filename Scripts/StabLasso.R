@@ -21,7 +21,9 @@ save_plots = paste0(save_plots,"PenalisedReg/")
 
 ############# Take args ################################
 args = commandArgs(trailingOnly = TRUE)
+
 seed = as.numeric(args[1])
+print(seed)
 #########################################################
 
 print("Setting up data...")
@@ -39,6 +41,8 @@ X = dplyr::select(bio.CVD, -CVD_status)
 
 print("Data setup")
 print(Sys.time()-t0)
+
+best.lam = "lambda.1se"
 
 ## Sensitivity analysis - for lasso
 LassoSub = function(k = 1, Xdata, Ydata, family = "binomial",
