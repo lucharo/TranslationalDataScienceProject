@@ -27,13 +27,19 @@ lasso.prop = apply(lasso.stab, 2, FUN = function(x) {
   sum(x != 0)/length(x)
 }) 
 
+lasso.mean = apply(lasso.stab, 2, mean)
+
+lasso.sd = apply(lasso.stab, 2, sd)
+
 resStabAnalysis = data.frame(
   Biomarker = colnames(bio.imp),
-  PropSelected = lasso.prop
+  PropSelected = lasso.prop,
+    BetaMean = lasso.mean,
+    BetaSD = lasso.sd
 )
 
 fig = resStabAnalysis %>% 
-  ggplot(aes(x = reorder(Biomarker, PropSelected)))+
+  ggplot(aes(x = reorder(Biomarker, PropSelected, color = as.factor(sign(BetaMean)))))+
   geom_linerange(aes(ymin = 0, ymax = PropSelected))+
   coord_flip()+xlab("Biomarkers")+ylab("Proportion selected")
 fig
