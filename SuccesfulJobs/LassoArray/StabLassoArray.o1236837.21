@@ -1,0 +1,19 @@
+[1] FALSE
+[1] "21"
+[1] "21"
+[1] 21
+[1] "double"
+[1] "Setting up data..."
+[1] "Data setup"
+Time difference of 4.741913 secs
+[1] FALSE
+
+============================================
+
+        Job resource usage summary 
+
+                 Memory (GB)    NCPUs
+ Requested  :        96             8
+ Used       :         0 (peak)   0.75 (ave)
+
+============================================

@@ -1,0 +1,19 @@
+Loading required package: Matrix
+Loading required package: foreach
+Loaded glmnet 2.0-16
+
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+
+real	1m35.325s
+user	1m31.358s
+sys	0m1.225s
