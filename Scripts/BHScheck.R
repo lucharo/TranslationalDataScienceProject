@@ -21,11 +21,13 @@ save_plots = paste0(save_plots,"BHS/")
 
 Mantej = readRDS(paste0(save_plots, "ScoresMantej.rds"))
 Paper = readRDS(paste0(save_plots, "ScoresPaper.rds"))
+Barbara = readRDS(paste0(save_plots, "ScoresBarbara.rds"))
 cov = readRDS(paste0(data_folder,"covProcessed.rds"))
 mini.cov = cov[,c("BS2_all", "ID", "CVD_status")]
 
 myBHS = merge(Mantej, Paper, by = "ID")
-colnames(myBHS)[2:3] = c("Mantej", "Paper")
+myBHS = merge(myBHS, Barbara, by = "ID")
+colnames(myBHS)[2:4] = c("Mantej", "Paper", "Barbara")
 
 allBHS = merge(myBHS, mini.cov, by = "ID")
 # all(!duplicated(Mantej$ID))
