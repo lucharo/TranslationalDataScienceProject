@@ -19,6 +19,11 @@ ifelse(!dir.exists(file.path(save_plots, "PenalisedReg/")),
        dir.create(file.path(save_plots, "PenalisedReg/")), FALSE)
 save_plots = paste0(save_plots,"PenalisedReg/")
 
+############# Take args ################################
+args = commandArgs(trailingOnly = TRUE)
+seed = as.numeric(args[1])
+#########################################################
+
 print("Setting up data...")
 t0 = Sys.time()
 bio = readRDS(paste0(data_folder,"bioImputedKNN.rds"))
@@ -53,34 +58,27 @@ LassoSub = function(k = 1, Xdata, Ydata, family = "binomial",
   return(coef.sub)          
 }
 
-niter = 100 
-print("Setting up cluster...")
-cl = makeCluster(detectCores()-1, type="FORK")
-print("Cluter set up")
-lasso.stab = parSapply(cl = cl, 1:niter, FUN = LassoSub, Xdata = as.matrix(X),
-                    Ydata = as.matrix(y))
 
-stopCluster(cl)
-print("Stability analysis finished.")
-lasso.prop = apply(lasso.stab, 1, FUN = function(x) {
-  sum(x != 0)/length(x)
-}) 
-names(lasso.prop) = colnames(X)
+################ 1 NODE SEVERAL CORES ###############
+# niter = 100 
+# print("Setting up cluster...")
+# cl = makeCluster(detectCores()-1, type="FORK")
+# print("Cluter set up")
+# lasso.stab = parSapply(cl = cl, 1:niter, FUN = LassoSub, Xdata = as.matrix(X),
+#                     Ydata = as.matrix(y))
 
-resStabAnalysis = data.frame(
-  Biomarker = colnames(X),
-  PropSelected = lasso.prop
-)
+# stopCluster(cl)
+# print("Stability analysis finished.")
 
-fig = resStabAnalysis %>% 
-  ggplot(aes(x = reorder(Biomarker, PropSelected)))+
-  geom_linerange(aes(ymin = 0, ymax = PropSelected))+
-  coord_flip()+xlab("Biomarkers")+ylab("Proportion selected")
-fig
+######## SEVERAL NODES FEW CORES ################
 
-ggsave(paste0(save_plots, "StabAnalysisLasso.pdf"))
-saveRDS(fig, paste0(save_plots, "StabAnalysisLasso.rds"))
+lasso.stab = LassoSub(k = seed, Xdata = as.matrix(X), Ydata = as.matrix(y))
 
+ifelse(!dir.exists(file.path(save_plots, "ArrayJob/")),
+       dir.create(file.path(save_plots, "ArrayJob/")), FALSE)
+save_plots = paste0(save_plots,"ArrayJob/")
+
+saveRDS(lasso.stab, paste0(save_plots, "lassoStab",as.character(seed),".rds"))
 
 
 
