@@ -1,7 +1,7 @@
-args = commandArgs(trailingOnly=TRUE)
-args[1] = seed
+args = commandArgs(trailingOnly = TRUE)
+seed = as.numeric(args[1])
 
-# Aim of this script is to replicate the work from practical 4 on the biomarker dataset
+#Aim of this script is to calibrate the sparse group PLS-DA model (parameters = number of groups to include and sparsity parameter)              
 
 ##################################################################
 ##                 Prepare libraries and data                   ##
@@ -76,6 +76,7 @@ X_cuts_paper = c(3, 7, 9, 10)
 #This function performs 5-fold cross-validation to find which paramater combination gives the lowest misclassification rate (of CVD status). 
 
 source("pls_functions.R")
+set.seed(seed)
 res_sgplsda = CalibratesgPLSDA(dataX = X_fran, dataY = y, ncomp = 1,
                                Nrepeat = 1, Xgroups = X_cuts_fran)
 saveRDS(res_sgplsda, paste0(save_plots,"sgCalibration_",seed))
