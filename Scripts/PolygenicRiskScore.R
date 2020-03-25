@@ -72,9 +72,11 @@ prs_boxplot <- ggplot(cov.prs, aes(x=CVD_status, y=PRS)) +
 ggsave(paste0(save_plots,"PRS_boxplot.pdf"), prs_boxplot)
 saveRDS(prs_boxplot, paste0(save_plots,"PRS_boxplot.rds"))
 
+
 #t-test - sig difference in mean PRS between groups
 t_test = t.test(PRS ~ CVD_status, data=cov.prs)
 saveRDS(t_test, paste0(save_plots,"PRS_ttest.rds"))
+
 
 #Prediction of CVD by PRS
 cov.prs$CVD_status <- as.numeric(cov.prs$CVD_status)
@@ -83,9 +85,25 @@ summary(glm)
 odds <- round(cbind("odds" = exp(coef(glm)), exp(confint(glm))), 3)
 saveRDS(odds, paste0(save_plots,"PRS_Odds.rds"))
 
+glm_adj <- glm(CVD_status ~ PRS + gender + age_recruitment.0.0, data=cov.prs, family=binomial)
+summary(glm_adj)
+round(cbind("odds" = exp(coef(glm_adj)), exp(confint(glm_adj))), 3)
+
+
 #Visualising the relationship between PRS and risk of CVD
 pdf(paste0(save_plots,"PRS_EffectPlot.pdf"))
-glm_plot <- effect_plot(glm, pred = PRS, interval = TRUE, int.width = 0.95) + labs(x = 'Polygenic Risk Score', y = 'Probability of having CVD')
+glm_plot <- effect_plot(glm, pred = PRS, interval = TRUE, int.width = 0.95) + 
+  labs(x = 'Polygenic Risk Score', y = 'Probability of having CVD')
 glm_plot
 dev.off()
 saveRDS(glm_plot, paste0(save_plots,"PRS_EffectPlot.rds"))
+
+
+#Density plot
+den_plot <- ggplot(cov.prs) + 
+  geom_density(aes(x=PRS, color=CVD_status, fill=CVD_status), alpha=0.2, size=0.25) +
+  labs(x = 'Polygenic Risk Score') +
+  scale_fill_discrete('', labels = c('Controls', 'CVD')) +
+  scale_color_discrete('', labels = c('Controls', 'CVD'))
+ggsave(paste0(save_plots,"PRS_density.pdf"), den_plot)
+saveRDS(den_plot, paste0(save_plots,"PRS_density.rds"))
