@@ -30,6 +30,10 @@ if (cluster == 1){
   save_plots = "../results/"
 }
 
+ifelse(!dir.exists(file.path(save_plots, "PLS/")),
+       dir.create(file.path(save_plots, "PLS/")), FALSE)
+save_plots = paste0(save_plots,"PLS/")
+
 bio <- readRDS(paste0(data_folder,"bioImputedKNN.rds"))
 cov <- readRDS(paste0(data_folder,"covProcessed.rds"))
 
@@ -66,7 +70,7 @@ X_paper = X[, groups_paper]
 X_cuts_paper = c(3, 7, 9, 10)
 
   
-
+print("Data loaded")
 #################################################################
 ##                 Model calibration for sgPLS                 ##
 #################################################################
@@ -77,9 +81,16 @@ X_cuts_paper = c(3, 7, 9, 10)
 
 source("pls_functions.R")
 set.seed(seed)
+print("PLS started")
 res_sgplsda = CalibratesgPLSDA(dataX = X_fran, dataY = y, ncomp = 1,
                                Nrepeat = 1, Xgroups = X_cuts_fran)
-saveRDS(res_sgplsda, paste0(save_plots,"sgCalibration_",seed))
+print("PLS finished")
+
+ifelse(!dir.exists(file.path(save_plots, "ArrayJob/")),
+       dir.create(file.path(save_plots, "ArrayJob/")), FALSE)
+save_plots = paste0(save_plots,"ArrayJob/")
+
+saveRDS(res_sgplsda, paste0(save_plots,"sgCalibration_",as.character(seed),".rds"))
 
 #pdf(paste0(save_plots,"sgPLSDA_calibration.rds"))
 #sgplsda_calibration <- PlotCalib(res = res_sgplsda, type = "sgPLSDA")
