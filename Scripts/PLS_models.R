@@ -58,7 +58,7 @@ PLSDA_loadings = results %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
                                         ymax = maxLoad))+
   geom_linerange(stat = "identity", position = position_dodge(0.9))+
   geom_point(aes(y = 0), position = position_dodge(0.9)) +
-  ylab("Loading coefficients") +
+  ylab("Loading coefficient") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   scale_color_brewer(palette = "Set1") +
   facet_grid(scales = "free", space = "free_x")
@@ -84,60 +84,43 @@ groups_fran = c('Alanine.aminotransferase','Alkaline.phosphatase','Aspartate.ami
 X_fran = X[, groups_fran]
 X_cuts_fran = c(8, 18, 20, 25)
 
-#keepX is number of groups to keep (keeping all 5 groups here) 
-gPLSDA <- gPLSda(X_fran, y, ncomp = 1, ind.block.x = X_cuts_fran, keepX = 5)
-gPLSDA$loadings$X
-gPLSDA$loadings$X[sgPLSDA$loadings$X != 0, ]
+#keepX is number of groups to keep  
+gPLSDA <- gPLSda(X_fran, y, ncomp = 1, ind.block.x = X_cuts_fran, keepX = 1)
+gPLSDA$loadings$X[gPLSDA$loadings$X != 0, ]
 
-
-#This plot visualises the loadings coefficients obtained from both PLSDA and gPLSDA models
-
-results = data.frame(rbind(
-  cbind(Biomarker = colnames(X),
-        Model = 'PLSDA',
-        Loadings = PLSDA$loadings$X),
-  cbind(Biomarker = colnames(X),
-        Model = 'gPLSDA',
-        Loadings = gPLSDA$loadings$X)
-))
-
-results = results %>%
-  mutate(belong_to = ifelse(Biomarker %in% groups_fran[1:8], "Liver",
-                            ifelse(Biomarker %in% groups_fran[9:18], "Metabolic",
-                                   ifelse(Biomarker %in% groups_fran[19:20], "Immune",
-                                          ifelse(Biomarker %in% groups_fran[21:25], "Endocrine",
-                                                 "Kidney")))))
-
-colnames(results)[3] = 'Loadings'
-results$minLoad = as.numeric(sapply(as.vector(results$Loadings), function(x) min(0, x)))
-results$maxLoad = as.numeric(sapply(as.vector(results$Loadings), function(x) max(0, x)))
-
-both_PLSDA_loadings = results %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
-                                          ymax = maxLoad, color = Model)) +
-  geom_linerange(stat = "identity", position = position_dodge(0.9)) +
-  geom_point(aes(y = 0), position = position_dodge(0.9)) +
-  ylab("Loading coefficients") +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-  scale_color_brewer(palette = "Set1") +
-  facet_grid(cols = vars(belong_to), scales = "free", space = "free_x")
-
-ggsave(paste0(save_plots,"bothPLSDA_loadings.pdf"), plot=both_PLSDA_loadings)
-saveRDS(both_PLSDA_loadings, paste0(save_plots,"bothPLSDA_loadings.rds"))
 
 
 ##################################################################
 ##             Fitting calibrated sPLS-DA model                 ##
 ##################################################################
 
-#Sparse plsda model; keepX is number of parameters to keep (9 had lowest misclassification rate in calibration). The final line returns the variables selected.
-sPLSDA <- splsda(X, y, ncomp=1, mode='regression', keepX=9)
-sPLSDA$loadings
-sPLSDA$explained_variance
+#Create training and test sets 
+smp_size <- floor(0.8*nrow(bio.cov))
+
+#set the seed to same as in calibration to get the same train/test split
+set.seed(123)
+train_ind <- sample(seq_len(nrow(bio.cov)), size = smp_size)
+
+train <- bio.cov[train_ind, ]
+test <- bio.cov[-train_ind, ]
+
+#Select all biomarkers from bio.cov for X
+X_train = train[, 2:29]
+X_test = test[, 2:29]
+y_train = train$CVD_status
+y_test = test$CVD_status
+
+
+#Sparse plsda model; keepX is number of parameters to keep (9 had lowest misclassification rate in calibration). 
+#The second line returns the variables selected.
+sPLSDA <- splsda(X_train, y_train, ncomp=1, mode='regression', keepX=9)
 sPLSDA$loadings$X[sPLSDA$loadings$X != 0, ]
 
-##Since the loading for y(1) is positive then the interpretation of the x loadings is as normal 
-#(positive loadings are higher in cases).  
-
+#Predicting on the test set 
+y_pred <- predict(sPLSDA, newdata = X_test)
+fitted = y_pred$class$max.dist
+table(fitted)
+  
 
 ##################################################################
 ##             Fitting calibrated sgPLS-DA model                ##
@@ -166,7 +149,7 @@ sPLSDA_loadings = results %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
                                         ymax = maxLoad))+
   geom_linerange(stat = "identity", position = position_dodge(0.9))+
   geom_point(aes(y = 0), position = position_dodge(0.9)) +
-  ylab("Loading coefficients") +
+  ylab("Loading coefficient") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   scale_color_brewer(palette = "Set1") +
   facet_grid(scales = "free", space = "free_x")
@@ -231,7 +214,7 @@ for (subtype in c("G459","I209", "I219", "I249","I251", "I639")) {
   assign(paste0("Y_", subtype), Ytemp)
 }
 
-#Computing the misclassification rate by subtype of CVD, for the calibrated sPLS-DA and sgPLS-DA models 
+#Computing the misclassification rate for the calibrated sPLS-DA and sgPLS-DA models 
 #And then creating a plot of these misclassification rates by CVD subtype
 y_pred <- predict(sPLSDA, newdata = X)
 fitted = y_pred$class$max.dist
