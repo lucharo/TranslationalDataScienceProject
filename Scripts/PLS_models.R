@@ -171,18 +171,25 @@ sgPLSDA$loadings$X[sgPLSDA$loadings$X != 0, ]
 
 results = data.frame(cbind(Biomarker = colnames(X), Loadings = sPLSDA$loadings$X))
 
+results = results %>%
+  mutate(belong_to = ifelse(Biomarker %in% groups_fran[1:8], "Liver",
+                            ifelse(Biomarker %in% groups_fran[9:18], "Metabolic",
+                                   ifelse(Biomarker %in% groups_fran[19:20], "Immune",
+                                          ifelse(Biomarker %in% groups_fran[21:25], "Endocrine",
+                                                 "Kidney")))))
+
 colnames(results)[2] = 'Loadings'
 results$minLoad = as.numeric(sapply(as.vector(results$Loadings), function(x) min(0, x)))
 results$maxLoad = as.numeric(sapply(as.vector(results$Loadings), function(x) max(0, x)))
 
 sPLSDA_loadings = results %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
                                         ymax = maxLoad))+
-  geom_linerange(stat = "identity", position = position_dodge(0.9))+
+  geom_linerange(stat = "identity", position = position_dodge(0.9)) +
   geom_point(aes(y = 0), position = position_dodge(0.9)) +
   ylab("Loading coefficient") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   scale_color_brewer(palette = "Set1") +
-  facet_grid(scales = "free", space = "free_x")
+  facet_grid(cols = vars(belong_to), scales = "free", space = "free_x")
 
 ggsave(paste0(save_plots,"sPLSDA_loadings.pdf"), plot=sPLSDA_loadings)
 saveRDS(sPLSDA_loadings, paste0(save_plots,"sPLSDA_loadings.rds"))
