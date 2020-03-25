@@ -33,26 +33,21 @@ cov <- readRDS(paste0(data_folder,"covProcessed.rds"))
 cvd <- cov %>% select(ID, CVD_status)
 bio.cov <- merge(bio, cvd, by='ID')
 
+#Create training and test sets 
+smp_size <- floor(0.8*nrow(bio.cov))
 
-##################################################################
-##               Basic PLS-DA and sPLS-DA models                ##
-##################################################################
+#set the seed to make the partition reproducible
+set.seed(123)
+train_ind <- sample(seq_len(nrow(bio.cov)), size = smp_size)
+
+train <- bio.cov[train_ind, ]
+test <- bio.cov[-train_ind, ]
 
 #Select all biomarkers from bio.cov for X
-X = bio.cov[, 2:29]
-y = bio.cov$CVD_status
-
-#Non-penalised plsda (i.e. no feature selection)
-PLSDA <- plsda(X, y, ncomp=1, mode="regression")
-#PLSDA$loadings
-#PLSDA$explained_variance
-
-#Sparse plsda model; keepX is number of parameters to keep. The final line returns the variables selected.
-sPLSDA <- splsda(X, y, ncomp=1, mode='regression', keepX=5)
-#sPLSDA$loadings
-#sPLSDA$explained_variance
-#sPLSDA$loadings$X[sPLSDA$loadings$X != 0, ]
-
+X_train = train[, 2:29]
+X_test = test[, 2:29]
+y_train = train$CVD_status
+y_test = test$CVD_status
 
 
 #################################################################
@@ -62,13 +57,7 @@ sPLSDA <- splsda(X, y, ncomp=1, mode='regression', keepX=5)
 #Sourcing from Barbz code, this function performs 5-fold cross-validation to find which number of selected variables gives the lowest misclassification rate (of CVD status). 
 source("pls_functions.R")
 set.seed(1)
-res_splsda = CalibratesPLSDA(X, y, ncomp=1, Nrepeat=100)
-
-#Make parallel
-#no_cores=detectCores()-1
-#cl <- makeCluster(no_cores) 
-#res_splsda = parSapply(cl = cl, X = X,
-#                       FUN = CalibratesPLSDA(X, y, ncomp=1, Nrepeat=100)) 
+res_splsda = CalibratesPLSDA(X_train, y_train, ncomp=1, Nrepeat=100)
 
 pdf(paste0(save_plots,"sPLSDA_calibration.pdf"))
 splsda_calibration <- PlotCalib(res = res_splsda)
@@ -82,12 +71,12 @@ saveRDS(splsda_calibration, paste0(save_plots,"sPLSDA_calibration.rds"))
 ##################################################################
 
 #Creating a heatmap of the selection of variables, over 100 iterations each selecting a different training/test set 
-set.seed(1)
-Stability_results = StabilityPlot(X = X, Y = y, NIter = 100)
-pheatmap(Stability_results, cluster_rows = FALSE, cluster_cols = FALSE,
-         display_numbers = TRUE, 
-         filename = paste0(save_plots,"PLS_stability.pdf"),
-         height = 5, width = 10)
+#set.seed(1)
+#Stability_results = StabilityPlot(X = X, Y = y, NIter = 100)
+#pheatmap(Stability_results, cluster_rows = FALSE, cluster_cols = FALSE,
+ #        display_numbers = TRUE, 
+  #       filename = paste0(save_plots,"PLS_stability.pdf"),
+   #      height = 5, width = 10)
 
 
 
