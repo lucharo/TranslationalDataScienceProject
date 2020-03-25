@@ -63,8 +63,8 @@ PLSDA_loadings = results %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
   scale_color_brewer(palette = "Set1") +
   facet_grid(scales = "free", space = "free_x")
 
-ggsave(paste0(save_plots,"PLSDA_loadings.pdf"), plot=sPLSDA_loadings)
-saveRDS(sPLSDA_loadings, paste0(save_plots,"PLSDA_loadings.rds"))
+ggsave(paste0(save_plots,"PLSDA_loadings.pdf"), plot=PLSDA_loadings)
+saveRDS(PLSDA_loadings, paste0(save_plots,"PLSDA_loadings.rds"))
 
 
 ##################################################################
