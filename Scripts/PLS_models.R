@@ -32,26 +32,43 @@ bio.cov <- merge(bio, cvd, by='ID')
 
 
 ##################################################################
-##                   Fitting sPLS-DA model                      ##
+##                     Basic PLS-DA model                       ##
 ##################################################################
 
 #Select all biomarkers from bio.cov for X
 X = bio.cov[, 2:29]
 y = bio.cov$CVD_status
 
-
-#Sparse plsda model; keepX is number of parameters to keep (9 had lowest misclassification rate in calibration). The final line returns the variables selected.
-sPLSDA <- splsda(X, y, ncomp=1, mode='regression', keepX=9)
-sPLSDA$loadings
-sPLSDA$explained_variance
-sPLSDA$loadings$X[sPLSDA$loadings$X != 0, ]
+#Non-penalised plsda (i.e. no feature selection)
+PLSDA <- plsda(X, y, ncomp=1, mode="regression")
+PLSDA$loadings
+PLSDA$explained_variance
 
 ##Since the loading for y(1) is positive then the interpretation of the x loadings is as normal 
 #(positive loadings are higher in cases).  
 
+#This plot visualises the loadings coefficients obtained from this PLSDA model
+results = data.frame(cbind(Biomarker = colnames(X), Loadings = PLSDA$loadings$X))
+
+colnames(results)[2] = 'Loadings'
+results$minLoad = as.numeric(sapply(as.vector(results$Loadings), function(x) min(0, x)))
+results$maxLoad = as.numeric(sapply(as.vector(results$Loadings), function(x) max(0, x)))
+
+PLSDA_loadings = results %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
+                                        ymax = maxLoad))+
+  geom_linerange(stat = "identity", position = position_dodge(0.9))+
+  geom_point(aes(y = 0), position = position_dodge(0.9)) +
+  ylab("Loading coefficients") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_color_brewer(palette = "Set1") +
+  facet_grid(scales = "free", space = "free_x")
+
+ggsave(paste0(save_plots,"PLSDA_loadings.pdf"), plot=sPLSDA_loadings)
+saveRDS(sPLSDA_loadings, paste0(save_plots,"PLSDA_loadings.rds"))
+
 
 ##################################################################
-##                   Fitting sgPLS-DA model                     ##
+##                     Basic gPLS-DA model                      ##
 ##################################################################
 
 #List of biomarkers in order of groups (based on Fran's grouping): 
@@ -66,6 +83,65 @@ groups_fran = c('Alanine.aminotransferase','Alkaline.phosphatase','Aspartate.ami
 
 X_fran = X[, groups_fran]
 X_cuts_fran = c(8, 18, 20, 25)
+
+#keepX is number of groups to keep (keeping all 5 groups here) 
+gPLSDA <- gPLSda(X_fran, y, ncomp = 1, ind.block.x = X_cuts_fran, keepX = 5)
+gPLSDA$loadings$X
+gPLSDA$loadings$X[sgPLSDA$loadings$X != 0, ]
+
+
+#This plot visualises the loadings coefficients obtained from both PLSDA and gPLSDA models
+
+results = data.frame(rbind(
+  cbind(Biomarker = colnames(X),
+        Model = 'PLSDA',
+        Loadings = PLSDA$loadings$X),
+  cbind(Biomarker = colnames(X),
+        Model = 'gPLSDA',
+        Loadings = gPLSDA$loadings$X)
+))
+
+results = results %>%
+  mutate(belong_to = ifelse(Biomarker %in% groups_fran[1:8], "Liver",
+                            ifelse(Biomarker %in% groups_fran[9:18], "Metabolic",
+                                   ifelse(Biomarker %in% groups_fran[19:20], "Immune",
+                                          ifelse(Biomarker %in% groups_fran[21:25], "Endocrine",
+                                                 "Kidney")))))
+
+colnames(results)[3] = 'Loadings'
+results$minLoad = as.numeric(sapply(as.vector(results$Loadings), function(x) min(0, x)))
+results$maxLoad = as.numeric(sapply(as.vector(results$Loadings), function(x) max(0, x)))
+
+both_PLSDA_loadings = results %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
+                                          ymax = maxLoad, color = Model)) +
+  geom_linerange(stat = "identity", position = position_dodge(0.9)) +
+  geom_point(aes(y = 0), position = position_dodge(0.9)) +
+  ylab("Loading coefficients") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_color_brewer(palette = "Set1") +
+  facet_grid(cols = vars(belong_to), scales = "free", space = "free_x")
+
+ggsave(paste0(save_plots,"bothPLSDA_loadings.pdf"), plot=both_PLSDA_loadings)
+saveRDS(both_PLSDA_loadings, paste0(save_plots,"bothPLSDA_loadings.rds"))
+
+
+##################################################################
+##             Fitting calibrated sPLS-DA model                 ##
+##################################################################
+
+#Sparse plsda model; keepX is number of parameters to keep (9 had lowest misclassification rate in calibration). The final line returns the variables selected.
+sPLSDA <- splsda(X, y, ncomp=1, mode='regression', keepX=9)
+sPLSDA$loadings
+sPLSDA$explained_variance
+sPLSDA$loadings$X[sPLSDA$loadings$X != 0, ]
+
+##Since the loading for y(1) is positive then the interpretation of the x loadings is as normal 
+#(positive loadings are higher in cases).  
+
+
+##################################################################
+##             Fitting calibrated sgPLS-DA model                ##
+##################################################################
 
 #keepX is number of groups to keep; alpha is sparsity parameter (calibration not run yet)
 sgPLSDA <- sgPLSda(X_fran, y, ncomp = 1, ind.block.x = X_cuts_fran, keepX = 3, alpha.x = 0.9)
@@ -136,27 +212,26 @@ saveRDS(sgPLSDA_loadings, paste0(save_plots,"sgPLSDA_loadings.rds"))
 
 
 #################################################################
-##                     Stratified analyses                     ##
+##            Misclassification rates by subtype               ##
 #################################################################
 
-#Aim: apply PLS models on subsets of the data - all controls and cases of one particular subtype only.
-#From full data, selected CVD subtypes (based on ICD10 code for death) with more than 100 cases:
-#G454, G459, I200, I209, I210, I211, I214, I219, I249, I251, I259, I635, I639 and I64. 
+#Aim: copmute misclassification rates of PLS models by subtype of CVD.
+#From full data, selected 5 most frequent CVD subtypes (based on ICD10 code for death):
+#G459, I209, I219, I251, I639 (these all have over 600 cases). 
 
 cvd_icd <- cov %>% select(ID, cvd_final_icd10)
 bio.icd <- merge(bio, cvd_icd, by='ID')
 y = bio.cov$CVD_status
 
 #Create the stratified datasets 
-for (subtype in c("G454", "G459", "I200", "I209", "I210", "I211", "I214",
-                  "I219", "I249", "I251", "I259", "I635", "I639", "I64")) {
+for (subtype in c("G459","I209", "I219", "I249","I251", "I639")) {
   Xtemp = X[X$cvd_final_icd10 %in% subtype, ]
   Ytemp = y[X$cvd_final_icd10 %in% subtype]
   assign(paste0("X_", subtype), Xtemp)
   assign(paste0("Y_", subtype), Ytemp)
 }
 
-#Computing the misclassification rate by subtype of CVD, for the sPLS-DA and sgPLS-DA models
+#Computing the misclassification rate by subtype of CVD, for the calibrated sPLS-DA and sgPLS-DA models 
 #And then creating a plot of these misclassification rates by CVD subtype
 y_pred <- predict(sPLSDA, newdata = X)
 fitted = y_pred$class$max.dist
@@ -167,20 +242,17 @@ fitted_g = y_pred_g$class$max.dist
 
 
 #First, a plot of misclassification rates for sPLS-DA alone (as I have not calibrated the sgPLS-DA model)
-
 mis_rate = data.frame(cbind(Prediction=fitted, subtype = bio.icd$cvd_final_icd10, 
                             truth=bio.cov$CVD_status))
 
 levels(mis_rate$subtype) = c(levels(mis_rate$subtype),"Control")
-
 mis_rate$subtype = replace(mis_rate$subtype, which(is.na(mis_rate$subtype)),
                            "Control")
 
 mis_rate$IncorrectClass = !(mis_rate$comp1 == mis_rate$truth)
 
-mis_rate_plot <- mis_rate %>% filter(subtype %in% c("Control","G454","G459",
-                                                    "I200","I209","I210","I211","I214","I219","I249",
-                                                    "I251","I259","I635","I639","I64")) %>% 
+mis_rate_plot <- mis_rate %>% filter(subtype %in% c("Control","G459","I209", "I219", "I249",
+                                                    "I251", "I639")) %>% 
   group_by(subtype) %>% 
   summarise(rate = mean(IncorrectClass)) %>% 
   arrange(subtype)
@@ -203,7 +275,6 @@ mis_rate = data.frame(rbind(
         subtype = bio.icd$cvd_final_icd10, truth=bio.cov$CVD_status)))
 
 levels(mis_rate$subtype) = c(levels(mis_rate$subtype),"Control")
-
 mis_rate$subtype = replace(mis_rate$subtype, which(is.na(mis_rate$subtype)),
                            "Control")
 
