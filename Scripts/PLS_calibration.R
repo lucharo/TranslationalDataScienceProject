@@ -33,6 +33,7 @@ cov <- readRDS(paste0(data_folder,"covProcessed.rds"))
 cvd <- cov %>% select(ID, CVD_status)
 bio.cov <- merge(bio, cvd, by='ID')
 
+
 #Create training and test sets 
 smp_size <- floor(0.8*nrow(bio.cov))
 

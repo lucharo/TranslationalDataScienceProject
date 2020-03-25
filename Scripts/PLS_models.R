@@ -123,6 +123,36 @@ table(fitted)
   
 
 ##################################################################
+##                      Stability analyses                      ##
+##################################################################
+
+#Creating a heatmap of the selection of variables, over 100 iterations each selecting a different training/test set 
+source("pls_functions.R")
+set.seed(1)
+Stability_results = StabilityPlot(X = X, Y = y, NIter = 100)
+
+#pheatmap(Stability_results, cluster_rows = FALSE, cluster_cols = FALSE,
+ #        display_numbers = TRUE, 
+  #       filename = paste0(save_plots,"PLS_stability.pdf"),
+   #      height = 5, width = 10)
+
+#Calculating proportion of times each variable was selected
+PropSelected = colSums(Stability_results)/28
+PropSelected = as.data.frame(PropSelected)
+library(dplyr)
+PropSelected = tibble::rownames_to_column(PropSelected, "Biomarker")
+
+stab_plot = PropSelected %>% 
+  ggplot(aes(x = reorder(Biomarker, PropSelected))) +
+  geom_linerange(aes(ymin = 0, ymax = PropSelected)) +
+  coord_flip() + xlab("Biomarker") + ylab("Proportion selected")
+
+ggsave(paste0(save_plots,"Stability_plot.pdf"), plot=stab_plot)
+saveRDS(stab_plot, paste0(save_plots,"Stability_plot.rds"))
+
+
+
+##################################################################
 ##             Fitting calibrated sgPLS-DA model                ##
 ##################################################################
 
