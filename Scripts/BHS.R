@@ -228,11 +228,11 @@ BHSCalculator = function(reference, stratified = F, bySystems = T){
       merge(y = bio.dict[,c(systems.ref, "Biomarker name")], all.x = T, by.x = "Biomarker", by.y = "Biomarker name")
     colnames(bio.score)[ncol(bio.score)] = "System"
     # get score for each individual by ID and individual system
-    bio.score = bio.score %>% group_by(ID, System) %>% summarise(BHSsystem = mean(Amount))
+    bio.score = bio.score %>% dplyr::group_by(ID, System) %>% dplyr::summarise(BHSsystem = mean(Amount))
     # the line below would give you dataframe with score by system
     # bio.score %>% spread(System, BHS)
     
-    bio.score = bio.score %>% group_by(ID) %>% summarise(total_score = mean(BHSsystem))
+    bio.score = bio.score %>% dplyr::group_by(ID) %>% dplyr::summarise(total_score = mean(BHSsystem))
     bio.score = as.data.frame(bio.score) # Setting row names on a tibble is deprecated.
     rownames(bio.score) = bio.score$ID
   }else {
@@ -268,19 +268,21 @@ saveRDS(ScoresBarbara, paste0(save_plots, "ScoresBarbara.rds"))
 ##                             Plot                             ##
 ##################################################################
 
-my_comparisons <- list( c("Barbara", "Mantej"), c("Mantej", "Paper"), c("Barbara", "Paper") )
+my_comparisons <- list(c("BS2", "Barbara"), c("Mantej", "Paper"),c("BS2", "Mantej"),
+                       c("Barbara", "Mantej"), c("BS2", "Paper"),c("Barbara", "Paper"))
 
 fig = data.frame(rbind(
   cbind(BHS = scores_paper, Reference = "Paper"),
   cbind(BHS = scores_Mantej, Reference = "Mantej"),
-  cbind(BHS = scores_Barbara, Reference = "Barbara")),
+  cbind(BHS = scores_Barbara, Reference = "Barbara"),
+  cbind(BHS = cov$BS2_all[cov$ID %in% ScoresBarbara$ID], Reference = "BS2")),
       stringsAsFactors = F) %>% 
   ggplot(aes(x = Reference, y = as.numeric(BHS), fill = Reference))+
   geom_boxplot()+
   ylab("BHS")+
   scale_fill_brewer(palette = "Set1")+
-  stat_compare_means(comparisons = my_comparisons, method = "t.test", paired = T,
-                     label.x = 1.5, label.y = 0.9)+
+  stat_compare_means(comparisons = my_comparisons, method = "t.test",
+                     paired = F, label.y = c(1,1,1,1.05, 1.1, 1.15), label = "p.signif")+
   stat_summary(geom = "point", shape = 23)+
   theme_minimal()+ggtitle("Distribution of the BHS Scores")
 fig
@@ -302,7 +304,8 @@ jointdata = data.frame(
   rbind(
     cbind(BHS = scores_paper, Reference = "Paper"),
     cbind(BHS = scores_Mantej, Reference = "Mantej"),
-    cbind(BHS = scores_Barbara, Reference = "Barbara")
+    cbind(BHS = scores_Barbara, Reference = "Barbara"),
+    cbind(BHS = cov$BS2_all[cov$ID %in% ScoresBarbara$ID], Reference = "BS2")
   )
 )
 jointdata$BHS = as.numeric(jointdata$BHS)
