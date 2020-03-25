@@ -7,9 +7,9 @@ module load anaconda3/personal
 source activate BEES_env
 
 cd $PBS_O_WORKDIR
-
+echo $PBS_O_WORKDIR
 seed=$PBS_ARRAY_INDEX
 
-Rscript sgPLS_calibration.R $seed
+time Rscript sgPLS_calibration.R $seed
 
 conda deactivate
