@@ -68,20 +68,6 @@ saveRDS(splsda_calibration, paste0(save_plots,"sPLSDA_calibration.rds"))
 
 
 ##################################################################
-##                      Stability analyses                      ##
-##################################################################
-
-#Creating a heatmap of the selection of variables, over 100 iterations each selecting a different training/test set 
-#set.seed(1)
-#Stability_results = StabilityPlot(X = X, Y = y, NIter = 100)
-#pheatmap(Stability_results, cluster_rows = FALSE, cluster_cols = FALSE,
- #        display_numbers = TRUE, 
-  #       filename = paste0(save_plots,"PLS_stability.pdf"),
-   #      height = 5, width = 10)
-
-
-
-##################################################################
 ##                       Sparse group pls                       ##
 ##################################################################
 
