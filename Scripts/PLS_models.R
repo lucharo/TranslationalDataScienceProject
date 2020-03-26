@@ -139,12 +139,14 @@ Stability_results = StabilityPlot(X = X, Y = y, NIter = 100)
 #Calculating proportion of times each variable was selected
 PropSelected = colSums(Stability_results)/28
 PropSelected = as.data.frame(PropSelected)
-library(dplyr)
 PropSelected = tibble::rownames_to_column(PropSelected, "Biomarker")
 
-stab_plot = PropSelected %>% 
+Prop50 = filter(PropSelected, PropSelected > 0.5)
+
+stab_plot = Prop50 %>% 
   ggplot(aes(x = reorder(Biomarker, PropSelected))) +
   geom_linerange(aes(ymin = 0, ymax = PropSelected)) +
+  #scale_x_continuous(limits = c(0.50, 1.00)) +
   coord_flip() + xlab("Biomarker") + ylab("Proportion selected")
 
 ggsave(paste0(save_plots,"Stability_plot.pdf"), plot=stab_plot)
