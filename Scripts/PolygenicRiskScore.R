@@ -9,6 +9,7 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 library(ggplot2)
 library(jtools)
+library(scales)
 
 cluster = 1
 
@@ -67,7 +68,7 @@ saveRDS(PRS, paste0(save_data,"PolygenicRiskScore.rds"))
 cov.prs <- merge(cov, PRS, by="ID")
 
 #Normalise the PRS
-cov.prs$PRS = scale(cov.prs$PRS) 
+cov.prs$PRS = rescale(cov.prs$PRS, to = c(-1, 1)) 
 
 #Boxplot of PRS by CVD status
 prs_boxplot <- ggplot(cov.prs, aes(x=CVD_status, y=PRS)) +
