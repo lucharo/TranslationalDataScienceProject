@@ -45,6 +45,8 @@ allBHS %>% gather(key = "BHS", value = "value", -c(ID, CVD_status)) %>%
 
 ################# BHS evaluation #################################
 
+# NEED TO consider sampling methods like under/oversampling and potentially bootstrapping
+# to always take into account the cases and account for the big imbalance
 
 y = as.numeric(allBHS$CVD_status)
 X = allBHS[,-c(1, ncol(allBHS))]
