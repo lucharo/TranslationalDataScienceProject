@@ -123,6 +123,36 @@ table(fitted)
   
 
 ##################################################################
+##                      Stability analyses                      ##
+##################################################################
+
+#Creating a heatmap of the selection of variables, over 100 iterations each selecting a different training/test set 
+source("pls_functions.R")
+set.seed(1)
+Stability_results = StabilityPlot(X = X, Y = y, NIter = 100)
+
+#pheatmap(Stability_results, cluster_rows = FALSE, cluster_cols = FALSE,
+ #        display_numbers = TRUE, 
+  #       filename = paste0(save_plots,"PLS_stability.pdf"),
+   #      height = 5, width = 10)
+
+#Calculating proportion of times each variable was selected
+PropSelected = colSums(Stability_results)/28
+PropSelected = as.data.frame(PropSelected)
+library(dplyr)
+PropSelected = tibble::rownames_to_column(PropSelected, "Biomarker")
+
+stab_plot = PropSelected %>% 
+  ggplot(aes(x = reorder(Biomarker, PropSelected))) +
+  geom_linerange(aes(ymin = 0, ymax = PropSelected)) +
+  coord_flip() + xlab("Biomarker") + ylab("Proportion selected")
+
+ggsave(paste0(save_plots,"Stability_plot.pdf"), plot=stab_plot)
+saveRDS(stab_plot, paste0(save_plots,"Stability_plot.rds"))
+
+
+
+##################################################################
 ##             Fitting calibrated sgPLS-DA model                ##
 ##################################################################
 
@@ -141,18 +171,25 @@ sgPLSDA$loadings$X[sgPLSDA$loadings$X != 0, ]
 
 results = data.frame(cbind(Biomarker = colnames(X), Loadings = sPLSDA$loadings$X))
 
+results = results %>%
+  mutate(belong_to = ifelse(Biomarker %in% groups_fran[1:8], "Liver",
+                            ifelse(Biomarker %in% groups_fran[9:18], "Metabolic",
+                                   ifelse(Biomarker %in% groups_fran[19:20], "Immune",
+                                          ifelse(Biomarker %in% groups_fran[21:25], "Endocrine",
+                                                 "Kidney")))))
+
 colnames(results)[2] = 'Loadings'
 results$minLoad = as.numeric(sapply(as.vector(results$Loadings), function(x) min(0, x)))
 results$maxLoad = as.numeric(sapply(as.vector(results$Loadings), function(x) max(0, x)))
 
 sPLSDA_loadings = results %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
                                         ymax = maxLoad))+
-  geom_linerange(stat = "identity", position = position_dodge(0.9))+
+  geom_linerange(stat = "identity", position = position_dodge(0.9)) +
   geom_point(aes(y = 0), position = position_dodge(0.9)) +
   ylab("Loading coefficient") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   scale_color_brewer(palette = "Set1") +
-  facet_grid(scales = "free", space = "free_x")
+  facet_grid(cols = vars(belong_to), scales = "free", space = "free_x")
 
 ggsave(paste0(save_plots,"sPLSDA_loadings.pdf"), plot=sPLSDA_loadings)
 saveRDS(sPLSDA_loadings, paste0(save_plots,"sPLSDA_loadings.rds"))
