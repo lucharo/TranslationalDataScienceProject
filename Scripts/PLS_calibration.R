@@ -33,6 +33,7 @@ cov <- readRDS(paste0(data_folder,"covProcessed.rds"))
 cvd <- cov %>% select(ID, CVD_status)
 bio.cov <- merge(bio, cvd, by='ID')
 
+
 #Create training and test sets 
 smp_size <- floor(0.8*nrow(bio.cov))
 
@@ -63,20 +64,6 @@ pdf(paste0(save_plots,"sPLSDA_calibration.pdf"))
 splsda_calibration <- PlotCalib(res = res_splsda)
 dev.off()
 saveRDS(splsda_calibration, paste0(save_plots,"sPLSDA_calibration.rds"))
-
-
-
-##################################################################
-##                      Stability analyses                      ##
-##################################################################
-
-#Creating a heatmap of the selection of variables, over 100 iterations each selecting a different training/test set 
-#set.seed(1)
-#Stability_results = StabilityPlot(X = X, Y = y, NIter = 100)
-#pheatmap(Stability_results, cluster_rows = FALSE, cluster_cols = FALSE,
- #        display_numbers = TRUE, 
-  #       filename = paste0(save_plots,"PLS_stability.pdf"),
-   #      height = 5, width = 10)
 
 
 

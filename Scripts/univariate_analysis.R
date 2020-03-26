@@ -69,7 +69,7 @@ DoYouMatter = function(biomarker, data = bio.imp_cov){
   model = glm(formula, data = data,
               na.action = na.omit, family = "binomial")
   
-  # first element is beta coefficient (OR), second is p-value
+  # first element is beta coefficient (log OR), second is p-value
   list(summary(model)$coefficients[biomarker, 1],
        summary(model)$coefficients[biomarker, 4])
 }
@@ -101,14 +101,15 @@ univ_imputed = Univariate.analysis(bio.imp_cov)
 ##################################################################
 
 figure = rbind(cbind(univ_nonimputed, Data = "Not-imputed"),
-      cbind(univ_imputed, Data = "MICE")) %>% 
+      cbind(univ_imputed, Data = "KNN")) %>% arrange(p.value) %>% head(20) %>%
   ggplot(aes(x = reorder(Biomarkers, log10(p.value)),
              y = -log10(p.value),
              shape = as.factor(
                ifelse(OR>0,"Positive",
                       "Negative")),
              #size = as.numeric(abs(OR)),
-             color = Data))+
+             color = Data,
+             size = exp(OR)))+
   geom_point(position = position_dodge(0.9))+
   geom_hline(yintercept = -log10(0.05/length(colnames(bio))),
              linetype = "dashed")+
@@ -120,11 +121,15 @@ figure = rbind(cbind(univ_nonimputed, Data = "Not-imputed"),
   scale_shape_manual(values = c(6,2))+
   scale_color_brewer(palette = "Set1")+
   labs(shape = "Sign of the\nassociation")+
-  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 30, hjust = 1),
     # axis.text.x = element_blank(),
         # axis.ticks.x = element_blank()
     )+
-  ylim(0, NA)
+  ylim(0, NA)+
+  ylab("-log10 of p-values")+xlab("Biomarkers")+
+  labs(size = "Odds Ratio")+theme(legend.position = "top")+
+  ggtitle("Univariate analysis results for imputed and non imputed data")
 
 ##################################################################
 ##                         Saving Plots                         ##
@@ -133,3 +138,35 @@ figure = rbind(cbind(univ_nonimputed, Data = "Not-imputed"),
 ggsave(paste0(save_plots,"UnivariateAnalysis.pdf")) # as pdf
 saveRDS(figure, paste0(save_plots,"UnivariateAnalysis.rds")) # as object
 
+
+figure2 = rbind(cbind(univ_nonimputed, Data = "Not-imputed"),
+               cbind(univ_imputed, Data = "KNN")) %>% arrange(desc(OR)) %>% head(20) %>%
+  ggplot(aes(x = reorder(Biomarkers, -exp(OR)),
+             y = -log10(p.value),
+             shape = as.factor(
+               ifelse(OR>0,"Positive",
+                      "Negative")),
+             #size = as.numeric(abs(OR)),
+             color = Data,
+             size = exp(OR)))+
+  geom_point(position = position_dodge(0.9))+
+  geom_hline(yintercept = -log10(0.05/length(colnames(bio))),
+             linetype = "dashed")+
+  # geom_text(aes(x = Biomarkers, y = -log10(p.value)+0.4,
+  #               label = ifelse(Data == "MICE" &
+  #                                -log10(p.value)> -log10(0.05/length(colnames(bio))),
+  #                              colnames(bio)[Biomarkers], "")),
+  #           angle = 90, show.legend = F, color = "black", size = 3)+
+  scale_shape_manual(values = c(6,2))+
+  scale_color_brewer(palette = "Set1")+
+  labs(shape = "Sign of the\nassociation")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 30, hjust = 1),
+        # axis.text.x = element_blank(),
+        # axis.ticks.x = element_blank()
+  )+
+  ylim(0, NA)+
+  ylab("-log10 of p-values")+xlab("Biomarkers")+
+  labs(size = "Odds Ratio")+theme(legend.position = "top")+
+  ggtitle("Univariate analysis results for imputed and non imputed data")
+figure2
