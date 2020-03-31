@@ -9,6 +9,7 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 library(ggplot2)
 library(jtools)
+library(scales)
 
 cluster = 1
 
@@ -66,6 +67,9 @@ saveRDS(PRS, paste0(save_data,"PolygenicRiskScore.rds"))
 ## Merge cov and PRS
 cov.prs <- merge(cov, PRS, by="ID")
 
+#Normalise the PRS
+cov.prs$PRS = rescale(cov.prs$PRS, to = c(-1, 1)) 
+
 #Boxplot of PRS by CVD status
 prs_boxplot <- ggplot(cov.prs, aes(x=CVD_status, y=PRS)) +
   geom_boxplot()
@@ -80,7 +84,7 @@ saveRDS(t_test, paste0(save_plots,"PRS_ttest.rds"))
 
 #Prediction of CVD by PRS
 cov.prs$CVD_status <- as.numeric(cov.prs$CVD_status)
-glm <- glm(CVD_status ~ PRS, data=cov.prs, family=binomial)
+glm <- glm(CVD_status ~ as.numeric(PRS), data=cov.prs, family=binomial)
 summary(glm)
 odds <- round(cbind("odds" = exp(coef(glm)), exp(confint(glm))), 3)
 saveRDS(odds, paste0(save_plots,"PRS_Odds.rds"))
@@ -92,7 +96,7 @@ round(cbind("odds" = exp(coef(glm_adj)), exp(confint(glm_adj))), 3)
 
 #Visualising the relationship between PRS and risk of CVD
 pdf(paste0(save_plots,"PRS_EffectPlot.pdf"))
-glm_plot <- effect_plot(glm, pred = PRS, interval = TRUE, int.width = 0.95) + 
+glm_plot <- effect_plot(glm, pred = PRS, data=cov.prs, interval = TRUE, int.width = 0.95) + 
   labs(x = 'Polygenic Risk Score', y = 'Probability of having CVD')
 glm_plot
 dev.off()
@@ -102,8 +106,7 @@ saveRDS(glm_plot, paste0(save_plots,"PRS_EffectPlot.rds"))
 #Density plot
 den_plot <- ggplot(cov.prs) + 
   geom_density(aes(x=PRS, color=CVD_status, fill=CVD_status), alpha=0.2, size=0.25) +
-  labs(x = 'Polygenic Risk Score') +
-  scale_fill_discrete('', labels = c('Controls', 'CVD')) +
-  scale_color_discrete('', labels = c('Controls', 'CVD'))
+  labs(x = 'Polygenic Risk Score') + 
+  scale_fill_discrete(name = "CVD status", labels = c("Controls", "Cases"))
 ggsave(paste0(save_plots,"PRS_density.pdf"), den_plot)
 saveRDS(den_plot, paste0(save_plots,"PRS_density.rds"))
