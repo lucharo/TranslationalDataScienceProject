@@ -27,7 +27,7 @@ if (cluster == 1){
 bio <- readRDS(paste0(data_folder,"bioImputedKNN.rds"))
 cov <- readRDS(paste0(data_folder,"covProcessed.rds"))
 
-cvd <- cov %>% select(ID, CVD_status)
+cvd <- cov %>% dplyr::select(ID, CVD_status) 
 bio.cov <- merge(bio, cvd, by='ID')
 
 
@@ -241,17 +241,8 @@ saveRDS(sgPLSDA_loadings, paste0(save_plots,"sgPLSDA_loadings.rds"))
 #From full data, selected 5 most frequent CVD subtypes (based on ICD10 code for death):
 #G459, I209, I219, I251, I639 (these all have over 600 cases). 
 
-cvd_icd <- cov %>% select(ID, cvd_final_icd10)
-bio.icd <- merge(bio, cvd_icd, by='ID')
-y = bio.cov$CVD_status
-
-#Create the stratified datasets 
-for (subtype in c("G459","I209", "I219", "I249","I251", "I639")) {
-  Xtemp = X[X$cvd_final_icd10 %in% subtype, ]
-  Ytemp = y[X$cvd_final_icd10 %in% subtype]
-  assign(paste0("X_", subtype), Xtemp)
-  assign(paste0("Y_", subtype), Ytemp)
-}
+bio.icd <- cov %>% dplyr::select(ID, CVD_status, cvd_final_icd10) %>%
+  inner_join(bio, by='ID')
 
 #Computing the misclassification rate for the calibrated sPLS-DA and sgPLS-DA models 
 #And then creating a plot of these misclassification rates by CVD subtype
@@ -273,8 +264,8 @@ mis_rate$subtype = replace(mis_rate$subtype, which(is.na(mis_rate$subtype)),
 
 mis_rate$IncorrectClass = !(mis_rate$comp1 == mis_rate$truth)
 
-mis_rate_plot <- mis_rate %>% filter(subtype %in% c("Control","G459","I209", "I219", "I249",
-                                                    "I251", "I639")) %>% 
+mis_rate_plot <- mis_rate %>% filter(subtype %in% c("Control","G459","I209","I219",
+                                                    "I251","I639")) %>% 
   group_by(subtype) %>% 
   summarise(rate = mean(IncorrectClass)) %>% 
   arrange(subtype)
@@ -284,8 +275,8 @@ splsda_stratified <- mis_rate_plot %>% ggplot(aes(x = subtype, ymin = 0, ymax = 
   scale_color_brewer(palette = "Set1") + 
   ylab("Misclassification Rate")
 
-ggsave(paste0(save_plots,"sPLSDA_stratified.pdf"), plot=splsda_stratified)
-saveRDS(splsda_stratified, paste0(save_plots,"sPLSDA_stratified.rds"))
+ggsave(paste0(save_plots,"sPLS_mislcassification.pdf"), plot=splsda_stratified)
+saveRDS(splsda_stratified, paste0(save_plots,"sPLS_mislcassification.rds"))
 
 
 #Now for both sPLS-DA and sgPLS-DA 
@@ -302,9 +293,8 @@ mis_rate$subtype = replace(mis_rate$subtype, which(is.na(mis_rate$subtype)),
 
 mis_rate$IncorrectClass = !(mis_rate$comp1 == mis_rate$truth)
 
-mis_rate_plot <- mis_rate %>% filter(subtype %in% c("Control","G454","G459",
-                                                    "I200","I209","I210","I211","I214","I219","I249",
-                                                    "I251","I259","I635","I639","I64")) %>% 
+mis_rate_plot <- mis_rate %>% filter(subtype %in% c("Control","G459","I209","I219",
+                                                    "I251","I639")) %>% 
   group_by(subtype, model) %>% 
   summarise(rate = mean(IncorrectClass)) %>% 
   arrange(subtype)
@@ -314,7 +304,76 @@ plsda_stratified <- mis_rate_plot %>% ggplot(aes(x = subtype, ymin = 0, ymax = r
   scale_color_brewer(palette = "Set1") + 
   ylab("Misclassification Rate")
 
-ggsave(paste0(save_plots,"PLSDA_stratified.pdf"), plot=plsda_stratified)
-saveRDS(plsda_stratified, paste0(save_plots,"PLSDA_stratified.rds"))
+ggsave(paste0(save_plots,"PLSDA_misclassification.pdf"), plot=plsda_stratified)
+saveRDS(plsda_stratified, paste0(save_plots,"PLSDA_misclassification.rds"))
 
+
+
+#################################################################
+##                    Stratified analyseses                    ##
+#################################################################
+
+X_strat = bio.icd[, 4:31]
+y_strat = bio.icd$CVD_status
+
+#Create the stratified datasets 
+for (subtype in c("G459","I209","I219","I251","I639")) {
+  Xtemp = X_strat[bio.icd$cvd_final_icd10 %in% subtype | is.na(bio.icd$cvd_final_icd10), ]
+  Ytemp = y_strat[bio.icd$cvd_final_icd10 %in% subtype | is.na(bio.icd$cvd_final_icd10)]
+  assign(paste0("X_", subtype), Xtemp)
+  assign(paste0("Y_", subtype), Ytemp)
+}
+
+#Make sPLS models for each subtype
+for (subtype in c("G459","I209", "I219","I251","I639")) {
+  X = eval(parse(text = paste0("X_", subtype)))
+  Y = eval(parse(text = paste0("Y_", subtype)))
+  sPLSDA_strat <- splsda(X, Y, keepX = 9, ncomp = 1, mode = "regression")
+  assign(paste0("sPLSDA_", subtype), sPLSDA_strat)
+}
+
+
+#Plot loadings 
+results_strat = data.frame(rbind(
+  cbind(Biomarker = colnames(X),
+        Subtype = 'G459',
+        Loadings = sPLSDA_G459$loadings$X),
+  cbind(Biomarker = colnames(X),
+        Subtype = 'I209',
+        Loadings = sPLSDA_I209$loadings$X),
+  cbind(Biomarker = colnames(X),
+        Subtype = 'I219',
+        Loadings = sPLSDA_I219$loadings$X),
+  cbind(Biomarker = colnames(X),
+        Subtype = 'I251',
+        Loadings = sPLSDA_I251$loadings$X),
+  cbind(Biomarker = colnames(X),
+        Subtype = 'I639',
+        Loadings = sPLSDA_I639$loadings$X)
+))
+
+results_strat = results_strat %>%
+  mutate(belong_to = ifelse(Biomarker %in% groups_fran[1:8], "Liver",
+                            ifelse(Biomarker %in% groups_fran[9:18], "Metabolic",
+                                   ifelse(Biomarker %in% groups_fran[19:20], "Immune",
+                                          ifelse(Biomarker %in% groups_fran[21:25], "Endocrine",
+                                                 "Kidney")))))
+
+colnames(results_strat)[3] = 'Loadings'
+results_strat$minLoad = as.numeric(sapply(as.vector(results_strat$Loadings), 
+                                   function(x) min(0, x)))
+results_strat$maxLoad = as.numeric(sapply(as.vector(results_strat$Loadings), 
+                                          function(x) max(0, x)))
+
+strat_loadings = results_strat %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
+                                          ymax = maxLoad, color = Subtype)) +
+  geom_linerange(stat = "identity", position = position_dodge(0.9)) +
+  geom_point(aes(y = 0), position = position_dodge(0.9)) +
+  ylab("Loading coefficients") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_color_brewer(palette = "Set1") +
+  facet_grid(cols = vars(belong_to), scales = "free", space = "free_x")
+
+ggsave(paste0(save_plots,"sPLSDA_stratified.pdf"), plot=strat_loadings)
+saveRDS(strat_loadings, paste0(save_plots,"sPLSDA_stratified.rds"))
 
