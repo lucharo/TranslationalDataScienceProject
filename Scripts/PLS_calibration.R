@@ -6,14 +6,11 @@
 
 rm(list=ls())
 
-suppressPackageStartupMessages(library(devtools))
-#if (!require(mixOmics)) devtools::install_github("mixOmicsTeam/mixOmics")
 suppressPackageStartupMessages(library(mixOmics))
 suppressPackageStartupMessages(library(sgPLS))
 suppressPackageStartupMessages(library(pheatmap))
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(dplyr))
-suppressPackageStartupMessages(library(parallel))
 
 
 cluster = 1
@@ -27,11 +24,16 @@ if (cluster == 1){
   save_plots = "../results/"
 }
 
+ifelse(!dir.exists(file.path(save_plots, "PLS/")),
+       dir.create(file.path(save_plots, "PLS/")), FALSE)
+save_plots = paste0(save_plots,"PLS/")
+
 bio <- readRDS(paste0(data_folder,"bioImputedKNN.rds"))
 cov <- readRDS(paste0(data_folder,"covProcessed.rds"))
 
-cvd <- cov %>% select(ID, CVD_status)
-bio.cov <- merge(bio, cvd, by='ID')
+bio.cov <- cov %>% 
+  dplyr::select(ID, CVD_status) %>%
+  merge(bio, by='ID')
 
 
 #Create training and test sets 
@@ -45,10 +47,11 @@ train <- bio.cov[train_ind, ]
 test <- bio.cov[-train_ind, ]
 
 #Select all biomarkers from bio.cov for X
-X_train = train[, 2:29]
-X_test = test[, 2:29]
+X_train = train[, 3:30]
+X_test = test[, 3:30]
 y_train = train$CVD_status
 y_test = test$CVD_status
+
 
 
 #################################################################
@@ -123,7 +126,7 @@ sgPLSDA$loadings$X
 #The two parameters of the sgPLS-DA model can be calibrated using the function CalibratesgPLSDA()
 set.seed(1)
 res_sgplsda = CalibratesgPLSDA(dataX = X_fran, dataY = y, ncomp = 1,
-                               Nrepeat = 50, Xgroups = X_cuts_fran)
+                               Nrepeat = 100, Xgroups = X_cuts_fran)
 pdf(paste0(save_plots,"sgPLSDA_calibration.rds"))
 sgplsda_calibration <- PlotCalib(res = res_sgplsda, type = "sgPLSDA")
 saveRDS(sgplsda_calibration, paste0(save_plots,"sgPLSDA_calibration.rds"))

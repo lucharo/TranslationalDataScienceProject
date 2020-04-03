@@ -5,7 +5,6 @@
 ##################################################################
 
 rm(list=ls())
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 library(ggplot2)
 library(jtools)
@@ -22,6 +21,10 @@ if (cluster == 1){
   save_plots = "../results/"
 }
 
+ifelse(!dir.exists(file.path(save_plots, "PRS/")),
+       dir.create(file.path(save_plots, "PRS/")), FALSE)
+save_plots = paste0(save_plots,"PRS/")
+
 snp = readRDS(paste0(data_folder,"snpProcessed.rds"))
 cov = readRDS(paste0(data_folder,"covProcessed.rds"))
 snp.info = readRDS(paste0(data_folder,"snpInfo.rds"))
@@ -31,7 +34,8 @@ snp.info = readRDS(paste0(data_folder,"snpInfo.rds"))
 ##                        Computing PRS                         ##
 ##################################################################
 
-# Added this for cluster as snp file is smaller in cluster than ni toy? 162 snps vs 177?
+#Added this for cluster as snp file is smaller in cluster than in toy? 
+#162 snps vs 177 - since those with more than 90% similarity were removed?
 snps = colnames(snp)
 snp.info = snp.info[snp.info$markername %in% snps, ]
 
@@ -42,9 +46,8 @@ stopifnot(all(colnames(snp)[-1] == snp.info$markername))
 betas <- snp.info$beta
 
 #Element-wise multiplication of each row of snp by the betas
-# (margin=2 specifies it is rows of the matrix; each row is a person)
-# this multiples each no. of snp copies by the beta coefficient for 
-# that snp 
+#(margin=2 specifies it is rows of the matrix; each row is a person)
+#This multiples each no. of snp copies by the beta coefficient for that snp 
 PRS_matrix = sweep(snp[,-1], MARGIN=2, betas, `*`)
 
 
@@ -70,12 +73,20 @@ cov.prs <- merge(cov, PRS, by="ID")
 #Normalise the PRS
 cov.prs$PRS = rescale(cov.prs$PRS, to = c(-1, 1)) 
 
+#Density plot
+den_plot <- ggplot(cov.prs) + 
+  geom_density(aes(x=PRS, color=CVD_status, fill=CVD_status), alpha=0.2, size=0.25) +
+  labs(x = 'Polygenic Risk Score') + 
+  scale_fill_discrete(name = "CVD status", labels = c("Controls", "Cases"))
+ggsave(paste0(save_plots,"PRS_density.pdf"), den_plot)
+saveRDS(den_plot, paste0(save_plots,"PRS_density.rds"))
+
+
 #Boxplot of PRS by CVD status
 prs_boxplot <- ggplot(cov.prs, aes(x=CVD_status, y=PRS)) +
   geom_boxplot()
 ggsave(paste0(save_plots,"PRS_boxplot.pdf"), prs_boxplot)
 saveRDS(prs_boxplot, paste0(save_plots,"PRS_boxplot.rds"))
-
 
 #t-test - sig difference in mean PRS between groups
 t_test = t.test(PRS ~ CVD_status, data=cov.prs)
@@ -102,11 +113,3 @@ glm_plot
 dev.off()
 saveRDS(glm_plot, paste0(save_plots,"PRS_EffectPlot.rds"))
 
-
-#Density plot
-den_plot <- ggplot(cov.prs) + 
-  geom_density(aes(x=PRS, color=CVD_status, fill=CVD_status), alpha=0.2, size=0.25) +
-  labs(x = 'Polygenic Risk Score') + 
-  scale_fill_discrete(name = "CVD status", labels = c("Controls", "Cases"))
-ggsave(paste0(save_plots,"PRS_density.pdf"), den_plot)
-saveRDS(den_plot, paste0(save_plots,"PRS_density.rds"))
