@@ -1,5 +1,3 @@
-args = commandArgs(trailingOnly = TRUE)
-
 #Aim of this script is to calibrate the sparse group PLS-DA model (parameters = number of groups to include and sparsity parameter)              
 
 ##################################################################
@@ -8,8 +6,12 @@ args = commandArgs(trailingOnly = TRUE)
 
 rm(list=ls())
 
-suppressPackageStartupMessages(library(mixOmics))
-suppressPackageStartupMessages(library(sgPLS))
+args = commandArgs(trailingOnly = TRUE)
+seed = as.numeric(args[1])
+print(seed)
+
+#suppressPackageStartupMessages(library(mixOmics))
+#suppressPackageStartupMessages(library(sgPLS))
 suppressPackageStartupMessages(library(pheatmap))
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(dplyr))
@@ -80,7 +82,6 @@ print("Data loaded")
 #This function performs 5-fold cross-validation to find which paramater combination gives the lowest misclassification rate (of CVD status). 
 
 source("pls_functions.R")
-seed = as.numeric(args[1])
 set.seed(seed)
 print("PLS started")
 res_sgplsda = CalibratesgPLSDA(dataX = X_fran, dataY = y, ncomp = 1,
