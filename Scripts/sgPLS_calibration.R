@@ -1,5 +1,4 @@
 args = commandArgs(trailingOnly = TRUE)
-seed = as.numeric(args[1])
 
 #Aim of this script is to calibrate the sparse group PLS-DA model (parameters = number of groups to include and sparsity parameter)              
 
@@ -7,10 +6,8 @@ seed = as.numeric(args[1])
 ##                 Prepare libraries and data                   ##
 ##################################################################
 
-#rm(list=ls())
+rm(list=ls())
 
-suppressPackageStartupMessages(library(devtools))
-#if (!require(mixOmics)) devtools::install_github("mixOmicsTeam/mixOmics")
 suppressPackageStartupMessages(library(mixOmics))
 suppressPackageStartupMessages(library(sgPLS))
 suppressPackageStartupMessages(library(pheatmap))
@@ -37,12 +34,14 @@ save_plots = paste0(save_plots,"PLS/")
 bio <- readRDS(paste0(data_folder,"bioImputedKNN.rds"))
 cov <- readRDS(paste0(data_folder,"covProcessed.rds"))
 
-cvd <- cov %>% select(ID, CVD_status)
-bio.cov <- merge(bio, cvd, by='ID')
+bio.cov <- cov %>% 
+  dplyr::select(ID, CVD_status) %>% 
+  merge(bio, by='ID')
 
 #Select all biomarkers from bio.cov for X
-X = bio.cov[, 2:29]
+X = bio.cov[, 3:30]
 y = bio.cov$CVD_status
+
 
 
 ##################################################################
@@ -61,16 +60,17 @@ X_fran = X[, groups_fran]
 X_cuts_fran = c(8, 18, 20, 25)
 
 #List of biomarkers in order of groups (based on paper's grouping): first 3 are liver, the next 4 are metabolic, next 2 immune, next 1 endocrine, and final 1 kidney (this grouping is the same but omitting some). X_cuts again defines the cuts.
-groups_paper = c('Alanine.aminotransferase','Aspartate.aminotransferase',
-                 'Gamma.glutamyltransferase','Cholesterol','Glycated.haemoglobin.HbA1c.',
-                 'HDL.cholesterol','Triglycerides','C.reactive.protein','IGF.1','Testosterone',
-                 'Creatinine')
+#groups_paper = c('Alanine.aminotransferase','Aspartate.aminotransferase',
+ #                'Gamma.glutamyltransferase','Cholesterol','Glycated.haemoglobin.HbA1c.',
+  #               'HDL.cholesterol','Triglycerides','C.reactive.protein','IGF.1','Testosterone',
+   #              'Creatinine')
 
-X_paper = X[, groups_paper]
-X_cuts_paper = c(3, 7, 9, 10)
+#X_paper = X[, groups_paper]
+#X_cuts_paper = c(3, 7, 9, 10)
 
   
 print("Data loaded")
+
 #################################################################
 ##                 Model calibration for sgPLS                 ##
 #################################################################

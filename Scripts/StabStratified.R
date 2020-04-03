@@ -1,4 +1,5 @@
 #Prepare libraries and data 
+rm(list=ls())
 
 suppressPackageStartupMessages(library(devtools))
 suppressPackageStartupMessages(library(mixOmics))
@@ -12,11 +13,11 @@ cluster = 1
 
 if (cluster == 1){
   save_data = data_folder = "../FULLDATA/preprocessed/"
-  save_results = results_folder = "../FULLResults/StabStratified/"
+  save_results = results_folder = "../FULLResults/PLS/StabStratified/"
 } else {
   setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
   save_data = data_folder = "../data/preprocessed/"
-  save_results = "../results/StabStratified/"
+  save_results = "../results/PLS/StabStratified/"
 }
 
 bio <- readRDS(paste0(data_folder,"bioImputedKNN.rds"))
@@ -132,8 +133,9 @@ stab_plot = stab_strat %>%
   ggplot(aes(x = reorder(Biomarker, PropSelected),
              ymin = 0, ymax = PropSelected, color=Subtype)) +
   geom_linerange(stat = "identity", position = position_dodge(0.9)) +
-  coord_flip() + xlab("Biomarker") + ylab("Proportion selected") +
+  xlab("Biomarker") + ylab("Proportion selected") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   scale_color_brewer(palette = "Set1")
 
-ggsave(paste0(save_results,"StabStratified_plot.pdf"), plot=stab_plot)
+ggsave(paste0(save_results,"../StabStratified_plot.pdf"), plot=stab_plot)
 #saveRDS(stab_plot, paste0(save_results,"StabStratified_plot.rds"))

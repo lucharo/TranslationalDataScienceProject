@@ -17,18 +17,23 @@ cluster = 1
 
 if (cluster == 1){
   save_data = data_folder = "../FULLDATA/preprocessed/"
-  save_plots = "../FULLResults/"
+  save_plots = results_folder = "../FULLResults/"
 } else {
   setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
   save_data = data_folder = "../data/preprocessed/"
   save_plots = "../results/"
 }
 
+ifelse(!dir.exists(file.path(save_plots, "PLS/")),
+       dir.create(file.path(save_plots, "PLS/")), FALSE)
+save_plots = paste0(save_plots,"PLS/")
+
 bio <- readRDS(paste0(data_folder,"bioImputedKNN.rds"))
 cov <- readRDS(paste0(data_folder,"covProcessed.rds"))
 
-cvd <- cov %>% dplyr::select(ID, CVD_status) 
-bio.cov <- merge(bio, cvd, by='ID')
+bio.cov <- cov %>% 
+  dplyr::select(ID, CVD_status) %>%
+  merge(bio, by='ID')
 
 
 ##################################################################
@@ -36,7 +41,7 @@ bio.cov <- merge(bio, cvd, by='ID')
 ##################################################################
 
 #Select all biomarkers from bio.cov for X
-X = bio.cov[, 2:29]
+X = bio.cov[, 3:30]
 y = bio.cov$CVD_status
 
 #Non-penalised plsda (i.e. no feature selection)
@@ -105,8 +110,8 @@ train <- bio.cov[train_ind, ]
 test <- bio.cov[-train_ind, ]
 
 #Select all biomarkers from bio.cov for X
-X_train = train[, 2:29]
-X_test = test[, 2:29]
+X_train = train[, 3:30]
+X_test = test[, 3:30]
 y_train = train$CVD_status
 y_test = test$CVD_status
 
@@ -120,13 +125,16 @@ sPLSDA$loadings$X[sPLSDA$loadings$X != 0, ]
 y_pred <- predict(sPLSDA, newdata = X_test)
 fitted = y_pred$class$max.dist
 table(fitted)
+
+#No cases predicted
   
 
 ##################################################################
 ##                      Stability analyses                      ##
 ##################################################################
 
-#Creating a heatmap of the selection of variables, over 100 iterations each selecting a different training/test set 
+#Creating a heatmap of the selection of variables
+#100 iterations each selecting a different training/test set 
 source("pls_functions.R")
 set.seed(1)
 Stability_results = StabilityPlot(X = X, Y = y, NIter = 100)
@@ -241,8 +249,9 @@ saveRDS(sgPLSDA_loadings, paste0(save_plots,"sgPLSDA_loadings.rds"))
 #From full data, selected 5 most frequent CVD subtypes (based on ICD10 code for death):
 #G459, I209, I219, I251, I639 (these all have over 600 cases). 
 
-bio.icd <- cov %>% dplyr::select(ID, CVD_status, cvd_final_icd10) %>%
-  inner_join(bio, by='ID')
+bio.icd <- cov %>% 
+  dplyr::select(ID, CVD_status, cvd_final_icd10) %>%
+  merge(bio, by='ID')
 
 #Computing the misclassification rate for the calibrated sPLS-DA and sgPLS-DA models 
 #And then creating a plot of these misclassification rates by CVD subtype
@@ -310,7 +319,7 @@ saveRDS(plsda_stratified, paste0(save_plots,"PLSDA_misclassification.rds"))
 
 
 #################################################################
-##                    Stratified analyseses                    ##
+##                     Stratified analyses                     ##
 #################################################################
 
 X_strat = bio.icd[, 4:31]
