@@ -139,10 +139,13 @@ source("pls_functions.R")
 set.seed(1)
 Stability_results = StabilityPlot(X = X, Y = y, NIter = 100)
 
-#pheatmap(Stability_results, cluster_rows = FALSE, cluster_cols = FALSE,
- #        display_numbers = TRUE, 
-  #       filename = paste0(save_plots,"PLS_stability.pdf"),
-   #      height = 5, width = 10)
+saveRDS(Stability_results, paste0(save_plots,"Stability_results.rds"))
+
+pheatmap(Stability_results, cluster_rows = FALSE, cluster_cols = FALSE,
+         display_numbers = TRUE, 
+         filename = paste0(save_plots,"PLS_stability.pdf"),
+         height = 7, width = 10)
+
 
 #Calculating proportion of times each variable was selected
 PropSelected = colSums(Stability_results)/28
@@ -343,7 +346,7 @@ for (subtype in c("G459","I209", "I219","I251","I639")) {
 
 
 #Plot loadings 
-results_strat = data.frame(rbind(
+results = data.frame(rbind(
   cbind(Biomarker = colnames(X),
         Subtype = 'G459',
         Loadings = sPLSDA_G459$loadings$X),
@@ -361,7 +364,7 @@ results_strat = data.frame(rbind(
         Loadings = sPLSDA_I639$loadings$X)
 ))
 
-results_strat = results_strat %>%
+results_strat = results %>%
   mutate(belong_to = ifelse(Biomarker %in% groups_fran[1:8], "Liver",
                             ifelse(Biomarker %in% groups_fran[9:18], "Metabolic",
                                    ifelse(Biomarker %in% groups_fran[19:20], "Immune",
@@ -386,3 +389,33 @@ strat_loadings = results_strat %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLo
 ggsave(paste0(save_plots,"sPLSDA_stratified.pdf"), plot=strat_loadings)
 saveRDS(strat_loadings, paste0(save_plots,"sPLSDA_stratified.rds"))
 
+
+##Redo this plot excluding 0 coefficients for simplicity 
+results_strat2 = results %>%
+  filter(comp1 != 0) %>%
+  mutate(belong_to = ifelse(Biomarker %in% groups_fran[1:8], "Liver",
+                            ifelse(Biomarker %in% groups_fran[9:18], "Metabolic",
+                                   ifelse(Biomarker %in% groups_fran[19:20], "Immune",
+                                          ifelse(Biomarker %in% groups_fran[21:25], "Endocrine",
+                                                 "Kidney")))))
+
+colnames(results_strat2)[3] = 'Loadings'
+results_strat2$minLoad = as.numeric(sapply(as.vector(results_strat2$Loadings), 
+                                          function(x) min(0, x)))
+results_strat2$maxLoad = as.numeric(sapply(as.vector(results_strat2$Loadings), 
+                                          function(x) max(0, x)))
+
+strat_loadings2 = results_strat2 %>% 
+  ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
+             ymax = maxLoad, color = Subtype)) +
+  geom_linerange(stat = "identity", position = position_dodge(0.9)) +
+  geom_point(aes(y = 0), position = position_dodge(0.9)) +
+  ylab("Loading coefficients") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_color_brewer(palette = "Set1") +
+  facet_grid(rows = vars(belong_to), scales = "free", space = "free_y") +
+  theme(strip.text.y = element_text(angle = 0)) +
+  coord_flip()
+
+ggsave(paste0(save_plots,"sPLSDA_strat_non0.pdf"), plot=strat_loadings2)
+saveRDS(strat_loadings2, paste0(save_plots,"sPLSDA_strat_non0.rds"))
