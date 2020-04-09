@@ -71,7 +71,8 @@ DoYouMatter = function(biomarker, data = bio.imp_cov){
   
   # first element is beta coefficient (log OR), second is p-value
   list(summary(model)$coefficients[biomarker, 1],
-       summary(model)$coefficients[biomarker, 4])
+       summary(model)$coefficients[biomarker, 4],
+        confint(model)[biomarker, 1:2])
 }
 
 Univariate.analysis = function(merged.dataset){
@@ -83,12 +84,12 @@ Univariate.analysis = function(merged.dataset){
     matrix(unlist(lapply(bio.names,
                          function(x) 
                            DoYouMatter(x,data = merged.dataset))),
-           ncol = 2, byrow = T),
+           ncol = 4, byrow = T),
     stringsAsFactors = F)
   
   Univ_biomarkers = data.frame("Biomarkers" = bio.names, pvals)
   
-  colnames(Univ_biomarkers)[2:3] = c("OR", "p.value")
+  colnames(Univ_biomarkers)[2:5] = c("OR", "p.value", "lower CI", "upper CI")
   
   Univ_biomarkers
 }
@@ -100,9 +101,24 @@ univ_imputed = Univariate.analysis(bio.imp_cov)
 ##                           Plotting                           ##
 ##################################################################
 
-figure = rbind(cbind(univ_nonimputed, Data = "Not-imputed"),
-      cbind(univ_imputed, Data = "KNN")) %>% arrange(p.value) %>% head(20) %>%
-  ggplot(aes(x = reorder(Biomarkers, log10(p.value)),
+fortable = rbind(cbind(univ_nonimputed, Data = "Not-imputed"),
+                 cbind(univ_imputed, Data = "KNN")) %>% arrange(p.value)
+fortable$Biomarkers = str_replace_all(fortable$Biomarkers, "\\.", " ")
+fortable$Biomarkers = str_replace_all(fortable$Biomarkers, "Glycated haemoglobin HbA1c", "HbA1c")
+fortable$OR = exp(fortable$OR)
+fortable$`lower CI` = exp(fortable$`lower CI`)
+fortable$`upper CI` = exp(fortable$`upper CI`)
+data = rbind(cbind(univ_nonimputed, Data = "Not-imputed"),
+             cbind(univ_imputed, Data = "KNN")) %>% arrange(p.value) %>% head(30)
+
+data$Biomarkers = str_replace_all(data$Biomarkers, "\\.", " ")
+data$Biomarkers = str_replace_all(data$Biomarkers, "Glycated haemoglobin HbA1c", "HbA1c")
+data$Biomarkers = str_replace_all(data$Biomarkers, "Alanine aminotransferase", "Alanine\naminotransferase")
+data$Biomarkers = str_replace_all(data$Biomarkers, "Alkaline phosphatase", "Alkaline\nphosphatase")
+
+
+figure = data %>%
+  ggplot(aes(x = reorder(Biomarkers, -log10(p.value)),
              y = -log10(p.value),
              shape = as.factor(
                ifelse(OR>0,"Positive",
@@ -125,12 +141,18 @@ figure = rbind(cbind(univ_nonimputed, Data = "Not-imputed"),
   theme(axis.text.x = element_text(angle = 30, hjust = 1),
     # axis.text.x = element_blank(),
         # axis.ticks.x = element_blank()
+    legend.position = c(0.8, 0.4),
+    legend.background = element_rect(fill="white", 
+                                     size=0.2, linetype="solid"),
+    text = element_text(size = 13)
     )+
   ylim(0, NA)+
   ylab("-log10 of p-values")+xlab("Biomarkers")+
-  labs(size = "Odds Ratio")+theme(legend.position = "top")+
-  ggtitle("Univariate analysis results for imputed and non imputed data")
-
+  labs(size = "Odds Ratio")+
+  # theme(legend.position = "top")+
+  ggtitle("Univariate analysis results for biomarkers")+
+  coord_flip()
+figure
 ##################################################################
 ##                         Saving Plots                         ##
 ##################################################################
