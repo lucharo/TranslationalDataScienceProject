@@ -1,8 +1,8 @@
 
 # Installing and Loading Packages -----------------------------------------
-if (!require(xgboost)) install_github("xgboost")
+if (!require(xgboost)) install.packages("xgboost")
 library(xgboost)
-if (!require(readr)) install_github("readr")
+if (!require(readr)) install.packages("readr")
 library(readr)
 if (!require(stringr)) install.packagaes("stringr")
 library(stringr)
@@ -19,14 +19,21 @@ library(ModelMetrics)
 # for svm
 library(e1071)
 
-
-# Setting up our environment ----------------------------------------------
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+cluster = 1
+platform = Sys.info()['sysname']
+if (platform == 'Linux'){
+  save_data = data_folder = "../FULLDATA/preprocessed/"
+  save_plots = "../FULLResults/"
+} else {
+  setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+  save_data = data_folder = "../data/preprocessed/"
+  save_plots = "../results/"
+}
 
 #Load Data
-cov = readRDS("../data/preprocessed/covProcessed.rds")
-bio = readRDS("../data/preprocessed/bioImputed.rds")
-snp = readRDS("../data/preprocessed/snpImputed.rds")
+cov = readRDS(paste0(data_folder,"covProcessed.rds"))
+bio = readRDS(paste0(data_folder,"bioImputed.rds"))
+snp = readRDS(paste0(data_folder,"snpImputed.rds"))
 
 # Preparing our Data and selecting features -------------------------------
 
