@@ -33,10 +33,19 @@ source("kNNImputeOptimization.R",print.eval = T)
 ############################################################################
 ############################################################################
 
-# set up cluster
+set up cluster
 library(parallel)
 cl = makeCluster(detectCores()-2, type = "FORK")
 print("Cluster initialised")
+
+
+
+#### take in command args
+# args = commandArgs(trailingOnly = TRUE)
+
+# CV = as.numeric(args[1])
+
+# print(CV)
 CV = 5
 results = t(parSapply(cl = cl,
                       1:CV,
@@ -46,7 +55,7 @@ results = t(parSapply(cl = cl,
 
 stopCluster(cl) 
 
-# results = t(sapply(1:CV,
+# results = t(sapply(CV,
 #                       function(x) kNNImputeOptimization(bio, seed = x,
 #                                                   perParam = T, scaled = T,
 #                                                   plot = x==CV))) 
@@ -89,14 +98,14 @@ best.k.med = which.min(apply(RMSE, 2, median))
 best.k.mean = which.min(colMeans(RMSE))
 
 # ?scaling: works weird man
-# mean.cols = as.vector(colMeans(bio, na.rm = T))
-# sd.cols = as.vector(apply(bio,2, function(col) sd(col, na.rm = T)))
-# bio.scaled = sweep(sweep(bio,MARGIN = 2,mean.cols,'-'),2,sd.cols,"/")
-# bio.scaled = as.matrix(bio.scaled)
-# bio.scaled.imp = impute.knn(bio.scaled, k = best.k.mean)$data
+mean.cols = as.vector(colMeans(bio, na.rm = T))
+sd.cols = as.vector(apply(bio,2, function(col) sd(col, na.rm = T)))
+bio.scaled = sweep(sweep(bio,MARGIN = 2,mean.cols,'-'),2,sd.cols,"/")
+bio.scaled = as.matrix(bio.scaled)
+bio.scaled.imp = impute.knn(bio.scaled, k = best.k.mean)$data
 
 #descale 0r rescale, however you wanna call it
-# bio.imp = sweep(sweep(bio.scaled.imp,MARGIN = 2,sd.cols,'*'),2,mean.cols,"+")
+bio.imp = sweep(sweep(bio.scaled.imp,MARGIN = 2,sd.cols,'*'),2,mean.cols,"+")
                       
                       
                       
@@ -109,7 +118,7 @@ best.k.mean = which.min(colMeans(RMSE))
 print(Sys.time() - t0) # takes about 1 minute
 print("Imputation number 1 finished.")
 
-#saveRDS(bio.imp, file = paste0(save_data,"bioImputedKNN.rds"))
+saveRDS(bio.imp, file = paste0(save_data,"bioImputedKNN.rds"))
 
 ############################################################################
 ############################################################################
