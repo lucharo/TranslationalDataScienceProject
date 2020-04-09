@@ -10,8 +10,8 @@ args = commandArgs(trailingOnly = TRUE)
 seed = as.numeric(args[1])
 print(seed)
 
-#suppressPackageStartupMessages(library(mixOmics))
-#suppressPackageStartupMessages(library(sgPLS))
+suppressPackageStartupMessages(library(mixOmics))
+suppressPackageStartupMessages(library(sgPLS))
 suppressPackageStartupMessages(library(pheatmap))
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(dplyr))
@@ -43,7 +43,6 @@ bio.cov <- cov %>%
 #Select all biomarkers from bio.cov for X
 X = bio.cov[, 3:30]
 y = bio.cov$CVD_status
-
 
 
 ##################################################################
