@@ -11,6 +11,7 @@ suppressPackageStartupMessages(library(mixOmics))
 suppressPackageStartupMessages(library(sgPLS))
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(stringr))
 
 
 cluster = 1
@@ -70,6 +71,7 @@ PLSDA_loadings = results %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
 
 ggsave(paste0(save_plots,"PLSDA_loadings.pdf"), plot=PLSDA_loadings)
 saveRDS(PLSDA_loadings, paste0(save_plots,"PLSDA_loadings.rds"))
+
 
 
 ##################################################################
@@ -139,10 +141,13 @@ source("pls_functions.R")
 set.seed(1)
 Stability_results = StabilityPlot(X = X, Y = y, NIter = 100)
 
-#pheatmap(Stability_results, cluster_rows = FALSE, cluster_cols = FALSE,
- #        display_numbers = TRUE, 
-  #       filename = paste0(save_plots,"PLS_stability.pdf"),
-   #      height = 5, width = 10)
+saveRDS(Stability_results, paste0(save_plots,"Stability_results.rds"))
+
+pheatmap(Stability_results, cluster_rows = FALSE, cluster_cols = FALSE,
+         display_numbers = TRUE, 
+         filename = paste0(save_plots,"PLS_stability.pdf"),
+         height = 7, width = 10)
+
 
 #Calculating proportion of times each variable was selected
 PropSelected = colSums(Stability_results)/28
@@ -166,9 +171,13 @@ saveRDS(stab_plot, paste0(save_plots,"Stability_plot.rds"))
 ##             Fitting calibrated sgPLS-DA model                ##
 ##################################################################
 
-#keepX is number of groups to keep; alpha is sparsity parameter (calibration not run yet)
-sgPLSDA <- sgPLSda(X_fran, y, ncomp = 1, ind.block.x = X_cuts_fran, keepX = 3, alpha.x = 0.9)
-sgPLSDA$loadings$X
+#keepX is number of groups to keep; alpha is sparsity parameter 
+#Calibration gave optimum number of groups = 2 and alpha = 0.5
+#(but no cases were predicted)
+sgPLSDA <- sgPLSda(X_fran, y, ncomp = 1, ind.block.x = X_cuts_fran, 
+                   keepX = 2, alpha.x = 0.5)
+sgPLSDA$loadings
+#Since the Y2 is negative, the loadings should be reversed in the plot later
 sgPLSDA$loadings$X[sgPLSDA$loadings$X != 0, ]
 
 
@@ -176,6 +185,10 @@ sgPLSDA$loadings$X[sgPLSDA$loadings$X != 0, ]
 #################################################################
 ##            Visualising the loadings coefficients            ##
 #################################################################
+
+#calibrated sPLS on full data (not on training set as above) for plotting loadings 
+sPLSDA <- splsda(X, y, ncomp=1, mode='regression', keepX=9)
+
 
 #This plot visualises the loadings coefficients obtained from the fitted sPLSDA model
 
@@ -199,44 +212,60 @@ sPLSDA_loadings = results %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
   ylab("Loading coefficient") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   scale_color_brewer(palette = "Set1") +
-  facet_grid(cols = vars(belong_to), scales = "free", space = "free_x")
+  facet_grid(rows = vars(belong_to), scales = "free", space = "free_y") +
+  theme(strip.text.y = element_text(angle = 0)) +
+  coord_flip()
 
-ggsave(paste0(save_plots,"sPLSDA_loadings.pdf"), plot=sPLSDA_loadings)
+ggsave(paste0(save_plots,"sPLSDA_loadings.pdf"), plot=sPLSDA_loadings, height = 6)
 saveRDS(sPLSDA_loadings, paste0(save_plots,"sPLSDA_loadings.rds"))
 
 
 #This plot visualises the loadings coefficients obtained from both sPLSDA and sgPLSDA models
-#(will run this once I have calibrate the sgPLS)
-results = data.frame(rbind(
+results_both = data.frame(rbind(
   cbind(Biomarker = colnames(X),
         Model = 'sPLSDA',
         Loadings = sPLSDA$loadings$X),
-  cbind(Biomarker = colnames(X),
+  cbind(Biomarker = colnames(X_fran),
         Model = 'sgPLSDA',
-        Loadings = sgPLSDA$loadings$X)
+        Loadings = -(sgPLSDA$loadings$X))
 ))
 
-results = results %>%
+results_both = results_both %>%
   mutate(belong_to = ifelse(Biomarker %in% groups_fran[1:8], "Liver",
                             ifelse(Biomarker %in% groups_fran[9:18], "Metabolic",
                                    ifelse(Biomarker %in% groups_fran[19:20], "Immune",
                                           ifelse(Biomarker %in% groups_fran[21:25], "Endocrine",
                                                  "Kidney")))))
 
-colnames(results)[3] = 'Loadings'
-results$minLoad = as.numeric(sapply(as.vector(results$Loadings), function(x) min(0, x)))
-results$maxLoad = as.numeric(sapply(as.vector(results$Loadings), function(x) max(0, x)))
+colnames(results_both)[3] = 'Loadings'
+results_both$minLoad = as.numeric(sapply(as.vector(results_both$Loadings), 
+                                         function(x) min(0, x)))
+results_both$maxLoad = as.numeric(sapply(as.vector(results_both$Loadings), 
+                                         function(x) max(0, x)))
 
-sgPLSDA_loadings = results %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
+results_both$Biomarker = str_replace_all(results_both$Biomarker, "\\.", " ")
+results_both$Biomarker = str_replace_all(results_both$Biomarker, 
+                                          "Glycated haemoglobin HbA1c", "HbA1c")
+results_both$Biomarker = str_replace_all(results_both$Biomarker, 
+                                           "Gamma glutamyltransferase", "GGT")
+results_both$Biomarker = str_replace_all(results_both$Biomarker, 
+                                          "Alanine aminotransferase", "Alanine\naminotransferase")
+results_both$Biomarker = str_replace_all(results_both$Biomarker, 
+                                          "Alkaline phosphatase", "Alkaline\nphosphatase")
+
+sgPLSDA_loadings = results_both %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
                                           ymax = maxLoad, color = Model)) +
   geom_linerange(stat = "identity", position = position_dodge(0.9)) +
   geom_point(aes(y = 0), position = position_dodge(0.9)) +
   ylab("Loading coefficients") +
+  theme_minimal() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   scale_color_brewer(palette = "Set1") +
-  facet_grid(cols = vars(belong_to), scales = "free", space = "free_x")
+  facet_grid(rows = vars(belong_to), scales = "free", space = "free_y") +
+  theme(strip.text.y = element_text(angle = 0)) +
+  coord_flip()
 
-ggsave(paste0(save_plots,"sgPLSDA_loadings.pdf"), plot=sgPLSDA_loadings)
+ggsave(paste0(save_plots,"sgPLSDA_loadings.pdf"), plot=sgPLSDA_loadings, height = 7.5)
 saveRDS(sgPLSDA_loadings, paste0(save_plots,"sgPLSDA_loadings.rds"))
 
 
@@ -343,7 +372,7 @@ for (subtype in c("G459","I209", "I219","I251","I639")) {
 
 
 #Plot loadings 
-results_strat = data.frame(rbind(
+results = data.frame(rbind(
   cbind(Biomarker = colnames(X),
         Subtype = 'G459',
         Loadings = sPLSDA_G459$loadings$X),
@@ -361,7 +390,7 @@ results_strat = data.frame(rbind(
         Loadings = sPLSDA_I639$loadings$X)
 ))
 
-results_strat = results_strat %>%
+results_strat = results %>%
   mutate(belong_to = ifelse(Biomarker %in% groups_fran[1:8], "Liver",
                             ifelse(Biomarker %in% groups_fran[9:18], "Metabolic",
                                    ifelse(Biomarker %in% groups_fran[19:20], "Immune",
@@ -373,6 +402,14 @@ results_strat$minLoad = as.numeric(sapply(as.vector(results_strat$Loadings),
                                    function(x) min(0, x)))
 results_strat$maxLoad = as.numeric(sapply(as.vector(results_strat$Loadings), 
                                           function(x) max(0, x)))
+
+results_strat$Biomarker = str_replace_all(results_strat$Biomarker, "\\.", " ")
+results_strat$Biomarker = str_replace_all(results_strat$Biomarker, 
+                                         "Glycated haemoglobin HbA1c", "HbA1c")
+results_strat$Biomarker = str_replace_all(results_strat$Biomarker, 
+                                         "Alanine aminotransferase", "Alanine\naminotransferase")
+results_strat$Biomarker = str_replace_all(results_strat$Biomarker, 
+                                         "Alkaline phosphatase", "Alkaline\nphosphatase")
 
 strat_loadings = results_strat %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
                                           ymax = maxLoad, color = Subtype)) +
@@ -386,3 +423,44 @@ strat_loadings = results_strat %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLo
 ggsave(paste0(save_plots,"sPLSDA_stratified.pdf"), plot=strat_loadings)
 saveRDS(strat_loadings, paste0(save_plots,"sPLSDA_stratified.rds"))
 
+
+##Redo this plot excluding 0 coefficients for simplicity 
+results_strat2 = results %>%
+  filter(comp1 != 0) %>%
+  mutate(belong_to = ifelse(Biomarker %in% groups_fran[1:8], "Liver",
+                            ifelse(Biomarker %in% groups_fran[9:18], "Metabolic",
+                                   ifelse(Biomarker %in% groups_fran[19:20], "Immune",
+                                          ifelse(Biomarker %in% groups_fran[21:25], "Endocrine",
+                                                 "Kidney")))))
+
+colnames(results_strat2)[3] = 'Loadings'
+results_strat2$minLoad = as.numeric(sapply(as.vector(results_strat2$Loadings), 
+                                          function(x) min(0, x)))
+results_strat2$maxLoad = as.numeric(sapply(as.vector(results_strat2$Loadings), 
+                                          function(x) max(0, x)))
+
+results_strat2$Biomarker = str_replace_all(results_strat2$Biomarker, "\\.", " ")
+results_strat2$Biomarker = str_replace_all(results_strat2$Biomarker, 
+                                          "Glycated haemoglobin HbA1c", "HbA1c")
+results_strat2$Biomarker = str_replace_all(results_strat2$Biomarker, 
+                                           "Gamma glutamyltransferase", "GGT")
+results_strat2$Biomarker = str_replace_all(results_strat2$Biomarker, 
+                                          "Alanine aminotransferase", "Alanine\naminotransferase")
+results_strat2$Biomarker = str_replace_all(results_strat2$Biomarker, 
+                                          "Alkaline phosphatase", "Alkaline\nphosphatase")
+
+strat_loadings2 = results_strat2 %>% 
+  ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
+             ymax = maxLoad, color = Subtype)) +
+  geom_linerange(stat = "identity", position = position_dodge(0.9)) +
+  geom_point(aes(y = 0), position = position_dodge(0.9)) +
+  ylab("Loading coefficients") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_color_brewer(palette = "Set1") +
+  facet_grid(rows = vars(belong_to), scales = "free", space = "free_y") +
+  theme(strip.text.y = element_text(angle = 0)) +
+  coord_flip()
+
+ggsave(paste0(save_plots,"sPLSDA_strat_non0.pdf"), plot=strat_loadings2, height=6)
+saveRDS(strat_loadings2, paste0(save_plots,"sPLSDA_strat_non0.rds"))
