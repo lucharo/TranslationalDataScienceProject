@@ -16,7 +16,7 @@ library(tidyverse)
 # for auc calculation
 library(ModelMetrics)
 
-# for svm 
+# for svm
 library(e1071)
 
 cluster = 1
@@ -37,12 +37,12 @@ snp = readRDS(paste0(data_folder,"snpImputed.rds"))
 
 # Preparing our Data and selecting features -------------------------------
 
-# One stumbling block when getting started with the xgboost package in R is 
+# One stumbling block when getting started with the xgboost package in R is
 # that you can't just pass it a dataframe. The core xgboost function requires data to be a matrix.
 
 #To prepare our data, we have a number of steps we need to complete:
 #remove information about the target variable from the training data
-#reduce the amount of redundant information 
+#reduce the amount of redundant information
 #convert categorical information to a numeric format
 #Split dataset into training and testing subsets
 #Convert the cleaned dataframe to a Dmatrix
@@ -52,11 +52,11 @@ snp = readRDS(paste0(data_folder,"snpImputed.rds"))
 
 #First let's remove the columns that have information on our target variable
 
-#Let's create a new vector with labels - convert the CVD_status factor to an 
+#Let's create a new vector with labels - convert the CVD_status factor to an
 # integer class starting at 0, as the first class should be 0; picky requirement
-cov$CVD_status = as.integer(cov$CVD_status)-1
+cov$CVD_status = as.integer(cov$CVD_status)
 
-cov <- cov %>% # we will leave CVD_stattus in cov and let it be split in the 
+cov <- cov %>% # we will leave CVD_stattus in cov and let it be split in the
   # analysis function so that the sampling can be done and order is kept
   select(-c("vit_status","dc_cvd_st","age_cl", "stop","stop_cvd",
             "age_CVD", "cvd_final_icd10", "primary_cause_death_ICD10",
@@ -65,8 +65,8 @@ cov <- cov %>% # we will leave CVD_stattus in cov and let it be split in the
 # Reduce the amount of redundant information ------------------------------
 
 #Finally, I want to remove all the non-numeric variables,
-# since a matrix can only hold numeric variables - if you try to create a 
-# matrix from a dataframe with non-numeric variables in it, it will 
+# since a matrix can only hold numeric variables - if you try to create a
+# matrix from a dataframe with non-numeric variables in it, it will
 # conver them all into NA's and give you some warning messages.
 
 # Luis: we want to keep ordered categorical variables as integers but OneHotEncoding
@@ -94,27 +94,58 @@ remove(onehotvars)
 #################################################################
 ##                  Function would start here                  ##
 #################################################################
+factorize = function(column, df){
+  #' Check if column in integer or string and  turn to the correct type
+  #' to avoid other function turning into factor indices
 
-Analysis = function(model, data, outcome = 'CVD_status'){
-  #reproducibility across datasets
-  
+  if (class(df[1,column]) == "character"){
+    out = as.factor(df[,column])
+  } else {
+    out = df[,column]
+  }
+  return(out)
+}
+
+
+
+Analysis = function(model, data, outcome = 'CVD_status', kfolds = 5, train.proportion = 0.8){
+
+  if (!outcome %in% colnames(data)){
+    stop(paste("Column", outcome, "not available in the dataset provided"))
+  }
+
+  # turn character columns into factors
+  character.cols = colnames(data)[sapply(cov, typeof)=="character"]
+  data[,character.cols]  = lapply(character.cols, function(column) factorize(column, data))
+
+  #reproducibility
   set.seed(1247)
-  tr.index = sample(1:nrow(data), size = 0.7*nrow(data))
+  tr.index = sample(1:nrow(data), size = train.proportion*nrow(data))
   X = dplyr::select(data, -outcome)
   y = dplyr::select(data, outcome)
-  
+
   y.train = y[tr.index,1]
   X.train = X[tr.index,]
-  
+
   y.test = y[-tr.index,1]
   X.test = X[-tr.index,]
-  
+
+  ## set up for CV
+  folds <- cut(seq(1,nrow(X.train)),breaks=kfolds,labels=FALSE)
+
   if (model == "xgboost"){
-    X.train = as.matrix(X.train)
-    X.test = as.matrix(X.test)
-    train = xgb.DMatrix(data = X.train, label= y.train)
-    test <- xgb.DMatrix(data = X.test, label = y.test)
-    
+    X.train = data.matrix(X.train)
+    X.test = data.matrix(X.test)
+    y.train = as.numeric(y.train)
+    y.test = as.numeric(y.test)
+    train = xgboost::xgb.DMatrix(data = X.train, label= y.train)
+    test <- xgboost::xgb.DMatrix(data = X.test, label = y.test)
+
+    xgb.folds = list()
+    for (fold.id in 1:kfolds){
+      xgb.folds[[length(xgb.folds)+1]] = which(folds==fold.id)
+    }
+
     # nrounds is basically number of trees in forest
     # this is basically a grid search
     best_auc = 0
@@ -128,12 +159,13 @@ Analysis = function(model, data, outcome = 'CVD_status'){
       # many other things to optimise: https://rdrr.io/cran/xgboost/man/xgb.train.html
       for (max_depth in c(3,5,10,15)){
         for (eta in c(0.1, 0.5, 1)){
-          
+
           # if the nfold is too tiny this function may give an error because the dataset
           # fed into the model only contains negative samples aka (controls)
-          
-          model.cv = xgb.cv(data = train, nfold = 5, nrounds = nround, objective = "binary:logistic",
-                      metrics = list("auc"), eta = eta, max_depth = max_depth, verbose = F)
+
+          model.cv = xgboost::xgb.cv(data = train, folds = xgb.folds, nrounds = nround, objective = "binary:logistic",
+                                     metrics = list("auc"), eta = eta, max_depth = max_depth, verbose = F)
+
           if (max(model.cv[["evaluation_log"]][["test_auc_mean"]]) > best_auc){
             best_eta = eta
             best_depth = max_depth
@@ -143,23 +175,20 @@ Analysis = function(model, data, outcome = 'CVD_status'){
         }
       }
     }
-    
-    best.model = xgb.train(data = train, nrounds = best_nround, objective = "binary:logistic",
-                           eta = best_eta, max_depth = best_depth, eval_metric = "auc")
+
+    best.model = xgboost::xgb.train(data = train, nrounds = best_nround, objective = "binary:logistic",
+                                    eta = best_eta, max_depth = best_depth, eval_metric = "auc")
     prdct = predict(best.model, newdata = test)
-    pred <- prediction(prdct, getinfo(test,'label'))
-    perf <- performance(pred,"tpr","fpr")
-    auc = performance(pred, "auc")
-    plot(perf, coloured = T)
+    pred.objct <- ROCR::prediction(prdct, getinfo(test,'label'))
+    auc = ROCR::performance(pred.objct, "auc")
+    performance = ROCR::performance(pred.objct, "tpr", "fpr")
+    plot(performance, main = model)
+    abline(a = 0, b = 1, lty = 2)
     return(auc@y.values[[1]])
-    
+
   }
-  
+
   else if (model == "svm"){
-    
-    ## set up for CV
-    folds <- cut(seq(1,nrow(X.train)),breaks=5,labels=FALSE)
-    
     best_auc = 0
     best_kernel = 0
     best_cost = 0
@@ -171,18 +200,18 @@ Analysis = function(model, data, outcome = 'CVD_status'){
           valIndexes <- which(folds==i)
           ValData <- X.train[valIndexes, ]
           nonValData <- X.train[-valIndexes, ]
-          
+
           ValOutcome = y.train[valIndexes]
           nonValOutcome = y.train[-valIndexes]
-          
-          
+
+
           # details for this syntax :
-          #  https://stackoverflow.com/questions/9028662/predict-maybe-im-not-understanding-it  
-          md.svm = svm(nonValOutcome ~ . , data = data.frame(nonValOutcome, nonValData),
-                       kernel = kernel, cost = cost)
+          #  https://stackoverflow.com/questions/9028662/predict-maybe-im-not-understanding-it
+          md.svm = e1071::svm(nonValOutcome ~ . , data = data.frame(nonValOutcome, nonValData),
+                              kernel = kernel, cost = cost)
           prdct = predict(md.svm, newdata =  ValData)
-          pred.objct = prediction(prdct, ValOutcome)
-          auc = performance(pred.objct, "auc")
+          pred.objct = ROCR::prediction(prdct, ValOutcome)
+          auc = ROCR::performance(pred.objct, "auc")
           auc.list = append(auc.list, auc@y.values[[1]])
         }
         mean.auc = mean(auc.list)
@@ -193,33 +222,61 @@ Analysis = function(model, data, outcome = 'CVD_status'){
         }
       }
     }
-    
-    bst.svm = svm(y.train~., data = data.frame(y.train, X.train),
-                 kernel = best_kernel, cost = best_cost)
+
+    bst.svm = e1071::svm(y.train~., data = data.frame(y.train, X.train),
+                         kernel = best_kernel, cost = best_cost)
     best.prdct = predict(bst.svm, X.test)
-    pred.objct = prediction(best.prdct, y.test)
-    auc = performance(pred.objct, "auc")
-    plot(performance(pred.objct, "tpr", "fpr"))
+    pred.objct = ROCR::prediction(best.prdct, y.test)
+    auc = ROCR::performance(pred.objct, "auc")
+    performance = ROCR::performance(pred.objct, "tpr", "fpr")
+    plot(performance)
+    abline(a = 0, b = 1, lty = 2)
+    title(model)
     return(auc@y.values[[1]])
   }
-  
-  else if (model == "logit"){
-    
+
+  else if (model == "glm"){
+    best_auc = 0
+    best_kernel = 0
+    best_cost = 0
+
+    X.train = data.matrix(X.train)
+    y.train = as.numeric(y.train)
+
+    X.test = data.matrix(X.test)
+    y.test = as.numeric(as.matrix(y.test))
+
+
+    mod.cv = glmnet::cv.glmnet(X.train, y.train, foldid = folds,
+                               type.measure = "auc", family = "binomial")
+
+    best.prdct = predict(mod.cv, s = "lambda.1se", newx = X.test)
+    pred.objct = ROCR::prediction(best.prdct, y.test)
+    auc = ROCR::performance(pred.objct, "auc")
+    performance = ROCR::performance(pred.objct, "tpr", "fpr")
+    plot(performance)
+    abline(a = 0, b = 1, lty = 2)
+    title(model)
+    return(auc@y.values[[1]])
+  }
+  else {
+    stop("Please input a valid value for model")
   }
 }
 
-
 Analysis("xgboost", cov)
-
 Analysis("svm", cov)
+Analysis("glm", cov)
 
-cov.bio = merge(cov,bio, by = "row.names")
-rownames(cov.bio) = cov.bio$Row.names
+
+cov.bio = merge(cov,bio, by = "ID")
+rownames(cov.bio) = cov.bio$ID
 cov.bio = cov.bio[,-1]
+cov.bio = cov.bio[, -c("BS2_all")]
 
 Analysis("svm", cov.bio)
-
 Analysis("xgboost", cov.bio)
+Analysis("glm", cov.bio)
 
 cov.bio.snp = merge(cov.bio, snp, by = "row.names")
 rownames(cov.bio.snp) = cov.bio.snp$Row.names
@@ -266,7 +323,7 @@ dtest <- xgb.DMatrix(data = test_data, label= test_labels)
 #What the objective function is. The objective function you pick will depend on the task you have. Because we're going to try and predict something that's binary (either humans get sick or they don't), we're going to use “binary:logistic”, which is logistic regression for binary (two-class) classification. By default, xgboost will do linear regression.
 
 # train a model using our training data
-model <- xgboost(data = dtrain, # the data   
+model <- xgboost(data = dtrain, # the data
                  nround = 2, # max number of boosting iterations
                  objective = "binary:logistic")
 
@@ -283,7 +340,7 @@ print(paste("test-error=", err))
 #By default, the max depth of trees in xgboost is 6 - let's set it to 3 instead
 
 # train an xgboost model
-model_tuned <- xgboost(data = dtrain, # the data           
+model_tuned <- xgboost(data = dtrain, # the data
                        max.depth = 3, # the maximum depth of each decision tree
                        nround = 2, # max number of boosting iterations
                        objective = "binary:logistic")
@@ -301,7 +358,7 @@ print(paste("test-error=", err))
 # Examining our model -----------------------------------------------------
 
 # plot them features! what's contributing most to our model?
-xgb.plot.multi.trees(feature_names = names(covaraites_matrix), 
+xgb.plot.multi.trees(feature_names = names(covaraites_matrix),
                      model = model, fill = TRUE)
 #Doesn't seem to work for some reason???
 
@@ -324,20 +381,20 @@ watchlist <- list(train = dtrain, test = dtest)
 
 #Extreme Gradeint Boosting Model
 bst_model <- xgb.train(params = xgb_params,
-                       data = dtrain, 
+                       data = dtrain,
                        nrounds = 100, #Maximum number of iterations
                        watchlist = watchlist )
-#train-mlogloss = This prints out what the error was on the training data 
+#train-mlogloss = This prints out what the error was on the training data
 #test-mlogloss = This prints out what the error was on the testing data
 #In the first iteration there is a higher error in the testing data than the training data
 
 #Training and test error plot
-bst_model 
+bst_model
 #Makes use of the evaluation_log results to make it into a plot
 e <- data.frame(bst_model$evaluation_log)
 plot(e$iter, e$train_mlogloss, col = "blue")
 #Fairly high error rate at the beginning but as the iterations increase the error rate significantly does too
-#Now let's add the test error to this plot 
+#Now let's add the test error to this plot
 lines(e$iter, e$test_mlogloss, col = "red")
 
 #Possible over-fitting - need to adjust the model perhaps?
@@ -349,7 +406,7 @@ e[e$test_mlogloss == 0.179392, ] #Hence the 9th iteration was the lowest
 
 #Now to optimise our model:
 bst_model_1 <- xgb.train(params = xgb_params,
-                       data = dtrain, 
+                       data = dtrain,
                        nrounds = 100, #Maximum number of iterations
                        watchlist = watchlist,
                        eta = 0.2) #Default value for eta is 0.3 and can range from 0 to 1 - this is a learning rate; so if this value is low it means it is more robust to overfitting - hence can avoid overfitting by keeping this value low)
@@ -357,12 +414,12 @@ bst_model_1
 e_1 <- data.frame(bst_model_1$evaluation_log)
 plot(e_1$iter, e_1$train_mlogloss, col = "blue")
 lines(e_1$iter, e_1$test_mlogloss, col = "red")
-min(e_1$test_mlogloss) 
+min(e_1$test_mlogloss)
 e_1[e_1$test_mlogloss == 0.18105, ] #Hence the 14th iteration was the lowest, though the lowest value has increased slightly
 
 #In this case eta = 0.2 may not have been wise - stick with bst_model for now
 
-#Feature Importance 
+#Feature Importance
 imp <-  xgb.importance(colnames(dtrain), model = bst_model)
 print(imp)
 #Gain = improvement in accuracy by a feature to the branches it is on; most important column
@@ -374,9 +431,9 @@ xgb.plot.importance(imp)
 p <- predict(bst_model, newdata = dtest)
 head(p)
 #The first patients probability is fairly high and therefore is most likely to have CVD? You add them as pairs and will get a probability of 1 - needs to be converted to use it in the confusion matrix
-pred <- matrix(p, nrow = nc, ncol = length(p)/nc) %>% 
+pred <- matrix(p, nrow = nc, ncol = length(p)/nc) %>%
   t() %>% #This will create a transpose for the matrix
-  data.frame() %>% 
+  data.frame() %>%
   mutate(label = test_labels, max_prob = max.col(., "last")-1)
 head(pred)
 #"Max_prob" is what the model is predicting and "label" is what it is actually labelled as in the dataset
@@ -387,13 +444,13 @@ table(Prediction = pred$max_prob, Actual = pred$label)
 
 #We can add more things onto the bst_model
 bst_model_2 <- xgb.train(params = xgb_params,
-                         data = dtrain, 
+                         data = dtrain,
                          nrounds = 100, #Maximum number of iterations
                          watchlist = watchlist,
-                         eta = 0.2, 
+                         eta = 0.2,
                          max.depth = 3,#Maximum tree depth and the default value is 6, can be increased or decreased to see if it improves the model; theoretically it can take values from 1 to infinity)
                          gamma = 0, #Default setting is actually 0, again can range from 1 to infinity; larger values > more conservative algorithm - you can increase gamma to reduce overfitting and to reduce the gap between the blue line and red line in the graph
-                         subsample = 0.5, #Default value is 1, which is 100% and can take values from 0 to 1; lower values -> to prevent overfitting - if it is 0.5 for example the algorithm will randomly collect half of the data in stanses to grow the trees - to prevent overfitting 
+                         subsample = 0.5, #Default value is 1, which is 100% and can take values from 0 to 1; lower values -> to prevent overfitting - if it is 0.5 for example the algorithm will randomly collect half of the data in stanses to grow the trees - to prevent overfitting
                          colsample_bytree = 1, #Default value is 1
                          missing = NA, #It guides missing values to left or right and then choose direction with higher gain with regard to the objective - useful when you have a lot of missing data
                          seed = 333) #Repeat results
@@ -411,9 +468,9 @@ xgb.plot.importance(imp_2)
 p_2 <- predict(bst_model_2, newdata = dtest)
 head(p_2)
 
-pred_2 <- matrix(p_2, nrow = nc, ncol = length(p_2)/nc) %>% 
+pred_2 <- matrix(p_2, nrow = nc, ncol = length(p_2)/nc) %>%
   t() %>% #This will create a transpose for the matrix
-  data.frame() %>% 
+  data.frame() %>%
   mutate(label = test_labels, max_prob = max.col(., "last")-1)
 head(pred_2)
 
