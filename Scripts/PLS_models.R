@@ -11,6 +11,7 @@ suppressPackageStartupMessages(library(mixOmics))
 suppressPackageStartupMessages(library(sgPLS))
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(stringr))
 
 
 cluster = 1
@@ -175,7 +176,8 @@ saveRDS(stab_plot, paste0(save_plots,"Stability_plot.rds"))
 #(but no cases were predicted)
 sgPLSDA <- sgPLSda(X_fran, y, ncomp = 1, ind.block.x = X_cuts_fran, 
                    keepX = 2, alpha.x = 0.5)
-sgPLSDA$loadings$X
+sgPLSDA$loadings
+#Since the Y2 is negative, the loadings should be reversed in the plot later
 sgPLSDA$loadings$X[sgPLSDA$loadings$X != 0, ]
 
 
@@ -186,6 +188,7 @@ sgPLSDA$loadings$X[sgPLSDA$loadings$X != 0, ]
 
 #calibrated sPLS on full data (not on training set as above) for plotting loadings 
 sPLSDA <- splsda(X, y, ncomp=1, mode='regression', keepX=9)
+
 
 #This plot visualises the loadings coefficients obtained from the fitted sPLSDA model
 
@@ -224,7 +227,7 @@ results_both = data.frame(rbind(
         Loadings = sPLSDA$loadings$X),
   cbind(Biomarker = colnames(X_fran),
         Model = 'sgPLSDA',
-        Loadings = sgPLSDA$loadings$X)
+        Loadings = -(sgPLSDA$loadings$X))
 ))
 
 results_both = results_both %>%
@@ -240,18 +243,29 @@ results_both$minLoad = as.numeric(sapply(as.vector(results_both$Loadings),
 results_both$maxLoad = as.numeric(sapply(as.vector(results_both$Loadings), 
                                          function(x) max(0, x)))
 
+results_both$Biomarker = str_replace_all(results_both$Biomarker, "\\.", " ")
+results_both$Biomarker = str_replace_all(results_both$Biomarker, 
+                                          "Glycated haemoglobin HbA1c", "HbA1c")
+results_both$Biomarker = str_replace_all(results_both$Biomarker, 
+                                           "Gamma glutamyltransferase", "GGT")
+results_both$Biomarker = str_replace_all(results_both$Biomarker, 
+                                          "Alanine aminotransferase", "Alanine\naminotransferase")
+results_both$Biomarker = str_replace_all(results_both$Biomarker, 
+                                          "Alkaline phosphatase", "Alkaline\nphosphatase")
+
 sgPLSDA_loadings = results_both %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
                                           ymax = maxLoad, color = Model)) +
   geom_linerange(stat = "identity", position = position_dodge(0.9)) +
   geom_point(aes(y = 0), position = position_dodge(0.9)) +
   ylab("Loading coefficients") +
+  theme_minimal() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   scale_color_brewer(palette = "Set1") +
   facet_grid(rows = vars(belong_to), scales = "free", space = "free_y") +
   theme(strip.text.y = element_text(angle = 0)) +
   coord_flip()
 
-ggsave(paste0(save_plots,"sgPLSDA_loadings.pdf"), plot=sgPLSDA_loadings, height = 7)
+ggsave(paste0(save_plots,"sgPLSDA_loadings.pdf"), plot=sgPLSDA_loadings, height = 7.5)
 saveRDS(sgPLSDA_loadings, paste0(save_plots,"sgPLSDA_loadings.rds"))
 
 
@@ -389,6 +403,14 @@ results_strat$minLoad = as.numeric(sapply(as.vector(results_strat$Loadings),
 results_strat$maxLoad = as.numeric(sapply(as.vector(results_strat$Loadings), 
                                           function(x) max(0, x)))
 
+results_strat$Biomarker = str_replace_all(results_strat$Biomarker, "\\.", " ")
+results_strat$Biomarker = str_replace_all(results_strat$Biomarker, 
+                                         "Glycated haemoglobin HbA1c", "HbA1c")
+results_strat$Biomarker = str_replace_all(results_strat$Biomarker, 
+                                         "Alanine aminotransferase", "Alanine\naminotransferase")
+results_strat$Biomarker = str_replace_all(results_strat$Biomarker, 
+                                         "Alkaline phosphatase", "Alkaline\nphosphatase")
+
 strat_loadings = results_strat %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
                                           ymax = maxLoad, color = Subtype)) +
   geom_linerange(stat = "identity", position = position_dodge(0.9)) +
@@ -417,12 +439,23 @@ results_strat2$minLoad = as.numeric(sapply(as.vector(results_strat2$Loadings),
 results_strat2$maxLoad = as.numeric(sapply(as.vector(results_strat2$Loadings), 
                                           function(x) max(0, x)))
 
+results_strat2$Biomarker = str_replace_all(results_strat2$Biomarker, "\\.", " ")
+results_strat2$Biomarker = str_replace_all(results_strat2$Biomarker, 
+                                          "Glycated haemoglobin HbA1c", "HbA1c")
+results_strat2$Biomarker = str_replace_all(results_strat2$Biomarker, 
+                                           "Gamma glutamyltransferase", "GGT")
+results_strat2$Biomarker = str_replace_all(results_strat2$Biomarker, 
+                                          "Alanine aminotransferase", "Alanine\naminotransferase")
+results_strat2$Biomarker = str_replace_all(results_strat2$Biomarker, 
+                                          "Alkaline phosphatase", "Alkaline\nphosphatase")
+
 strat_loadings2 = results_strat2 %>% 
   ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
              ymax = maxLoad, color = Subtype)) +
   geom_linerange(stat = "identity", position = position_dodge(0.9)) +
   geom_point(aes(y = 0), position = position_dodge(0.9)) +
   ylab("Loading coefficients") +
+  theme_minimal() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   scale_color_brewer(palette = "Set1") +
   facet_grid(rows = vars(belong_to), scales = "free", space = "free_y") +
