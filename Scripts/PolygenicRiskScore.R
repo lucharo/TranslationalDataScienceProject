@@ -7,8 +7,13 @@
 rm(list=ls())
 
 library(ggplot2)
+library(dplyr)
 library(jtools)
 library(scales)
+library(tidyr)
+library(ggsignif)
+library(ROCR)
+
 
 cluster = 1
 
@@ -77,10 +82,11 @@ cov.prs$PRS = rescale(cov.prs$PRS, to = c(-1, 1))
 den_plot <- ggplot(cov.prs) + 
   geom_density(aes(x=PRS, color=CVD_status, fill=CVD_status), alpha=0.2, size=0.25) +
   labs(x = 'Polygenic Risk Score') + 
-  scale_fill_discrete(name = "CVD status", labels = c("Controls", "Cases"))
+  scale_fill_discrete(name = "CVD status", labels = c("Controls", "Cases")) +
+  guides(color = FALSE)
+
 ggsave(paste0(save_plots,"PRS_density.pdf"), den_plot)
 saveRDS(den_plot, paste0(save_plots,"PRS_density.rds"))
-
 
 #Boxplot of PRS by CVD status
 prs_boxplot <- ggplot(cov.prs, aes(x=CVD_status, y=PRS)) +
@@ -93,7 +99,9 @@ t_test = t.test(PRS ~ CVD_status, data=cov.prs)
 saveRDS(t_test, paste0(save_plots,"PRS_ttest.rds"))
 
 
-#Prediction of CVD by PRS
+
+###Association between PRS and CVD - simple logistic regression model 
+
 cov.prs$CVD_status <- as.numeric(cov.prs$CVD_status)
 glm <- glm(CVD_status ~ as.numeric(PRS), data=cov.prs, family=binomial)
 summary(glm)
@@ -112,4 +120,41 @@ glm_plot <- effect_plot(glm, pred = PRS, data=cov.prs, interval = TRUE, int.widt
 glm_plot
 dev.off()
 saveRDS(glm_plot, paste0(save_plots,"PRS_EffectPlot.rds"))
+
+
+###Predicting CVD by PRS - 5-fold cross-validation logistic models -> AUC
+
+X = cov.prs$PRS
+y = cov.prs$CVD_status
+
+k.folds = 5
+folds <- cut(seq(1,nrow(X)), breaks=k.folds, labels=FALSE)
+
+best_auc = 0
+best_PRS = -1
+
+######### CV
+auc.list = c()
+
+for (i in 1:k.folds){
+  valIndexes <- which(folds == i)
+  X.val <- X[valIndexes]
+  X.train <- X[-valIndexes]
+    
+  y.val = y[valIndexes]
+  y.train = y[-valIndexes]
+    
+  train = data.frame(y.train = y.train, X.train = X.train)
+  val = data.frame(X.val = X.val)
+  colnames(val) = "X.train"
+    
+  mod = glm(y.train ~ X.train, data = train, family = "binomial")
+  pred = round(predict.glm(mod, newdata = val, type = "response"))
+  pred.object = prediction(pred, y.val)
+  auc = performance(pred.object, "auc")
+  auc.list = append(auc.list, auc@y.values[[1]])
+}
+
+mean.auc = mean(auc.list)
+
 
