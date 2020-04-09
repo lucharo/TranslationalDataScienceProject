@@ -95,26 +95,59 @@ remove(onehotvars)
 ##                  Function would start here                  ##
 #################################################################
 
-Analysis = function(model, data, outcome = 'CVD_status'){
-  #reproducibility across datasets
-  
+
+factorize = function(column, df){
+  #' Check if column in integer or string and  turn to the correct type
+  #' to avoid other function turning into factor indices
+
+  if (class(df[1,column]) == "character"){
+    out = as.factor(df[,column])
+  } else {
+    out = df[,column]
+  }
+  return(out)
+}
+
+
+
+Analysis = function(model, data, outcome = 'CVD_status', kfolds = 5, train.proportion = 0.8){
+
+  if (!outcome %in% colnames(data)){
+    stop(paste("Column", outcome, "not available in the dataset provided"))
+  }
+
+  # turn character columns into factors
+  character.cols = colnames(data)[sapply(cov, typeof)=="character"]
+  data[,character.cols]  = lapply(character.cols, function(column) factorize(column, data))
+
+  #reproducibility
   set.seed(1247)
-  tr.index = sample(1:nrow(data), size = 0.7*nrow(data))
+  tr.index = sample(1:nrow(data), size = train.proportion*nrow(data))
   X = dplyr::select(data, -outcome)
   y = dplyr::select(data, outcome)
-  
+
   y.train = y[tr.index,1]
   X.train = X[tr.index,]
-  
+
   y.test = y[-tr.index,1]
   X.test = X[-tr.index,]
-  
+
+  ## set up for CV
+  folds <- cut(seq(1,nrow(X.train)),breaks=kfolds,labels=FALSE)
+
   if (model == "xgboost"){
-    X.train = as.matrix(X.train)
-    X.test = as.matrix(X.test)
-    train = xgb.DMatrix(data = X.train, label= y.train)
-    test <- xgb.DMatrix(data = X.test, label = y.test)
-    
+    X.train = data.matrix(X.train)
+    X.test = data.matrix(X.test)
+    y.train = as.numeric(y.train)
+    y.test = as.numeric(y.test)
+    train = xgboost::xgb.DMatrix(data = X.train, label= y.train)
+    test <- xgboost::xgb.DMatrix(data = X.test, label = y.test)
+
+    xgb.folds = list()
+    for (fold.id in 1:kfolds){
+      xgb.folds[[length(xgb.folds)+1]] = which(folds==fold.id)
+    }
+
     # nrounds is basically number of trees in forest
     # this is basically a grid search
     best_auc = 0
@@ -128,12 +161,13 @@ Analysis = function(model, data, outcome = 'CVD_status'){
       # many other things to optimise: https://rdrr.io/cran/xgboost/man/xgb.train.html
       for (max_depth in c(3,5,10,15)){
         for (eta in c(0.1, 0.5, 1)){
-          
+
           # if the nfold is too tiny this function may give an error because the dataset
           # fed into the model only contains negative samples aka (controls)
-          
-          model.cv = xgb.cv(data = train, nfold = 5, nrounds = nround, objective = "binary:logistic",
-                      metrics = list("auc"), eta = eta, max_depth = max_depth, verbose = F)
+
+          model.cv = xgboost::xgb.cv(data = train, folds = xgb.folds, nrounds = nround, objective = "binary:logistic",
+                                     metrics = list("auc"), eta = eta, max_depth = max_depth, verbose = F)
+
           if (max(model.cv[["evaluation_log"]][["test_auc_mean"]]) > best_auc){
             best_eta = eta
             best_depth = max_depth
@@ -143,23 +177,20 @@ Analysis = function(model, data, outcome = 'CVD_status'){
         }
       }
     }
-    
-    best.model = xgb.train(data = train, nrounds = best_nround, objective = "binary:logistic",
-                           eta = best_eta, max_depth = best_depth, eval_metric = "auc")
+
+    best.model = xgboost::xgb.train(data = train, nrounds = best_nround, objective = "binary:logistic",
+                                    eta = best_eta, max_depth = best_depth, eval_metric = "auc")
     prdct = predict(best.model, newdata = test)
-    pred <- prediction(prdct, getinfo(test,'label'))
-    perf <- performance(pred,"tpr","fpr")
-    auc = performance(pred, "auc")
-    plot(perf, coloured = T)
+    pred.objct <- ROCR::prediction(prdct, getinfo(test,'label'))
+    auc = ROCR::performance(pred.objct, "auc")
+    performance = ROCR::performance(pred.objct, "tpr", "fpr")
+    plot(performance, main = model)
+    abline(a = 0, b = 1, lty = 2)
     return(auc@y.values[[1]])
-    
+
   }
-  
+
   else if (model == "svm"){
-    
-    ## set up for CV
-    folds <- cut(seq(1,nrow(X.train)),breaks=5,labels=FALSE)
-    
     best_auc = 0
     best_kernel = 0
     best_cost = 0
@@ -171,18 +202,18 @@ Analysis = function(model, data, outcome = 'CVD_status'){
           valIndexes <- which(folds==i)
           ValData <- X.train[valIndexes, ]
           nonValData <- X.train[-valIndexes, ]
-          
+
           ValOutcome = y.train[valIndexes]
           nonValOutcome = y.train[-valIndexes]
-          
-          
+
+
           # details for this syntax :
-          #  https://stackoverflow.com/questions/9028662/predict-maybe-im-not-understanding-it  
-          md.svm = svm(nonValOutcome ~ . , data = data.frame(nonValOutcome, nonValData),
-                       kernel = kernel, cost = cost)
+          #  https://stackoverflow.com/questions/9028662/predict-maybe-im-not-understanding-it
+          md.svm = e1071::svm(nonValOutcome ~ . , data = data.frame(nonValOutcome, nonValData),
+                              kernel = kernel, cost = cost)
           prdct = predict(md.svm, newdata =  ValData)
-          pred.objct = prediction(prdct, ValOutcome)
-          auc = performance(pred.objct, "auc")
+          pred.objct = ROCR::prediction(prdct, ValOutcome)
+          auc = ROCR::performance(pred.objct, "auc")
           auc.list = append(auc.list, auc@y.values[[1]])
         }
         mean.auc = mean(auc.list)
@@ -193,33 +224,62 @@ Analysis = function(model, data, outcome = 'CVD_status'){
         }
       }
     }
-    
-    bst.svm = svm(y.train~., data = data.frame(y.train, X.train),
-                 kernel = best_kernel, cost = best_cost)
+
+    bst.svm = e1071::svm(y.train~., data = data.frame(y.train, X.train),
+                         kernel = best_kernel, cost = best_cost)
     best.prdct = predict(bst.svm, X.test)
-    pred.objct = prediction(best.prdct, y.test)
-    auc = performance(pred.objct, "auc")
-    plot(performance(pred.objct, "tpr", "fpr"))
+    pred.objct = ROCR::prediction(best.prdct, y.test)
+    auc = ROCR::performance(pred.objct, "auc")
+    performance = ROCR::performance(pred.objct, "tpr", "fpr")
+    plot(performance)
+    abline(a = 0, b = 1, lty = 2)
+    title(model)
     return(auc@y.values[[1]])
   }
-  
-  else if (model == "logit"){
-    
+
+  else if (model == "glm"){
+    best_auc = 0
+    best_kernel = 0
+    best_cost = 0
+
+    X.train = data.matrix(X.train)
+    y.train = as.numeric(y.train)
+
+    X.test = data.matrix(X.test)
+    y.test = as.numeric(as.matrix(y.test))
+
+
+    mod.cv = glmnet::cv.glmnet(X.train, y.train, foldid = folds,
+                               type.measure = "auc", family = "binomial")
+
+    best.prdct = predict(mod.cv, s = "lambda.1se", newx = X.test)
+    pred.objct = ROCR::prediction(best.prdct, y.test)
+    auc = ROCR::performance(pred.objct, "auc")
+    performance = ROCR::performance(pred.objct, "tpr", "fpr")
+    plot(performance)
+    abline(a = 0, b = 1, lty = 2)
+    title(model)
+    return(auc@y.values[[1]])
+  }
+  else {
+    stop("Please input a valid value for model")
   }
 }
 
 
 Analysis("xgboost", cov)
-
 Analysis("svm", cov)
+Analysis("glm", cov)
 
-cov.bio = merge(cov,bio, by = "row.names")
-rownames(cov.bio) = cov.bio$Row.names
+                                  
+cov.bio = merge(cov,bio, by = "ID")
+rownames(cov.bio) = cov.bio$ID
 cov.bio = cov.bio[,-1]
+cov.bio = cov.bio[, -c("BS2_all")]
 
 Analysis("svm", cov.bio)
-
 Analysis("xgboost", cov.bio)
+Analysis("glm", cov.bio)
 
 cov.bio.snp = merge(cov.bio, snp, by = "row.names")
 rownames(cov.bio.snp) = cov.bio.snp$Row.names
