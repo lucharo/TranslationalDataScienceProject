@@ -302,9 +302,9 @@ saveRDS(fig, paste0(save_plots, "MantejPaperBarbara.rds"))
 
 jointdata = data.frame(
   rbind(
-    cbind(BHS = scores_paper, Reference = "Paper"),
-    cbind(BHS = scores_Mantej, Reference = "Mantej"),
-    cbind(BHS = scores_Barbara, Reference = "Barbara"),
+    cbind(BHS = scores_paper, Reference = "A"),
+    cbind(BHS = scores_Mantej, Reference = "B"),
+    cbind(BHS = scores_Barbara, Reference = "C"),
     cbind(BHS = cov$BS2_all[cov$ID %in% ScoresBarbara$ID], Reference = "BS2")
   )
 )
