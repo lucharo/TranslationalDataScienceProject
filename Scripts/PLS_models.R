@@ -256,16 +256,17 @@ results_both$Biomarker = str_replace_all(results_both$Biomarker,
                                            "Alkaline phosphatase", "ALP")
 
 sgPLSDA_loadings = results_both %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
-                                          ymax = maxLoad, color = Model)) +
-  geom_linerange(stat = "identity", position = position_dodge(0.9)) +
-  geom_point(aes(y = 0), position = position_dodge(0.9)) +
-  ylab("Loading coefficients") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-  scale_color_brewer(palette = "Set1") +
-  facet_grid(rows = vars(belong_to), scales = "free", space = "free_y") +
-  theme(strip.text.y = element_text(angle = 0)) +
-  coord_flip()
+                                            ymax = maxLoad, color = Model)) +
+    geom_linerange(stat = "identity", position = position_dodge(0.9)) +
+    geom_point(aes(y = 0), position = position_dodge(0.9)) +
+    ylab("Loading coefficients") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+    scale_color_brewer(palette = "Set1") +
+    facet_grid(rows = vars(belong_to), scales = "free", space = "free_y") +
+    theme(strip.text.y = element_text(angle = 0), 
+          strip.background = element_rect(fill = 'white', colour = "grey", linetype = 'dotted')) +
+    coord_flip()
 
 ggsave(paste0(save_plots,"sgPLSDA_loadings.pdf"), plot=sgPLSDA_loadings, height = 7.5)
 saveRDS(sgPLSDA_loadings, paste0(save_plots,"sgPLSDA_loadings.rds"))
@@ -457,7 +458,8 @@ strat_loadings2 = results_strat2 %>%
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   scale_color_brewer(palette = "Set1") +
   facet_grid(rows = vars(belong_to), scales = "free", space = "free_y") +
-  theme(strip.text.y = element_text(angle = 0)) +
+  theme(strip.text.y = element_text(angle = 0), 
+        strip.background = element_rect(fill = 'white', colour = "grey", linetype = 'dotted')) +
   coord_flip()
 
 ggsave(paste0(save_plots,"sPLSDA_strat_non0.pdf"), plot=strat_loadings2, height=6)
