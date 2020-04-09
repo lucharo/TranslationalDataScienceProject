@@ -245,13 +245,15 @@ results_both$maxLoad = as.numeric(sapply(as.vector(results_both$Loadings),
 
 results_both$Biomarker = str_replace_all(results_both$Biomarker, "\\.", " ")
 results_both$Biomarker = str_replace_all(results_both$Biomarker, 
-                                          "Glycated haemoglobin HbA1c", "HbA1c")
+                                         "Glycated haemoglobin HbA1c", "HbA1c")
 results_both$Biomarker = str_replace_all(results_both$Biomarker, 
-                                           "Gamma glutamyltransferase", "GGT")
+                                         "Gamma glutamyltransferase", "GGT")
 results_both$Biomarker = str_replace_all(results_both$Biomarker, 
-                                          "Alanine aminotransferase", "Alanine\naminotransferase")
+                                         "Alanine aminotransferase", "ALT")
 results_both$Biomarker = str_replace_all(results_both$Biomarker, 
-                                          "Alkaline phosphatase", "Alkaline\nphosphatase")
+                                         "Aspartate aminotransferase", "AST")
+results_both$Biomarker = str_replace_all(results_both$Biomarker, 
+                                           "Alkaline phosphatase", "ALP")
 
 sgPLSDA_loadings = results_both %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
                                           ymax = maxLoad, color = Model)) +
@@ -406,10 +408,8 @@ results_strat$maxLoad = as.numeric(sapply(as.vector(results_strat$Loadings),
 results_strat$Biomarker = str_replace_all(results_strat$Biomarker, "\\.", " ")
 results_strat$Biomarker = str_replace_all(results_strat$Biomarker, 
                                          "Glycated haemoglobin HbA1c", "HbA1c")
-results_strat$Biomarker = str_replace_all(results_strat$Biomarker, 
-                                         "Alanine aminotransferase", "Alanine\naminotransferase")
-results_strat$Biomarker = str_replace_all(results_strat$Biomarker, 
-                                         "Alkaline phosphatase", "Alkaline\nphosphatase")
+results_strat2$Biomarker = str_replace_all(results_strat2$Biomarker, 
+                                           "Alkaline phosphatase", "ALP")
 
 strat_loadings = results_strat %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
                                           ymax = maxLoad, color = Subtype)) +
@@ -445,9 +445,7 @@ results_strat2$Biomarker = str_replace_all(results_strat2$Biomarker,
 results_strat2$Biomarker = str_replace_all(results_strat2$Biomarker, 
                                            "Gamma glutamyltransferase", "GGT")
 results_strat2$Biomarker = str_replace_all(results_strat2$Biomarker, 
-                                          "Alanine aminotransferase", "Alanine\naminotransferase")
-results_strat2$Biomarker = str_replace_all(results_strat2$Biomarker, 
-                                          "Alkaline phosphatase", "Alkaline\nphosphatase")
+                                           "Alkaline phosphatase", "ALP")
 
 strat_loadings2 = results_strat2 %>% 
   ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
