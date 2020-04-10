@@ -45,8 +45,7 @@ CV = as.numeric(args[1])
 
 print(CV)
 
-results = t(sapply(CV,
-                      function(x) kNNImputeOptimization(bio, seed = x,
+results = t(sapply(CV, function(x) kNNImputeOptimization(bio, seed = x,
                                                   perParam = T, scaled = T,
                                                   plot = F))) 
                       

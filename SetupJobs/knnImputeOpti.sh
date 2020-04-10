@@ -1,11 +1,13 @@
-#PBS -l walltime=48:00:00
-#PBS -l select=1:ncpus=8:mem=96gb
+#PBS -l walltime=24:00:00
+#PBS -l select=1:ncpus=20:mem=240gb
 #PBS -N knnImputeOpti
-#PBS -J 1-20
+
 module load anaconda3/personal
+source activate TDS
 
 cd /rdsgpfs/general/user/lc5415/home/BEES_TDS/Scripts
 
-seed=$PBS_ARRAY_INDEX
+seed=1
 
 time Rscript knnOptimizationSingle.R $seed
+conda deactivate
