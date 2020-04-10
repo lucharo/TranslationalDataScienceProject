@@ -36,6 +36,11 @@ bio.cov <- cov %>%
   dplyr::select(ID, CVD_status) %>%
   merge(bio, by='ID')
 
+bio.icd <- cov %>% 
+  dplyr::select(ID, CVD_status, cvd_final_icd10) %>%
+  merge(bio, by='ID')
+
+
 
 ##################################################################
 ##                     Basic PLS-DA model                       ##
@@ -98,40 +103,6 @@ gPLSDA$loadings$X[gPLSDA$loadings$X != 0, ]
 
 
 ##################################################################
-##             Fitting calibrated sPLS-DA model                 ##
-##################################################################
-
-#Create training and test sets 
-smp_size <- floor(0.8*nrow(bio.cov))
-
-#set the seed to same as in calibration to get the same train/test split
-set.seed(123)
-train_ind <- sample(seq_len(nrow(bio.cov)), size = smp_size)
-
-train <- bio.cov[train_ind, ]
-test <- bio.cov[-train_ind, ]
-
-#Select all biomarkers from bio.cov for X
-X_train = train[, 3:30]
-X_test = test[, 3:30]
-y_train = train$CVD_status
-y_test = test$CVD_status
-
-
-#Sparse plsda model; keepX is number of parameters to keep (9 had lowest misclassification rate in calibration). 
-#The second line returns the variables selected.
-sPLSDA <- splsda(X_train, y_train, ncomp=1, mode='regression', keepX=9)
-sPLSDA$loadings$X[sPLSDA$loadings$X != 0, ]
-
-#Predicting on the test set 
-y_pred <- predict(sPLSDA, newdata = X_test)
-fitted = y_pred$class$max.dist
-table(fitted)
-
-#No cases predicted
-  
-
-##################################################################
 ##                      Stability analyses                      ##
 ##################################################################
 
@@ -164,6 +135,69 @@ stab_plot = Prop50 %>%
 
 ggsave(paste0(save_plots,"Stability_plot.pdf"), plot=stab_plot)
 saveRDS(stab_plot, paste0(save_plots,"Stability_plot.rds"))
+
+
+
+##################################################################
+##             Fitting calibrated sPLS-DA model                 ##
+##################################################################
+
+#Create training and test sets 
+smp_size <- floor(0.8*nrow(bio.cov))
+
+#set the seed to same as in calibration to get the same train/test split
+set.seed(123)
+train_ind <- sample(seq_len(nrow(bio.cov)), size = smp_size)
+
+train <- bio.cov[train_ind, ]
+test <- bio.cov[-train_ind, ]
+
+#Select all biomarkers from bio.cov for X
+X_train = train[, 3:30]
+X_test = test[, 3:30]
+y_train = train$CVD_status
+y_test = test$CVD_status
+
+
+#Sparse plsda model; keepX is number of parameters to keep (9 had lowest misclassification rate in calibration). 
+#The second line returns the variables selected.
+sPLSDA <- splsda(X_train, y_train, ncomp=1, mode='regression', keepX=9)
+sPLSDA$loadings$X[sPLSDA$loadings$X != 0, ]
+
+#Predicting on the test set 
+y_pred <- predict(sPLSDA, newdata = X_test)
+fitted = y_pred$class$max.dist
+table(fitted)
+#No cases predicted
+
+
+### Plots of misclassification rate by CVD subtype (could have been good if cases were predicted)
+
+mis_rate = data.frame(cbind(Prediction=fitted, subtype = bio.icd$cvd_final_icd10, 
+                            truth=bio.cov$CVD_status))
+
+levels(mis_rate$subtype) = c(levels(mis_rate$subtype),"Control")
+mis_rate$subtype = replace(mis_rate$subtype, which(is.na(mis_rate$subtype)),
+                           "Control")
+
+mis_rate$IncorrectClass = !(mis_rate$comp1 == mis_rate$truth)
+
+#From full data, selected 5 most frequent CVD subtypes (based on ICD10 code for death):
+#G459, I209, I219, I251, I639 (these all have over 600 cases). 
+
+mis_rate_plot <- mis_rate %>% filter(subtype %in% c("Control","G459","I209","I219",
+                                                    "I251","I639")) %>% 
+  group_by(subtype) %>% 
+  summarise(rate = mean(IncorrectClass)) %>% 
+  arrange(subtype)
+
+splsda_stratified <- mis_rate_plot %>% ggplot(aes(x = subtype, ymin = 0, ymax = rate)) + 
+  geom_linerange(stat = "identity", position = position_dodge(0.9)) + 
+  scale_color_brewer(palette = "Set1") + 
+  ylab("Misclassification Rate")
+
+ggsave(paste0(save_plots,"sPLS_mislcassification.pdf"), plot=splsda_stratified)
+saveRDS(splsda_stratified, paste0(save_plots,"sPLS_mislcassification.rds"))
 
 
 
@@ -273,52 +307,6 @@ saveRDS(sgPLSDA_loadings, paste0(save_plots,"sgPLSDA_loadings.rds"))
 
 
 #################################################################
-##            Misclassification rates by subtype               ##
-#################################################################
-
-#Aim: copmute misclassification rates of PLS models by subtype of CVD.
-#From full data, selected 5 most frequent CVD subtypes (based on ICD10 code for death):
-#G459, I209, I219, I251, I639 (these all have over 600 cases). 
-
-bio.icd <- cov %>% 
-  dplyr::select(ID, CVD_status, cvd_final_icd10) %>%
-  merge(bio, by='ID')
-
-#Computing the misclassification rate for the calibrated sPLS-DA and sgPLS-DA models 
-#And then creating a plot of these misclassification rates by CVD subtype
-y_pred <- predict(sPLSDA, newdata = X)
-fitted = y_pred$class$max.dist
-table(fitted)
-
-
-#First, a plot of misclassification rates for sPLS-DA alone (as I have not calibrated the sgPLS-DA model)
-mis_rate = data.frame(cbind(Prediction=fitted, subtype = bio.icd$cvd_final_icd10, 
-                            truth=bio.cov$CVD_status))
-
-levels(mis_rate$subtype) = c(levels(mis_rate$subtype),"Control")
-mis_rate$subtype = replace(mis_rate$subtype, which(is.na(mis_rate$subtype)),
-                           "Control")
-
-mis_rate$IncorrectClass = !(mis_rate$comp1 == mis_rate$truth)
-
-mis_rate_plot <- mis_rate %>% filter(subtype %in% c("Control","G459","I209","I219",
-                                                    "I251","I639")) %>% 
-  group_by(subtype) %>% 
-  summarise(rate = mean(IncorrectClass)) %>% 
-  arrange(subtype)
-
-splsda_stratified <- mis_rate_plot %>% ggplot(aes(x = subtype, ymin = 0, ymax = rate)) + 
-  geom_linerange(stat = "identity", position = position_dodge(0.9)) + 
-  scale_color_brewer(palette = "Set1") + 
-  ylab("Misclassification Rate")
-
-ggsave(paste0(save_plots,"sPLS_mislcassification.pdf"), plot=splsda_stratified)
-saveRDS(splsda_stratified, paste0(save_plots,"sPLS_mislcassification.rds"))
-
-
-
-
-#################################################################
 ##                     Stratified analyses                     ##
 #################################################################
 
@@ -400,7 +388,7 @@ strat_loadings = results_strat %>%
   coord_flip()
 
 ggsave(paste0(save_plots,"sPLSDA_stratified.pdf"), plot=strat_loadings, 
-       height = 8, width = 6.5)
+       height = 9.5, width = 6.5)
 saveRDS(strat_loadings, paste0(save_plots,"sPLSDA_stratified.rds"))
 
 
