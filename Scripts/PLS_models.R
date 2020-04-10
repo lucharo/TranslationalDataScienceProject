@@ -241,8 +241,8 @@ results$maxLoad = as.numeric(sapply(as.vector(results$Loadings), function(x) max
 
 sPLSDA_loadings = results %>% 
   ggplot(aes(x = Biomarker, y = 0, ymin = minLoad, ymax = maxLoad)) +
-  geom_linerange(stat = "identity", position = position_dodge(0.9)) +
-  geom_point(aes(y = 0), position = position_dodge(0.9)) +
+  geom_linerange(stat = "identity") +
+  geom_point(aes(y = 0)) +
   ylab("Loading coefficient") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   scale_color_brewer(palette = "Set1") +
@@ -291,8 +291,8 @@ results_both$Biomarker = str_replace_all(results_both$Biomarker,
 
 sgPLSDA_loadings = results_both %>% 
   ggplot(aes(x = Biomarker, y = 0, ymin = minLoad, ymax = maxLoad, color = Model)) +
-  geom_linerange(stat = "identity", position = position_dodge(0.7)) +
-  geom_point(aes(y = 0), position = position_dodge(0.7)) +
+  geom_linerange(stat = "identity", position = position_dodge(0.6)) +
+  geom_point(aes(y = 0), position = position_dodge(0.6)) +
   ylab("Loading coefficient") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
@@ -427,8 +427,8 @@ results_strat2$Biomarker = str_replace_all(results_strat2$Biomarker,
 
 strat_loadings2 = results_strat2 %>% 
   ggplot(aes(x = Biomarker, y = 0, ymin = minLoad, ymax = maxLoad, color = Subtype)) +
-  geom_linerange(stat = "identity", position = position_dodge(0.9)) +
-  geom_point(aes(y = 0), position = position_dodge(0.9)) +
+  geom_linerange(stat = "identity", position = position_dodge(0.8)) +
+  geom_point(aes(y = 0), position = position_dodge(0.8)) +
   ylab("Loading coefficient") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
