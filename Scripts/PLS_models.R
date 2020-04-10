@@ -260,12 +260,11 @@ sgPLSDA_loadings = results_both %>% ggplot(aes(x = Biomarker, y = 0, ymin = minL
     geom_linerange(stat = "identity", position = position_dodge(0.9)) +
     geom_point(aes(y = 0), position = position_dodge(0.9)) +
     ylab("Loading coefficients") +
-    theme_minimal() +
+    theme_bw() +
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
     scale_color_brewer(palette = "Set1") +
     facet_grid(rows = vars(belong_to), scales = "free", space = "free_y") +
-    theme(strip.text.y = element_text(angle = 0), 
-          strip.background = element_rect(fill = 'white', colour = "grey", linetype = 'dotted')) +
+    theme(strip.text.y = element_text(angle = 0)) +
     coord_flip()
 
 ggsave(paste0(save_plots,"sgPLSDA_loadings.pdf"), plot=sgPLSDA_loadings, height = 7.5)
@@ -290,9 +289,6 @@ bio.icd <- cov %>%
 y_pred <- predict(sPLSDA, newdata = X)
 fitted = y_pred$class$max.dist
 table(fitted)
-
-y_pred_g = predict(sgPLSDA, newdata = X)
-fitted_g = y_pred_g$class$max.dist
 
 
 #First, a plot of misclassification rates for sPLS-DA alone (as I have not calibrated the sgPLS-DA model)
@@ -319,34 +315,6 @@ splsda_stratified <- mis_rate_plot %>% ggplot(aes(x = subtype, ymin = 0, ymax = 
 ggsave(paste0(save_plots,"sPLS_mislcassification.pdf"), plot=splsda_stratified)
 saveRDS(splsda_stratified, paste0(save_plots,"sPLS_mislcassification.rds"))
 
-
-#Now for both sPLS-DA and sgPLS-DA 
-
-mis_rate = data.frame(rbind(
-  cbind(Prediction=fitted, model="sPLSDA", 
-        subtype = bio.icd$cvd_final_icd10, truth=bio.cov$CVD_status),
-  cbind(Prediction=fitted_g, model="sgPLSDA", 
-        subtype = bio.icd$cvd_final_icd10, truth=bio.cov$CVD_status)))
-
-levels(mis_rate$subtype) = c(levels(mis_rate$subtype),"Control")
-mis_rate$subtype = replace(mis_rate$subtype, which(is.na(mis_rate$subtype)),
-                           "Control")
-
-mis_rate$IncorrectClass = !(mis_rate$comp1 == mis_rate$truth)
-
-mis_rate_plot <- mis_rate %>% filter(subtype %in% c("Control","G459","I209","I219",
-                                                    "I251","I639")) %>% 
-  group_by(subtype, model) %>% 
-  summarise(rate = mean(IncorrectClass)) %>% 
-  arrange(subtype)
-
-plsda_stratified <- mis_rate_plot %>% ggplot(aes(x = subtype, ymin = 0, ymax = rate, color = model)) + 
-  geom_linerange(stat = "identity", position = position_dodge(0.9)) + 
-  scale_color_brewer(palette = "Set1") + 
-  ylab("Misclassification Rate")
-
-ggsave(paste0(save_plots,"PLSDA_misclassification.pdf"), plot=plsda_stratified)
-saveRDS(plsda_stratified, paste0(save_plots,"PLSDA_misclassification.rds"))
 
 
 
@@ -393,6 +361,7 @@ results = data.frame(rbind(
         Loadings = sPLSDA_I639$loadings$X)
 ))
 
+
 results_strat = results %>%
   mutate(belong_to = ifelse(Biomarker %in% groups_fran[1:8], "Liver",
                             ifelse(Biomarker %in% groups_fran[9:18], "Metabolic",
@@ -425,9 +394,10 @@ ggsave(paste0(save_plots,"sPLSDA_stratified.pdf"), plot=strat_loadings)
 saveRDS(strat_loadings, paste0(save_plots,"sPLSDA_stratified.rds"))
 
 
+
 ##Redo this plot excluding 0 coefficients for simplicity 
+
 results_strat2 = results %>%
-  filter(comp1 != 0) %>%
   mutate(belong_to = ifelse(Biomarker %in% groups_fran[1:8], "Liver",
                             ifelse(Biomarker %in% groups_fran[9:18], "Metabolic",
                                    ifelse(Biomarker %in% groups_fran[19:20], "Immune",
@@ -435,6 +405,17 @@ results_strat2 = results %>%
                                                  "Kidney")))))
 
 colnames(results_strat2)[3] = 'Loadings'
+results_strat2$Loadings = as.character(results_strat2$Loadings)
+results_strat2$Loadings = as.numeric(results_strat2$Loadings)
+
+biomarkers_non0 = results_strat2 %>% 
+  group_by(Biomarker) %>% 
+  summarise(SumCoefs = sum(abs(Loadings))) %>%
+  filter(SumCoefs != 0)
+  
+idx_keep = results_strat2$Biomarker %in% biomarkers_non0$Biomarker
+results_strat2 = results_strat2[idx_keep, ]
+
 results_strat2$minLoad = as.numeric(sapply(as.vector(results_strat2$Loadings), 
                                           function(x) min(0, x)))
 results_strat2$maxLoad = as.numeric(sapply(as.vector(results_strat2$Loadings), 
@@ -454,13 +435,12 @@ strat_loadings2 = results_strat2 %>%
   geom_linerange(stat = "identity", position = position_dodge(0.9)) +
   geom_point(aes(y = 0), position = position_dodge(0.9)) +
   ylab("Loading coefficients") +
-  theme_minimal() +
+  theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   scale_color_brewer(palette = "Set1") +
   facet_grid(rows = vars(belong_to), scales = "free", space = "free_y") +
-  theme(strip.text.y = element_text(angle = 0), 
-        strip.background = element_rect(fill = 'white', colour = "grey", linetype = 'dotted')) +
+  theme(strip.text.y = element_text(angle = 0)) +
   coord_flip()
 
-ggsave(paste0(save_plots,"sPLSDA_strat_non0.pdf"), plot=strat_loadings2, height=6)
+ggsave(paste0(save_plots,"sPLSDA_strat_non0.pdf"), plot=strat_loadings2, height=6.5)
 saveRDS(strat_loadings2, paste0(save_plots,"sPLSDA_strat_non0.rds"))
