@@ -1,7 +1,7 @@
 #PBS -l walltime=48:00:00
 #PBS -l select=1:ncpus=8:mem=20gb
 #PBS -N sgPLS_calibration
-#PBS -J 1-2
+#PBS -J 69-94
 
 module load anaconda3/personal
 module load gsl
