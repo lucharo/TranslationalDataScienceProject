@@ -301,7 +301,8 @@ sgPLSDA_loadings = results_both %>%
   theme(text = element_text(size = 15), strip.text.y = element_text(angle = 0)) + 
   coord_flip()
 
-ggsave(paste0(save_plots,"sgPLSDA_loadings.pdf"), plot=sgPLSDA_loadings, height = 7.5)
+ggsave(paste0(save_plots,"sgPLSDA_loadings.pdf"), plot=sgPLSDA_loadings, 
+       width = 6.25, height = 7.5)
 saveRDS(sgPLSDA_loadings, paste0(save_plots,"sgPLSDA_loadings.rds"))
 
 
@@ -437,5 +438,6 @@ strat_loadings2 = results_strat2 %>%
   theme(text = element_text(size = 15), strip.text.y = element_text(angle = 0)) +
   coord_flip()
 
-ggsave(paste0(save_plots,"sPLSDA_strat_non0.pdf"), plot=strat_loadings2, height=6.5)
+ggsave(paste0(save_plots,"sPLSDA_strat_non0.pdf"), plot=strat_loadings2, 
+       height = 6.5, width = 6.25)
 saveRDS(strat_loadings2, paste0(save_plots,"sPLSDA_strat_non0.rds"))
