@@ -86,13 +86,11 @@ den_plot <- ggplot(cov.prs) +
   guides(color = FALSE)
 
 ggsave(paste0(save_plots,"PRS_density.pdf"), den_plot)
-saveRDS(den_plot, paste0(save_plots,"PRS_density.rds"))
 
 #Boxplot of PRS by CVD status
 prs_boxplot <- ggplot(cov.prs, aes(x=CVD_status, y=PRS)) +
   geom_boxplot()
 ggsave(paste0(save_plots,"PRS_boxplot.pdf"), prs_boxplot)
-saveRDS(prs_boxplot, paste0(save_plots,"PRS_boxplot.rds"))
 
 #t-test - sig difference in mean PRS between groups
 t_test = t.test(PRS ~ CVD_status, data=cov.prs)
