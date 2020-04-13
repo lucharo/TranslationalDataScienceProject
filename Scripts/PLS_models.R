@@ -298,7 +298,7 @@ sgPLSDA_loadings = results_both %>%
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   scale_color_brewer(palette = "Set1", breaks = c('sPLS-DA','sgPLS-DA')) +
   facet_grid(rows = vars(belong_to), scales = "free", space = "free_y") +
-  theme(strip.text.y = element_text(angle = 0)) + 
+  theme(text = element_text(size = 15), strip.text.y = element_text(angle = 0)) + 
   coord_flip()
 
 ggsave(paste0(save_plots,"sgPLSDA_loadings.pdf"), plot=sgPLSDA_loadings, height = 7.5)
@@ -434,7 +434,7 @@ strat_loadings2 = results_strat2 %>%
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   scale_color_brewer(palette = "Set1") +
   facet_grid(rows = vars(belong_to), scales = "free", space = "free_y") +
-  theme(strip.text.y = element_text(angle = 0)) +
+  theme(text = element_text(size = 15), strip.text.y = element_text(angle = 0)) +
   coord_flip()
 
 ggsave(paste0(save_plots,"sPLSDA_strat_non0.pdf"), plot=strat_loadings2, height=6.5)
