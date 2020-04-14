@@ -44,7 +44,11 @@ allBHS %>% gather(key = "BHS", value = "value", -c(ID, CVD_status)) %>%
                      label.x = 1.5, label.y = 1.1)+
   stat_summary(geom = "point", shape = 23, fun.data = 'mean_se')+
   xlab("CVD status")+ylab("BHS score")+
-  ggtitle("BHS score by CVD status")+scale_fill_brewer(palette = "Set1")+theme_bw()
+  # ggtitle("BHS score by CVD status")+
+  scale_fill_brewer(palette = "Set1")+
+  theme_bw()+
+  theme(text = element_text(size = 24))+
+  scale_y_continuous(breaks = c(0,0.25,0.5,0.75,1))
 
 ################# BHS evaluation #################################
 
