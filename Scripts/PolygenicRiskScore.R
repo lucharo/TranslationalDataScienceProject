@@ -19,16 +19,12 @@ cluster = 1
 
 if (cluster == 1){
   save_data = data_folder = "../FULLDATA/preprocessed/"
-  save_plots = "../FULLResults/"
+  save_plots = save_data = "../FULLResults/PRS/"
 } else {
   setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
   save_data = data_folder = "../data/preprocessed/"
   save_plots = "../results/"
 }
-
-ifelse(!dir.exists(file.path(save_plots, "PRS/")),
-       dir.create(file.path(save_plots, "PRS/")), FALSE)
-save_plots = paste0(save_plots,"PRS/")
 
 snp = readRDS(paste0(data_folder,"snpProcessed.rds"))
 cov = readRDS(paste0(data_folder,"covProcessed.rds"))
@@ -86,13 +82,11 @@ den_plot <- ggplot(cov.prs) +
   guides(color = FALSE)
 
 ggsave(paste0(save_plots,"PRS_density.pdf"), den_plot)
-saveRDS(den_plot, paste0(save_plots,"PRS_density.rds"))
 
 #Boxplot of PRS by CVD status
 prs_boxplot <- ggplot(cov.prs, aes(x=CVD_status, y=PRS)) +
   geom_boxplot()
 ggsave(paste0(save_plots,"PRS_boxplot.pdf"), prs_boxplot)
-saveRDS(prs_boxplot, paste0(save_plots,"PRS_boxplot.rds"))
 
 #t-test - sig difference in mean PRS between groups
 t_test = t.test(PRS ~ CVD_status, data=cov.prs)

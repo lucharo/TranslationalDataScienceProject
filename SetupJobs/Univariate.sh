@@ -2,7 +2,8 @@
 #PBS -l select=1:ncpus=6:mem=24gb
 #PBS -N UnivAnalysis
 module load anaconda3/personal
-
+source activate TDS
 cd /rdsgpfs/general/user/lc5415/home/BEES_TDS/Scripts
 
 time Rscript univariate_analysis.R
+conda deactivate
