@@ -11,10 +11,16 @@ if (!require(car)) install.packages("car")
 library(car)
 if (!require(ROCR)) install.packages("ROCR")
 library(ROCR)
-if (!require(arulesViz)) install.packages("arulesViz")
-library(arulesViz)
+# if (!require(arulesViz)) install.packages("arulesViz")
+# library(arulesViz)
+if (!require(glmnet)) install.packages("glmnet")
 library(glmnet)
+if (!require(foreign)) install.packages("foreign")
 library(foreign)
+
+if (!require(scales)) install.packages("scales")
+library(scales)
+
 
 library(tidyverse)
 
@@ -113,7 +119,7 @@ cov$BMI_5cl_2 = factor(cov$BMI_5cl_2, levels = c("[18.5,25[", "[25,30[",
 cov$no_cmrbt_cl2 = as.numeric(cov$no_cmrbt_cl2)
 cov$no_medicines = as.numeric(cov$no_medicines)
 
-str(cov)
+# str(cov)
 
 
 #################################################################
@@ -314,7 +320,7 @@ cov.PRS.noBHS = cov.PRS %>% select(-BS2_all)
 
 # COV + BIO +PRS
 cov.bio = merge(cov,bio, by = "ID")
-cov.bio.PRS = merge(cov.bio, PRSdf, by="id")
+cov.bio.PRS = merge(cov.bio, PRSdf, by="ID")
 rownames(cov.bio) = cov.bio$ID
 cov.bio.PRS = cov.bio.PRS%>% select(-c(ID,BS2_all)) %>% 
   mutate(PRS = rescale(PRS, to = c(-1,1)))
@@ -338,13 +344,22 @@ results = data.frame(data = character(),
 
 for (data_index in 1:length(data_to_iterate)){
   for (model in c("svm", "xgboost", "glm")){
+    t0 = Sys.time()
+    print(paste("Fitting", datanames[data_index], "with", model))
     auc = Analysis(model, data_to_iterate[[data_index]])
+    print(Sys.time()-t0)
+    print("\n")
     temp.results = data.frame(data = datanames[data_index],
                               model = model, 
                               auc = auc)
+    
     results = rbind(results, temp.results)
   }
 }
 
+ifelse(!dir.exists(file.path(save_plots, "MLAnalysis/")),
+       dir.create(file.path(save_plots, "MLAnalysis/")), FALSE)
+save_plots = paste0(save_plots,"MLAnalysis/")
 
+saveRDS(results, paste0(save_plots, "MLAnalysis.rds"))
 
