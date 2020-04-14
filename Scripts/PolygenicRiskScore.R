@@ -19,16 +19,12 @@ cluster = 1
 
 if (cluster == 1){
   save_data = data_folder = "../FULLDATA/preprocessed/"
-  save_plots = "../FULLResults/"
+  save_plots = save_data = "../FULLResults/PRS/"
 } else {
   setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
   save_data = data_folder = "../data/preprocessed/"
   save_plots = "../results/"
 }
-
-ifelse(!dir.exists(file.path(save_plots, "PRS/")),
-       dir.create(file.path(save_plots, "PRS/")), FALSE)
-save_plots = paste0(save_plots,"PRS/")
 
 snp = readRDS(paste0(data_folder,"snpProcessed.rds"))
 cov = readRDS(paste0(data_folder,"covProcessed.rds"))
