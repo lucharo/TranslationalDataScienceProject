@@ -17,7 +17,7 @@ if (platform == 'Linux'){
 read_data = paste0(save_plots,"ArrayJob/")
 
 sg_calib = readRDS(paste0(read_data, "sgCalibration_1.rds"))
-sapply(c(2:66), FUN =  function(x) {
+sapply(c(2:100), FUN =  function(x) {
   assign("sg_calib", 
          rbind(sg_calib, readRDS(paste0(read_data, "sgCalibration_", x,".rds"))),
          envir = .GlobalEnv)})
