@@ -5,6 +5,9 @@ library(ggplot2)
 # Aim of this script is to replicate the work from practical 3 and 4 on the
 # TDS dataset
 
+
+library(stringr)
+
 cluster = 1
 platform = Sys.info()['sysname']
 if (platform == 'Linux'){
