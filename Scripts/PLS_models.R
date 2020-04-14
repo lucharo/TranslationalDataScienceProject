@@ -36,6 +36,11 @@ bio.cov <- cov %>%
   dplyr::select(ID, CVD_status) %>%
   merge(bio, by='ID')
 
+bio.icd <- cov %>% 
+  dplyr::select(ID, CVD_status, cvd_final_icd10) %>%
+  merge(bio, by='ID')
+
+
 
 ##################################################################
 ##                     Basic PLS-DA model                       ##
@@ -60,9 +65,9 @@ colnames(results)[2] = 'Loadings'
 results$minLoad = as.numeric(sapply(as.vector(results$Loadings), function(x) min(0, x)))
 results$maxLoad = as.numeric(sapply(as.vector(results$Loadings), function(x) max(0, x)))
 
-PLSDA_loadings = results %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
-                                        ymax = maxLoad))+
-  geom_linerange(stat = "identity", position = position_dodge(0.9))+
+PLSDA_loadings = results %>% 
+  ggplot(aes(x = Biomarker, y = 0, ymin = minLoad, ymax = maxLoad)) +
+  geom_linerange(stat = "identity", position = position_dodge(0.9)) +
   geom_point(aes(y = 0), position = position_dodge(0.9)) +
   ylab("Loading coefficient") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
@@ -98,40 +103,6 @@ gPLSDA$loadings$X[gPLSDA$loadings$X != 0, ]
 
 
 ##################################################################
-##             Fitting calibrated sPLS-DA model                 ##
-##################################################################
-
-#Create training and test sets 
-smp_size <- floor(0.8*nrow(bio.cov))
-
-#set the seed to same as in calibration to get the same train/test split
-set.seed(123)
-train_ind <- sample(seq_len(nrow(bio.cov)), size = smp_size)
-
-train <- bio.cov[train_ind, ]
-test <- bio.cov[-train_ind, ]
-
-#Select all biomarkers from bio.cov for X
-X_train = train[, 3:30]
-X_test = test[, 3:30]
-y_train = train$CVD_status
-y_test = test$CVD_status
-
-
-#Sparse plsda model; keepX is number of parameters to keep (9 had lowest misclassification rate in calibration). 
-#The second line returns the variables selected.
-sPLSDA <- splsda(X_train, y_train, ncomp=1, mode='regression', keepX=9)
-sPLSDA$loadings$X[sPLSDA$loadings$X != 0, ]
-
-#Predicting on the test set 
-y_pred <- predict(sPLSDA, newdata = X_test)
-fitted = y_pred$class$max.dist
-table(fitted)
-
-#No cases predicted
-  
-
-##################################################################
 ##                      Stability analyses                      ##
 ##################################################################
 
@@ -164,6 +135,69 @@ stab_plot = Prop50 %>%
 
 ggsave(paste0(save_plots,"Stability_plot.pdf"), plot=stab_plot)
 saveRDS(stab_plot, paste0(save_plots,"Stability_plot.rds"))
+
+
+
+##################################################################
+##             Fitting calibrated sPLS-DA model                 ##
+##################################################################
+
+#Create training and test sets 
+smp_size <- floor(0.8*nrow(bio.cov))
+
+#set the seed to same as in calibration to get the same train/test split
+set.seed(123)
+train_ind <- sample(seq_len(nrow(bio.cov)), size = smp_size)
+
+train <- bio.cov[train_ind, ]
+test <- bio.cov[-train_ind, ]
+
+#Select all biomarkers from bio.cov for X
+X_train = train[, 3:30]
+X_test = test[, 3:30]
+y_train = train$CVD_status
+y_test = test$CVD_status
+
+
+#Sparse plsda model; keepX is number of parameters to keep (9 had lowest misclassification rate in calibration). 
+#The second line returns the variables selected.
+sPLSDA <- splsda(X_train, y_train, ncomp=1, mode='regression', keepX=9)
+sPLSDA$loadings$X[sPLSDA$loadings$X != 0, ]
+
+#Predicting on the test set 
+y_pred <- predict(sPLSDA, newdata = X_test)
+fitted = y_pred$class$max.dist
+table(fitted)
+#No cases predicted
+
+
+### Plots of misclassification rate by CVD subtype (could have been good if cases were predicted)
+
+mis_rate = data.frame(cbind(Prediction=fitted, subtype = bio.icd$cvd_final_icd10, 
+                            truth=bio.cov$CVD_status))
+
+levels(mis_rate$subtype) = c(levels(mis_rate$subtype),"Control")
+mis_rate$subtype = replace(mis_rate$subtype, which(is.na(mis_rate$subtype)),
+                           "Control")
+
+mis_rate$IncorrectClass = !(mis_rate$comp1 == mis_rate$truth)
+
+#From full data, selected 5 most frequent CVD subtypes (based on ICD10 code for death):
+#G459, I209, I219, I251, I639 (these all have over 600 cases). 
+
+mis_rate_plot <- mis_rate %>% filter(subtype %in% c("Control","G459","I209","I219",
+                                                    "I251","I639")) %>% 
+  group_by(subtype) %>% 
+  summarise(rate = mean(IncorrectClass)) %>% 
+  arrange(subtype)
+
+splsda_stratified <- mis_rate_plot %>% ggplot(aes(x = subtype, ymin = 0, ymax = rate)) + 
+  geom_linerange(stat = "identity", position = position_dodge(0.9)) + 
+  scale_color_brewer(palette = "Set1") + 
+  ylab("Misclassification Rate")
+
+ggsave(paste0(save_plots,"sPLS_mislcassification.pdf"), plot=splsda_stratified)
+saveRDS(splsda_stratified, paste0(save_plots,"sPLS_mislcassification.rds"))
 
 
 
@@ -205,10 +239,10 @@ colnames(results)[2] = 'Loadings'
 results$minLoad = as.numeric(sapply(as.vector(results$Loadings), function(x) min(0, x)))
 results$maxLoad = as.numeric(sapply(as.vector(results$Loadings), function(x) max(0, x)))
 
-sPLSDA_loadings = results %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
-                                        ymax = maxLoad))+
-  geom_linerange(stat = "identity", position = position_dodge(0.9)) +
-  geom_point(aes(y = 0), position = position_dodge(0.9)) +
+sPLSDA_loadings = results %>% 
+  ggplot(aes(x = Biomarker, y = 0, ymin = minLoad, ymax = maxLoad)) +
+  geom_linerange(stat = "identity") +
+  geom_point(aes(y = 0)) +
   ylab("Loading coefficient") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   scale_color_brewer(palette = "Set1") +
@@ -223,10 +257,10 @@ saveRDS(sPLSDA_loadings, paste0(save_plots,"sPLSDA_loadings.rds"))
 #This plot visualises the loadings coefficients obtained from both sPLSDA and sgPLSDA models
 results_both = data.frame(rbind(
   cbind(Biomarker = colnames(X),
-        Model = 'sPLSDA',
+        Model = 'sPLS-DA',
         Loadings = sPLSDA$loadings$X),
   cbind(Biomarker = colnames(X_fran),
-        Model = 'sgPLSDA',
+        Model = 'sgPLS-DA',
         Loadings = -(sgPLSDA$loadings$X))
 ))
 
@@ -255,66 +289,21 @@ results_both$Biomarker = str_replace_all(results_both$Biomarker,
 results_both$Biomarker = str_replace_all(results_both$Biomarker, 
                                            "Alkaline phosphatase", "ALP")
 
-sgPLSDA_loadings = results_both %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
-                                            ymax = maxLoad, color = Model)) +
-    geom_linerange(stat = "identity", position = position_dodge(0.9)) +
-    geom_point(aes(y = 0), position = position_dodge(0.9)) +
-    ylab("Loading coefficients") +
-    theme_bw() +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-    scale_color_brewer(palette = "Set1") +
-    facet_grid(rows = vars(belong_to), scales = "free", space = "free_y") +
-    theme(strip.text.y = element_text(angle = 0)) +
-    coord_flip()
+sgPLSDA_loadings = results_both %>% 
+  ggplot(aes(x = Biomarker, y = 0, ymin = minLoad, ymax = maxLoad, color = Model)) +
+  geom_linerange(stat = "identity", position = position_dodge(0.6)) +
+  geom_point(aes(y = 0), position = position_dodge(0.6)) +
+  ylab("Loading coefficient") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_color_brewer(palette = "Set1", breaks = c('sPLS-DA','sgPLS-DA')) +
+  facet_grid(rows = vars(belong_to), scales = "free", space = "free_y") +
+  theme(text = element_text(size = 15), strip.text.y = element_text(angle = 0)) + 
+  coord_flip()
 
-ggsave(paste0(save_plots,"sgPLSDA_loadings.pdf"), plot=sgPLSDA_loadings, height = 7.5)
+ggsave(paste0(save_plots,"sgPLSDA_loadings.pdf"), plot=sgPLSDA_loadings, 
+       width = 6.25, height = 7.5)
 saveRDS(sgPLSDA_loadings, paste0(save_plots,"sgPLSDA_loadings.rds"))
-
-
-
-#################################################################
-##            Misclassification rates by subtype               ##
-#################################################################
-
-#Aim: copmute misclassification rates of PLS models by subtype of CVD.
-#From full data, selected 5 most frequent CVD subtypes (based on ICD10 code for death):
-#G459, I209, I219, I251, I639 (these all have over 600 cases). 
-
-bio.icd <- cov %>% 
-  dplyr::select(ID, CVD_status, cvd_final_icd10) %>%
-  merge(bio, by='ID')
-
-#Computing the misclassification rate for the calibrated sPLS-DA and sgPLS-DA models 
-#And then creating a plot of these misclassification rates by CVD subtype
-y_pred <- predict(sPLSDA, newdata = X)
-fitted = y_pred$class$max.dist
-table(fitted)
-
-
-#First, a plot of misclassification rates for sPLS-DA alone (as I have not calibrated the sgPLS-DA model)
-mis_rate = data.frame(cbind(Prediction=fitted, subtype = bio.icd$cvd_final_icd10, 
-                            truth=bio.cov$CVD_status))
-
-levels(mis_rate$subtype) = c(levels(mis_rate$subtype),"Control")
-mis_rate$subtype = replace(mis_rate$subtype, which(is.na(mis_rate$subtype)),
-                           "Control")
-
-mis_rate$IncorrectClass = !(mis_rate$comp1 == mis_rate$truth)
-
-mis_rate_plot <- mis_rate %>% filter(subtype %in% c("Control","G459","I209","I219",
-                                                    "I251","I639")) %>% 
-  group_by(subtype) %>% 
-  summarise(rate = mean(IncorrectClass)) %>% 
-  arrange(subtype)
-
-splsda_stratified <- mis_rate_plot %>% ggplot(aes(x = subtype, ymin = 0, ymax = rate)) + 
-  geom_linerange(stat = "identity", position = position_dodge(0.9)) + 
-  scale_color_brewer(palette = "Set1") + 
-  ylab("Misclassification Rate")
-
-ggsave(paste0(save_plots,"sPLS_mislcassification.pdf"), plot=splsda_stratified)
-saveRDS(splsda_stratified, paste0(save_plots,"sPLS_mislcassification.rds"))
-
 
 
 
@@ -343,7 +332,7 @@ for (subtype in c("G459","I209", "I219","I251","I639")) {
 
 
 #Plot loadings 
-results = data.frame(rbind(
+results_s = data.frame(rbind(
   cbind(Biomarker = colnames(X),
         Subtype = 'G459',
         Loadings = sPLSDA_G459$loadings$X),
@@ -361,15 +350,15 @@ results = data.frame(rbind(
         Loadings = sPLSDA_I639$loadings$X)
 ))
 
+colnames(results_s)[3] = 'Loadings'
 
-results_strat = results %>%
+results_strat = results_s %>%
   mutate(belong_to = ifelse(Biomarker %in% groups_fran[1:8], "Liver",
                             ifelse(Biomarker %in% groups_fran[9:18], "Metabolic",
                                    ifelse(Biomarker %in% groups_fran[19:20], "Immune",
                                           ifelse(Biomarker %in% groups_fran[21:25], "Endocrine",
                                                  "Kidney")))))
 
-colnames(results_strat)[3] = 'Loadings'
 results_strat$minLoad = as.numeric(sapply(as.vector(results_strat$Loadings), 
                                    function(x) min(0, x)))
 results_strat$maxLoad = as.numeric(sapply(as.vector(results_strat$Loadings), 
@@ -377,34 +366,42 @@ results_strat$maxLoad = as.numeric(sapply(as.vector(results_strat$Loadings),
 
 results_strat$Biomarker = str_replace_all(results_strat$Biomarker, "\\.", " ")
 results_strat$Biomarker = str_replace_all(results_strat$Biomarker, 
-                                         "Glycated haemoglobin HbA1c", "HbA1c")
-results_strat2$Biomarker = str_replace_all(results_strat2$Biomarker, 
-                                           "Alkaline phosphatase", "ALP")
+                                          "Glycated haemoglobin HbA1c", "HbA1c")
+results_strat$Biomarker = str_replace_all(results_strat$Biomarker, 
+                                          "Gamma glutamyltransferase", "GGT")
+results_strat$Biomarker = str_replace_all(results_strat$Biomarker, 
+                                          "Alanine aminotransferase", "ALT")
+results_strat$Biomarker = str_replace_all(results_strat$Biomarker, 
+                                          "Aspartate aminotransferase", "AST")
+results_strat$Biomarker = str_replace_all(results_strat$Biomarker, 
+                                         "Alkaline phosphatase", "ALP")
 
-strat_loadings = results_strat %>% ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
-                                          ymax = maxLoad, color = Subtype)) +
+strat_loadings = results_strat %>% 
+  ggplot(aes(x = Biomarker, y = 0, ymin = minLoad, ymax = maxLoad, color = Subtype)) +
   geom_linerange(stat = "identity", position = position_dodge(0.9)) +
   geom_point(aes(y = 0), position = position_dodge(0.9)) +
-  ylab("Loading coefficients") +
+  ylab("Loading coefficient") +
+  theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   scale_color_brewer(palette = "Set1") +
-  facet_grid(cols = vars(belong_to), scales = "free", space = "free_x")
+  facet_grid(rows = vars(belong_to), scales = "free", space = "free_y") +
+  theme(strip.text.y = element_text(angle = 0)) +
+  coord_flip()
 
-ggsave(paste0(save_plots,"sPLSDA_stratified.pdf"), plot=strat_loadings)
+ggsave(paste0(save_plots,"sPLSDA_stratified.pdf"), plot=strat_loadings, 
+       height = 9.5, width = 6.5)
 saveRDS(strat_loadings, paste0(save_plots,"sPLSDA_stratified.rds"))
-
 
 
 ##Redo this plot excluding 0 coefficients for simplicity 
 
-results_strat2 = results %>%
+results_strat2 = results_s %>%
   mutate(belong_to = ifelse(Biomarker %in% groups_fran[1:8], "Liver",
                             ifelse(Biomarker %in% groups_fran[9:18], "Metabolic",
                                    ifelse(Biomarker %in% groups_fran[19:20], "Immune",
                                           ifelse(Biomarker %in% groups_fran[21:25], "Endocrine",
                                                  "Kidney")))))
 
-colnames(results_strat2)[3] = 'Loadings'
 results_strat2$Loadings = as.character(results_strat2$Loadings)
 results_strat2$Loadings = as.numeric(results_strat2$Loadings)
 
@@ -430,17 +427,17 @@ results_strat2$Biomarker = str_replace_all(results_strat2$Biomarker,
                                            "Alkaline phosphatase", "ALP")
 
 strat_loadings2 = results_strat2 %>% 
-  ggplot(aes(x = Biomarker, y = 0, ymin = minLoad,
-             ymax = maxLoad, color = Subtype)) +
-  geom_linerange(stat = "identity", position = position_dodge(0.9)) +
-  geom_point(aes(y = 0), position = position_dodge(0.9)) +
-  ylab("Loading coefficients") +
+  ggplot(aes(x = Biomarker, y = 0, ymin = minLoad, ymax = maxLoad, color = Subtype)) +
+  geom_linerange(stat = "identity", position = position_dodge(0.8)) +
+  geom_point(aes(y = 0), position = position_dodge(0.8)) +
+  ylab("Loading coefficient") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   scale_color_brewer(palette = "Set1") +
   facet_grid(rows = vars(belong_to), scales = "free", space = "free_y") +
-  theme(strip.text.y = element_text(angle = 0)) +
+  theme(text = element_text(size = 15), strip.text.y = element_text(angle = 0)) +
   coord_flip()
 
-ggsave(paste0(save_plots,"sPLSDA_strat_non0.pdf"), plot=strat_loadings2, height=6.5)
+ggsave(paste0(save_plots,"sPLSDA_strat_non0.pdf"), plot=strat_loadings2, 
+       height = 6.5, width = 6.25)
 saveRDS(strat_loadings2, paste0(save_plots,"sPLSDA_strat_non0.rds"))
