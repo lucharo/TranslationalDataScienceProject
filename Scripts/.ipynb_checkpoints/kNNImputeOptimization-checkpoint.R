@@ -25,9 +25,9 @@ kNNImputeOptimization = function(data.in, log = 0, scaled = T,perParam = F, seed
   #'  The user can then run this algorithm as many times as he/she wants
   #'  to get a distribution of the error for each k. 
   
-  require(impute)
-  require(tidyverse)
-  require(ggplot2)
+#   require(impute)
+#   require(tidyverse)
+#   require(ggplot2)
   
   set.seed(seed) # this makes the sampling of different indices random
   print(seed)
