@@ -24,12 +24,14 @@ save_plots = paste0(save_plots,"BHS/")
 Mantej = readRDS(paste0(save_plots, "ScoresMantej.rds"))
 Paper = readRDS(paste0(save_plots, "ScoresPaper.rds"))
 Barbara = readRDS(paste0(save_plots, "ScoresBarbara.rds"))
+
 cov = readRDS(paste0(data_folder,"covProcessed.rds"))
 mini.cov = cov[,c("BS2_all", "ID", "CVD_status")]
+colnames(mini.cov)[colnames(mini.cov) == "BS2_all"]="BS2"
 
 myBHS = merge(Mantej, Paper, by = "ID")
 myBHS = merge(myBHS, Barbara, by = "ID")
-colnames(myBHS)[2:4] = c("Mantej", "Paper", "Barbara")
+colnames(myBHS)[2:4] = c("B", "A", "C")
 
 allBHS = merge(myBHS, mini.cov, by = "ID")
 # all(!duplicated(Mantej$ID))
@@ -41,7 +43,8 @@ allBHS %>% gather(key = "BHS", value = "value", -c(ID, CVD_status)) %>%
   stat_compare_means(method = "t.test", paired = F, label = "p.signif",
                      label.x = 1.5, label.y = 1.1)+
   stat_summary(geom = "point", shape = 23, fun.data = 'mean_se')+
-  xlab("CVD status")+ylab("BHS score")+ggtitle("BHS score by CVD status")+scale_fill_brewer(palette = "Set1")+theme_minimal()
+  xlab("CVD status")+ylab("BHS score")+
+  ggtitle("BHS score by CVD status")+scale_fill_brewer(palette = "Set1")+theme_bw()
 
 ################# BHS evaluation #################################
 

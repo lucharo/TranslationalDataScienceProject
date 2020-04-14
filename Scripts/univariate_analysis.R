@@ -34,28 +34,38 @@ bio.imp_cov = bio.imp_cov[,-1]
 bio_cov = merge(bio,cov,by="ID")
 bio_cov = bio_cov[,-1]
 
-confounders = c("age_CVD","BS2_all", "qual2","smok_ever_2",
+confounders = c("age_CVD",
+                # "BS2_all", excludng BS2 as it depends on the biomarker,
+                # not meet requirements to be a valid confounder
+                "qual2","smok_ever_2",
                 "physical_activity_2", "alcohol_2", "BMI_5cl_2",
                 "no_cmrbt_cl2", "no_medicines", "gender")
 
-factorize = function(column, df){
-  #' Check if column in integer or string and  turn to the correct type
-  #' to avoid other function turning into factor indices
+
+### ordered factors
+tidyFactors = function(df){
+  df$qual2 = factor(df$qual2, levels = c("low", "intermediate", "high"), ordered = T)
+  df$alcohol_2 = factor(df$alcohol_2, levels = c("Non-drinker", "Social drinker",
+                                                           "Moderate drinker", "Daily drinker"), ordered = T)
+  df$BMI_5cl_2 = factor(df$BMI_5cl_2, levels = c("[18.5,25[", "[25,30[",
+                                                           "[30,40[", ">=40"), ordered = T)
+  df$no_cmrbt_cl2 = as.numeric(df$no_cmrbt_cl2)
+  df$no_medicines = as.numeric(df$no_medicines)
+  df$smok_ever_2 = factor(df$smok_ever_2, levels=c("no","yes"))
+  df$physical_activity_2 = factor(df$physical_activity_2, levels=c("no","yes"))
+  df$CVD_status = factor(df$CVD_status, levels = c("0","1"))
+  df$gender = factor(df$gender, levels=c("Female","Male"))
   
-  if (class(df[1,column]) == "character"){
-    out = as.factor(df[,column])
-  } else {
-    out = df[,column]
-  }
-  return(out)
+  return(df)
 }
 
-bio_cov[,c("CVD_status",confounders)]  = lapply(c("CVD_status",confounders),
-                                function(column) factorize(column, bio_cov))
-bio.imp_cov[,c("CVD_status",confounders)]  = lapply(c("CVD_status",confounders),
-                                function(column) factorize(column, bio.imp_cov))
-# bio_cov = bio_cov[,c("CVD_status",confounders)]
-# bio.imp_cov = bio.imp_cov[,c("CVD_status",confounders)]
+bio_cov = tidyFactors(bio_cov)
+bio.imp_cov = tidyFactors(bio.imp_cov)
+
+
+bio_cov = bio_cov[, c("CVD_status", confounders, colnames(bio)[-1])]
+bio.imp_cov = bio.imp_cov[, c("CVD_status", confounders, colnames(bio.imp)[-1])]
+
 
 DoYouMatter = function(biomarker, data = bio.imp_cov){
   # I guess I would ideally not have to precise a data argument and allow
@@ -108,6 +118,9 @@ fortable$Biomarkers = str_replace_all(fortable$Biomarkers, "Glycated haemoglobin
 fortable$OR = exp(fortable$OR)
 fortable$`lower CI` = exp(fortable$`lower CI`)
 fortable$`upper CI` = exp(fortable$`upper CI`)
+
+readr::write_csv(fortable, paste0(save_plots,"UnivariateAnalysis.csv"))
+
 data = rbind(cbind(univ_nonimputed, Data = "Not-imputed"),
              cbind(univ_imputed, Data = "KNN")) %>% arrange(p.value) %>% head(30)
 
@@ -137,7 +150,7 @@ figure = data %>%
   scale_shape_manual(values = c(6,2))+
   scale_color_brewer(palette = "Set1")+
   labs(shape = "Sign of the\nassociation")+
-  theme_minimal()+
+  theme_bw()+
   theme(axis.text.x = element_text(angle = 30, hjust = 1),
     # axis.text.x = element_blank(),
         # axis.ticks.x = element_blank()
@@ -161,34 +174,38 @@ ggsave(paste0(save_plots,"UnivariateAnalysis.pdf")) # as pdf
 saveRDS(figure, paste0(save_plots,"UnivariateAnalysis.rds")) # as object
 
 
-figure2 = rbind(cbind(univ_nonimputed, Data = "Not-imputed"),
-               cbind(univ_imputed, Data = "KNN")) %>% arrange(desc(OR)) %>% head(20) %>%
-  ggplot(aes(x = reorder(Biomarkers, -exp(OR)),
-             y = -log10(p.value),
-             shape = as.factor(
-               ifelse(OR>0,"Positive",
-                      "Negative")),
-             #size = as.numeric(abs(OR)),
-             color = Data,
-             size = exp(OR)))+
-  geom_point(position = position_dodge(0.9))+
-  geom_hline(yintercept = -log10(0.05/length(colnames(bio))),
-             linetype = "dashed")+
-  # geom_text(aes(x = Biomarkers, y = -log10(p.value)+0.4,
-  #               label = ifelse(Data == "MICE" &
-  #                                -log10(p.value)> -log10(0.05/length(colnames(bio))),
-  #                              colnames(bio)[Biomarkers], "")),
-  #           angle = 90, show.legend = F, color = "black", size = 3)+
-  scale_shape_manual(values = c(6,2))+
-  scale_color_brewer(palette = "Set1")+
-  labs(shape = "Sign of the\nassociation")+
-  theme_minimal()+
-  theme(axis.text.x = element_text(angle = 30, hjust = 1),
-        # axis.text.x = element_blank(),
-        # axis.ticks.x = element_blank()
-  )+
-  ylim(0, NA)+
-  ylab("-log10 of p-values")+xlab("Biomarkers")+
-  labs(size = "Odds Ratio")+theme(legend.position = "top")+
-  ggtitle("Univariate analysis results for imputed and non imputed data")
-figure2
+
+## sorting data by Odd ratio insteadof pvalue
+
+# 
+# figure2 = rbind(cbind(univ_nonimputed, Data = "Not-imputed"),
+#                cbind(univ_imputed, Data = "KNN")) %>% arrange(desc(OR)) %>% head(20) %>%
+#   ggplot(aes(x = reorder(Biomarkers, -exp(OR)),
+#              y = -log10(p.value),
+#              shape = as.factor(
+#                ifelse(OR>0,"Positive",
+#                       "Negative")),
+#              #size = as.numeric(abs(OR)),
+#              color = Data,
+#              size = exp(OR)))+
+#   geom_point(position = position_dodge(0.9))+
+#   geom_hline(yintercept = -log10(0.05/length(colnames(bio))),
+#              linetype = "dashed")+
+#   # geom_text(aes(x = Biomarkers, y = -log10(p.value)+0.4,
+#   #               label = ifelse(Data == "MICE" &
+#   #                                -log10(p.value)> -log10(0.05/length(colnames(bio))),
+#   #                              colnames(bio)[Biomarkers], "")),
+#   #           angle = 90, show.legend = F, color = "black", size = 3)+
+#   scale_shape_manual(values = c(6,2))+
+#   scale_color_brewer(palette = "Set1")+
+#   labs(shape = "Sign of the\nassociation")+
+#   theme_minimal()+
+#   theme(axis.text.x = element_text(angle = 30, hjust = 1),
+#         # axis.text.x = element_blank(),
+#         # axis.ticks.x = element_blank()
+#   )+
+#   ylim(0, NA)+
+#   ylab("-log10 of p-values")+xlab("Biomarkers")+
+#   labs(size = "Odds Ratio")+theme(legend.position = "top")+
+#   ggtitle("Univariate analysis results for imputed and non imputed data")
+# figure2

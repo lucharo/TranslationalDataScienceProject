@@ -21,12 +21,12 @@ bio = readRDS(paste0(data_folder,"bioProcessed.rds"))
 bio.imp = readRDS(paste0(data_folder,"bioImputedKNN.rds"))
 cov = readRDS(paste0(data_folder,"covProcessed.rds"))
 
-# bio.dict = readxl::read_xlsx("../Biomarker_annotation.xlsx")
-#
-# # make pretty names
-# bio.dict$`Biomarker name` = make.names(bio.dict$`Biomarker name`)
-# bio.dict$`Biomarker name` = sub("\\.\\.",".",
-#                                 bio.dict$`Biomarker name`)
+bio.dict = readxl::read_xlsx("../Biomarker_annotation.xlsx")
+
+# make pretty names
+bio.dict$`Biomarker name` = make.names(bio.dict$`Biomarker name`)
+bio.dict$`Biomarker name` = sub("\\.\\.",".",
+                                bio.dict$`Biomarker name`)
 
 # for simplicity we merge cov and bio here
 bio.imp = merge(bio.imp, cov[,c("ID","age_cl","gender")], by = "ID")
