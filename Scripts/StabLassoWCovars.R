@@ -2,6 +2,7 @@
 
 library(glmnet)
 library(ggplot2)
+library(caret)
 library(dplyr)
 library(parallel)
 
@@ -15,14 +16,15 @@ if (platform == 'Linux'){
   save_plots = "../results/"
 }
 
-ifelse(!dir.exists(file.path(save_plots, "PenalisedReg/")),
-       dir.create(file.path(save_plots, "PenalisedReg/")), FALSE)
-save_plots = paste0(save_plots,"PenalisedReg/")
+ifelse(!dir.exists(file.path(save_plots, "PenalisedRegWCov/")),
+       dir.create(file.path(save_plots, "PenalisedRegWCov/")), FALSE)
+save_plots = paste0(save_plots,"PenalisedRegWCov/")
 
 ############# Take args ################################
 args = commandArgs(trailingOnly = TRUE)
 
 seed = as.numeric(args[1])
+if (length(args)==0) seed = 1
 print(seed)
 #########################################################
 
@@ -30,14 +32,65 @@ print("Setting up data...")
 t0 = Sys.time()
 bio = readRDS(paste0(data_folder,"bioImputedKNN.rds"))
 cov = readRDS(paste0(data_folder,"covProcessed.rds"))
-bio.CVD = merge(bio,cov[,c("ID","CVD_status")],
-                by="ID")
-rownames(bio.CVD) = bio.CVD[,1]
-bio.CVD = bio.CVD[,-1]
-bio.CVD$CVD_status = as.factor(bio.CVD$CVD_status)
 
-y = dplyr::select(bio.CVD, CVD_status)
-X = dplyr::select(bio.CVD, -CVD_status)
+cov <- cov %>% # we will leave CVD_stattus in cov and let it be split in the
+  # analysis function so that the sampling can be done and order is kept
+  select(-c("vit_status","dc_cvd_st","age_cl", "stop","stop_cvd",
+            "age_CVD", "cvd_final_icd10", "primary_cause_death_ICD10",
+            "cvd_death", "cvd_incident", "cvd_prevalent", "BS2_all"))
+
+##################################################################
+##                       ONE HOT ENCODING                       ##
+##################################################################
+
+cov$smok_ever_2 = as.factor(cov$smok_ever_2)
+cov$physical_activity_2 = as.factor(cov$physical_activity_2)
+cov$gender = as.factor(cov$gender)
+
+onehotvars = dummyVars("~.", data = cov[,c("smok_ever_2","physical_activity_2", "gender")])
+onehotvars = data.frame(predict(onehotvars, newdata = cov[,c("smok_ever_2",
+                                                             "physical_activity_2",
+                                                             "gender")]))
+# Delete one hot encoded variables and add the encoded versions
+cov = cov %>% select(-c(smok_ever_2,physical_activity_2, gender)) %>% cbind(onehotvars)
+# remove onehot vars for memory management
+remove(onehotvars)
+
+##################################################################
+##                 Factors to ordinal variables                 ##
+##################################################################
+
+# factors to ordinal variables
+cov$qual2 = factor(cov$qual2, levels = c("low", "intermediate", "high"), ordered = T)
+cov$alcohol_2 = factor(cov$alcohol_2, levels = c("Non-drinker", "Social drinker",
+                                                 "Moderate drinker", "Daily drinker"), ordered = T)
+cov$BMI_5cl_2 = factor(cov$BMI_5cl_2, levels = c("[18.5,25[", "[25,30[",
+                                                 "[30,40[", ">=40"), ordered = T)
+cov$no_cmrbt_cl2 = as.numeric(cov$no_cmrbt_cl2)
+cov$no_medicines = as.numeric(cov$no_medicines)
+
+##################################################################
+##                   Merging all data sources                   ##
+##################################################################
+
+data = merge(bio, cov, by="ID")
+data$CVD_status = as.factor(data$CVD_status)
+
+PRSdf = readRDS(paste0(save_plots, "PRS/PolygenicRiskScore.rds"))
+
+data = merge(data, PRSdf, by = "ID")
+
+data$PRS = scales::rescale(data$PRS, to = c(-1,1))
+
+rownames(data) = data$ID
+data = data %>% select(-ID)
+
+#################################################################
+##                          X-y split                          ##
+#################################################################
+
+y = dplyr::select(data, CVD_status)
+X = dplyr::select(data, -CVD_status)
 
 print("Data setup")
 print(Sys.time()-t0)
@@ -54,35 +107,33 @@ LassoSub = function(k = 1, Xdata, Ydata, family = "binomial",
   s = sample(nrow(Xdata), size = 0.8 * nrow(Xdata))
   Xsub = Xdata[s, ]
   Ysub = Ydata[s, 1] 
+  
   model.sub = cv.glmnet(x = Xsub, y = Ysub, alpha = 1,
                         family = family,
                         penalty.factor = penalty.factor)
   coef.sub = coef(model.sub, s = best.lam)[-1]
+  
+  ### Test
+  Xtest = Xdata[-s,]
+  ytest = Ydata[-s,1]
+  best.prdct = predict(model.sub, s = "lambda.1se", newx = Xtest)
+  pred.objct = ROCR::prediction(best.prdct, ytest)
+  auc = ROCR::performance(pred.objct, "auc")
+  
   ## add test score and return 
-  return(coef.sub)          
+  return(list(coef.sub,auc))          
 }
 
 
-################ 1 NODE SEVERAL CORES ###############
-# niter = 100 
-# print("Setting up cluster...")
-# cl = makeCluster(detectCores()-1, type="FORK")
-# print("Cluter set up")
-# lasso.stab = parSapply(cl = cl, 1:niter, FUN = LassoSub, Xdata = as.matrix(X),
-#                     Ydata = as.matrix(y))
-
-# stopCluster(cl)
-# print("Stability analysis finished.")
-
 ######## SEVERAL NODES FEW CORES ################
 
-lasso.stab = LassoSub(k = seed, Xdata = as.matrix(X), Ydata = as.matrix(y))
+lasso.stab = LassoSub(k = seed, Xdata = data.matrix(X), Ydata = as.matrix(y))
 
 ifelse(!dir.exists(file.path(save_plots, "ArrayJob/")),
        dir.create(file.path(save_plots, "ArrayJob/")), FALSE)
 save_plots = paste0(save_plots,"ArrayJob/")
 
-saveRDS(lasso.stab, paste0(save_plots, "lassoStab",as.character(seed),".rds"))
+saveRDS(lasso.stab, paste0(save_plots, "lassoStabCovs",as.character(seed),".rds"))
 
 
 
