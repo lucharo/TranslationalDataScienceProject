@@ -1,4 +1,4 @@
-#PBS -l walltime=24:00:00
+#PBS -l walltime=12:00:00
 #PBS -l select=1:ncpus=20:mem=240gb
 #PBS -N knnImputeOpti
 
