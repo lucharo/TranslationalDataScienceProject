@@ -329,37 +329,43 @@ cov.bio.PRS = cov.bio.PRS%>% select(-c(ID,BS2_all)) %>%
 ##                 Run models and store results                 ##
 ##################################################################
 
+ifelse(!dir.exists(file.path(save_plots, "MLAnalysis/")),
+       dir.create(file.path(save_plots, "MLAnalysis/")), FALSE)
+save_plots = paste0(save_plots,"MLAnalysis/")
+
 data_to_iterate = list(CVD.bio, log.CVD.bio, covbs2.analysis,
                         cov.analysis, cov.BHS, cov.PRS, 
                         cov.PRS.noBHS, cov.bio.PRS)
 datanames = c("Bio", "logBio", "Cov+BS2",
               "Cov", "Cov+BHS(refA)", "Cov+PRS+BS2",
               "Cov+PRS", "Cov+Bio+PRS")
+models = c("svm", "xgboost", "glm")
 
+all_combs = expand.grid(1:length(data_to_iterate), models)
 
-results = data.frame(data = character(),
-                     model = character(),
-                     auc = numeric()
-                     )
+########### take in commands #########################
+args = commandArgs(trailingOnly = TRUE)
 
-for (data_index in 1:length(data_to_iterate)){
-  for (model in c("svm", "xgboost", "glm")){
-    t0 = Sys.time()
-    print(paste("Fitting", datanames[data_index], "with", model))
-    auc = Analysis(model, data_to_iterate[[data_index]])
-    print(Sys.time()-t0)
-    print("\n")
-    temp.results = data.frame(data = datanames[data_index],
-                              model = model, 
-                              auc = auc)
-    
-    results = rbind(results, temp.results)
-  }
-}
+comb_selected = as.numeric(args[1])
+print(comb_selected)
 
-ifelse(!dir.exists(file.path(save_plots, "MLAnalysis/")),
-       dir.create(file.path(save_plots, "MLAnalysis/")), FALSE)
-save_plots = paste0(save_plots,"MLAnalysis/")
+data_selected = data_to_iterate[[all_combs[comb_selected, 1]]]
+data_selected.name = datanames[all_combs[comb_selected, 1]]
+model_selected = all_combs[comb_selected, 2]
 
-saveRDS(results, paste0(save_plots, "MLAnalysis.rds"))
+t0 = Sys.time()
+print(paste("Fitting", data_selected.name,
+            "with", model_selected))
+
+auc = Analysis(model_selected, data_selected)
+print(Sys.time()-t0)
+results = data.frame(data = data_selected,
+                     model = model_selected, 
+                     auc = auc)
+
+ifelse(!dir.exists(file.path(save_plots, "ArrayJob/")),
+       dir.create(file.path(save_plots, "ArrayJob/")), FALSE)
+save_plots = paste0(save_plots,"ArrayJob/")
+
+saveRDS(results, paste0(save_plots, data_selected.name,"_", model_selected, ".rds"))
 

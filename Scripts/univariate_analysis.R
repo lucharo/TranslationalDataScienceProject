@@ -119,8 +119,9 @@ fortable = rbind(cbind(univ_nonimputed, Data = "Not-imputed"),
 fortable$Biomarkers = str_replace_all(fortable$Biomarkers, "\\.", " ")
 fortable$Biomarkers = str_replace_all(fortable$Biomarkers, "Glycated haemoglobin HbA1c", "HbA1c")
 fortable$OR = exp(fortable$OR)
-fortable$`lower CI` = exp(fortable$`lower CI`)
-fortable$`upper CI` = exp(fortable$`upper CI`)
+fortable$`lowerCI` = exp(fortable$`lowerCI`)
+fortable$`upperCI` = exp(fortable$`upperCI`)
+fortable %>% mutate_at(c("lowerCI", "upperCI", "OR"), ~round(., 4))
 
 readr::write_csv(fortable, paste0(save_plots,"UnivariateAnalysis.csv"))
 

@@ -1,5 +1,8 @@
+print(.libPaths())
+
 # KNN imputation of bio
 library(impute)
+if (!require("tidyverse")) install.packages("tidyverse")
 library(tidyverse)
 library(ggplot2)
 
@@ -61,4 +64,3 @@ saveRDS(RMSE, paste0(save_plots, "lassoStab",as.character(CV),".rds"))
                    
 
 print(Sys.time() - t0) # takes about 1 minute
-print("Imputation number 1 finished.")
