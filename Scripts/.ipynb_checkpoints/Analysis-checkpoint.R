@@ -205,13 +205,10 @@ Analysis = function(model, data, outcome = 'CVD_status', kfolds = 5, train.propo
     best_auc = 0
     best_kernel = 0
     best_cost = 0
-    iter = 1
     for (kernel in c("linear","radial")){
       for(cost in c(1,5,10,15)){
         ######### CV
         auc.list = c()
-        print(paste("Iteration ", as.character(iter)))
-        iter = iter + 1
         for (i in 1:5){
           valIndexes <- which(folds==i)
           ValData <- X.train[valIndexes, ]
@@ -241,9 +238,6 @@ Analysis = function(model, data, outcome = 'CVD_status', kfolds = 5, train.propo
 
     bst.svm = e1071::svm(y.train~., data = data.frame(y.train, X.train),
                          kernel = best_kernel, cost = best_cost)
-    print(paste("Best params from training:\n\t kernel: ", best_kernel,
-                "\n\t C-value: ", best_cost,
-                "\n\t AUC: ", best_auc))
     best.prdct = predict(bst.svm, X.test)
     pred.objct = ROCR::prediction(best.prdct, y.test)
     auc = ROCR::performance(pred.objct, "auc")
@@ -341,10 +335,10 @@ save_plots = paste0(save_plots,"MLAnalysis/")
 
 data_to_iterate = list(CVD.bio, log.CVD.bio, covbs2.analysis,
                         cov.analysis, cov.BHS, cov.PRS, 
-                        cov.PRS.noBHS, cov.bio.PRS, cov.bio)
+                        cov.PRS.noBHS, cov.bio.PRS)
 datanames = c("Bio", "logBio", "Cov+BS2",
               "Cov", "Cov+BHS(refA)", "Cov+PRS+BS2",
-              "Cov+PRS", "Cov+Bio+PRS", "Cov+Bio")
+              "Cov+PRS", "Cov+Bio+PRS")
 models = c("svm", "xgboost", "glm")
 
 all_combs = expand.grid(1:length(data_to_iterate), models)

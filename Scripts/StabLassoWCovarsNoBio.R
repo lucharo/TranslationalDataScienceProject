@@ -19,9 +19,11 @@ if (platform == 'Linux'){
 
 PRSdf = readRDS(paste0(save_plots, "PRS/PolygenicRiskScore.rds"))
 
-ifelse(!dir.exists(file.path(save_plots, "PenalisedRegWCov/")),
-       dir.create(file.path(save_plots, "PenalisedRegWCov/")), FALSE)
-save_plots = paste0(save_plots,"PenalisedRegWCov/")
+bestBHS = readRDS(paste0(save_plots, "BHS/ScoresPaper.rds"))
+
+ifelse(!dir.exists(file.path(save_plots, "NoBioPenalisedRegWCov/")),
+       dir.create(file.path(save_plots, "NoBioPenalisedRegWCov/")), FALSE)
+save_plots = paste0(save_plots,"NoBioPenalisedRegWCov/")
 
 ############# Take args ################################
 args = commandArgs(trailingOnly = TRUE)
@@ -33,7 +35,6 @@ print(seed)
 
 print("Setting up data...")
 t0 = Sys.time()
-bio = readRDS(paste0(data_folder,"bioImputedKNN.rds"))
 cov = readRDS(paste0(data_folder,"covProcessed.rds"))
 
 cov <- cov %>% # we will leave CVD_stattus in cov and let it be split in the
@@ -72,11 +73,14 @@ cov$BMI_5cl_2 = factor(cov$BMI_5cl_2, levels = c("[18.5,25[", "[25,30[",
 cov$no_cmrbt_cl2 = as.numeric(cov$no_cmrbt_cl2)
 cov$no_medicines = as.numeric(cov$no_medicines)
 
+
+
 ##################################################################
 ##                   Merging all data sources                   ##
 ##################################################################
 
-data = merge(bio, cov, by="ID")
+data = merge(cov,bestBHS, by = "ID")
+
 data$CVD_status = as.factor(data$CVD_status)
 
 data = merge(data, PRSdf, by = "ID")
@@ -134,7 +138,7 @@ ifelse(!dir.exists(file.path(save_plots, "ArrayJob/")),
        dir.create(file.path(save_plots, "ArrayJob/")), FALSE)
 save_plots = paste0(save_plots,"ArrayJob/")
 
-saveRDS(lasso.stab, paste0(save_plots, "lassoStabCovs",as.character(seed),".rds"))
+saveRDS(lasso.stab, paste0(save_plots, "NoBiolassoStabCovs",as.character(seed),".rds"))
 
 
 
