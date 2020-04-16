@@ -10,7 +10,7 @@ kNNImputeOptimization = function(data.in, log = 0, scaled = T,perParam = F, seed
   #' a dataset with the same size but with a realistic data pattern that
   #' we have taken from the original (real missing data structure). 
   #' 
-  #' Next we are going to perform knn imputation with several choices of k 
+  #' Next we are going to perform knn imputation with several choices of k, 
   #' record some sort of loss function between the real values that we know
   #' of and the imputed values with the different k. We are going to obtain
   #' a different loss function for each choice of k. 
@@ -29,10 +29,14 @@ kNNImputeOptimization = function(data.in, log = 0, scaled = T,perParam = F, seed
 #   require(tidyverse)
 #   require(ggplot2)
   
+  # take complete data
+  internal.seed = 2 # to always take same bit of complete data
+  set.seed(internal.seed)
+  data.complete = data.in[complete.cases(data.in),]
+  percentage.index = sample(x = 1:nrow(data.complete), size = 0.4*nrow(data.complete))
+  data.complete = data.complete[percentage.index, ]
   set.seed(seed) # this makes the sampling of different indices random
   print(seed)
-  # take complete data
-  data.complete = data.in[complete.cases(data.in),]
   # within the range of rows from data.in grab as many rows as there are
   # rows in the complete data set
   rand.index = sample(x = 1:nrow(data.in), size = nrow(data.complete))
@@ -84,7 +88,7 @@ kNNImputeOptimization = function(data.in, log = 0, scaled = T,perParam = F, seed
   # BARE IN MIND THERE IS NO RANDOMNESS REGARDING impute.knn
   # it has a default random seed inside it
   # get list of imputed datasets for k = 1:20
-  predictions.k = lapply(c(1:20),
+  predictions.k = lapply(seq(1,20,2),
                          function(x) 
                            #knn.impute(data.scaled, k = x, cat.var = NULL)
                            #knnImputation(data.scaled, k = x, scale = F)
@@ -162,7 +166,7 @@ kNNImputeOptimization = function(data.in, log = 0, scaled = T,perParam = F, seed
       # though it's pretty infromative at the moment
       print("average RMSE per covariate (over 50 k values)")
       print(colMeans(MSEperParam))
-      MSEperParam$k = 1:50
+      MSEperParam$k = seq(1,20,1)
       
       factplot = MSEperParam %>% pivot_longer(-k) %>% 
         ggplot(aes(x = k, y = value))+
@@ -200,6 +204,8 @@ kNNImputeOptimization = function(data.in, log = 0, scaled = T,perParam = F, seed
   RMSE = sqrt(MSE)
   if (plot == 1 & perParam == 1){
     return(list(RMSE, factplot, bplot, scatplot))
+  } else if (perParam == 1){
+      return(list(RMSE, MSEperParam))
   } else {return(RMSE)}
   
   

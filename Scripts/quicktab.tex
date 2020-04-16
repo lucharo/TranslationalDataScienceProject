@@ -1,0 +1,724 @@
+\PassOptionsToPackage{unicode=true}{hyperref} % options for packages loaded elsewhere
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provides euro and other symbols
+\else % if luatex or xelatex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage[]{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\usepackage{hyperref}
+\hypersetup{
+            pdftitle={Untitled},
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}  % don't use monospace font for urls
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{longtable,booktabs}
+% Fix footnotes in tables (requires footnote package)
+\IfFileExists{footnote.sty}{\usepackage{footnote}\makesavenoteenv{longtable}}{}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{0}
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+\let\oldparagraph\paragraph
+\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+\let\oldsubparagraph\subparagraph
+\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+
+% set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+
+
+\title{Untitled}
+\author{}
+\date{\vspace{-2.5em}}
+
+\begin{document}
+\maketitle
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# This file will only include preprocessing of the original datasets and their respective storage}
+
+\CommentTok{####################################################################}
+\CommentTok{##  Input this file: Original covariates data set (37 columns),   ##}
+\CommentTok{##   Original biomarkers(60 columns), Biomarker annotation file,  ##}
+\CommentTok{##         Covariate dictionary, SNP dataset, SNP info file       ##}
+\CommentTok{####################################################################}
+
+\CommentTok{#################################################################################}
+\CommentTok{##       Output from this file: Processed covariates, only with entries        ##}
+\CommentTok{##          relevant to CVD[covProcessed.rds], Biomarkers dataset with         ##}
+\CommentTok{##                   well labelled columns and only one entry                  ##}
+\CommentTok{##                  over time (not imputed)[bioProcessed.rds],                 ##}
+\CommentTok{##                     same biomarkers dataset but imputed                     ##}
+\CommentTok{##          through MICE imputation[bioImputed.rds], biomarker dataset         ##}
+\CommentTok{##                   with only complete cases [bioMCAR.rds],                   ##}
+\CommentTok{##   biomarker preprocessed with all columns (30 columns)[bioUnfiltered.rds]   ##}
+\CommentTok{#################################################################################}
+
+\CommentTok{###########################################################################}
+\CommentTok{###########################################################################}
+\CommentTok{###                                                                     }\AlertTok{###}
+\CommentTok{###                         PACKAGE DECLARATION                         }\AlertTok{###}
+\CommentTok{###                                                                     }\AlertTok{###}
+\CommentTok{###########################################################################}
+\CommentTok{###########################################################################}
+
+
+\ControlFlowTok{if}\NormalTok{ (}\OperatorTok{!}\KeywordTok{require}\NormalTok{(devtools)) }\KeywordTok{install.packages}\NormalTok{(}\StringTok{'devtools'}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Loading required package: devtools
+\end{verbatim}
+
+\begin{verbatim}
+## Loading required package: usethis
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(devtools)}
+\ControlFlowTok{if}\NormalTok{ (}\OperatorTok{!}\KeywordTok{require}\NormalTok{(remotes)) }\KeywordTok{install.packages}\NormalTok{(}\StringTok{'remotes'}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Loading required package: remotes
+\end{verbatim}
+
+\begin{verbatim}
+## 
+## Attaching package: 'remotes'
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:devtools':
+## 
+##     dev_package_deps, install_bioc, install_bitbucket, install_cran,
+##     install_deps, install_dev, install_git, install_github,
+##     install_gitlab, install_local, install_svn, install_url,
+##     install_version, update_packages
+\end{verbatim}
+
+\begin{verbatim}
+## The following object is masked from 'package:usethis':
+## 
+##     git_credentials
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(remotes)}
+\ControlFlowTok{if}\NormalTok{ (}\OperatorTok{!}\KeywordTok{require}\NormalTok{(ggbiplot)) }\KeywordTok{install_github}\NormalTok{(}\StringTok{"vqv/ggbiplot"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Loading required package: ggbiplot
+\end{verbatim}
+
+\begin{verbatim}
+## Loading required package: ggplot2
+\end{verbatim}
+
+\begin{verbatim}
+## Loading required package: plyr
+\end{verbatim}
+
+\begin{verbatim}
+## Loading required package: scales
+\end{verbatim}
+
+\begin{verbatim}
+## Loading required package: grid
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(ggbiplot)}
+\ControlFlowTok{if}\NormalTok{ (}\OperatorTok{!}\KeywordTok{require}\NormalTok{(GGally)) }\KeywordTok{install_github}\NormalTok{(}\StringTok{"GGally"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Loading required package: GGally
+\end{verbatim}
+
+\begin{verbatim}
+## Registered S3 method overwritten by 'GGally':
+##   method from   
+##   +.gg   ggplot2
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(GGally)}
+\ControlFlowTok{if}\NormalTok{ (}\OperatorTok{!}\KeywordTok{require}\NormalTok{(tidyverse)) }\KeywordTok{install.packagaes}\NormalTok{(}\StringTok{"tidyverse"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Loading required package: tidyverse
+\end{verbatim}
+
+\begin{verbatim}
+## -- Attaching packages ---------------------------------- tidyverse 1.3.0 --
+\end{verbatim}
+
+\begin{verbatim}
+## v tibble  2.1.3     v dplyr   0.8.5
+## v tidyr   1.0.2     v stringr 1.4.0
+## v readr   1.3.1     v forcats 0.5.0
+## v purrr   0.3.3
+\end{verbatim}
+
+\begin{verbatim}
+## -- Conflicts ------------------------------------- tidyverse_conflicts() --
+## x dplyr::arrange()    masks plyr::arrange()
+## x readr::col_factor() masks scales::col_factor()
+## x purrr::compact()    masks plyr::compact()
+## x dplyr::count()      masks plyr::count()
+## x purrr::discard()    masks scales::discard()
+## x dplyr::failwith()   masks plyr::failwith()
+## x dplyr::filter()     masks stats::filter()
+## x dplyr::id()         masks plyr::id()
+## x dplyr::lag()        masks stats::lag()
+## x dplyr::mutate()     masks plyr::mutate()
+## x dplyr::rename()     masks plyr::rename()
+## x dplyr::summarise()  masks plyr::summarise()
+## x dplyr::summarize()  masks plyr::summarize()
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(tidyverse)}
+\ControlFlowTok{if}\NormalTok{ (}\OperatorTok{!}\KeywordTok{require}\NormalTok{(naniar)) }\KeywordTok{install.packages}\NormalTok{(}\StringTok{"naniar"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Loading required package: naniar
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(naniar)}
+\ControlFlowTok{if}\NormalTok{ (}\OperatorTok{!}\KeywordTok{require}\NormalTok{(factoextra)) }\KeywordTok{install.packages}\NormalTok{(}\StringTok{"factoextra"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Loading required package: factoextra
+\end{verbatim}
+
+\begin{verbatim}
+## Welcome! Want to learn more? See two factoextra-related books at https://goo.gl/ve3WBa
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(factoextra)}
+\ControlFlowTok{if}\NormalTok{ (}\OperatorTok{!}\KeywordTok{require}\NormalTok{(ggfortify)) }\KeywordTok{install.packages}\NormalTok{(}\StringTok{"ggfortify"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Loading required package: ggfortify
+\end{verbatim}
+
+\begin{verbatim}
+## 
+## Attaching package: 'ggfortify'
+\end{verbatim}
+
+\begin{verbatim}
+## The following object is masked from 'package:ggbiplot':
+## 
+##     ggbiplot
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(ggfortify)}
+\ControlFlowTok{if}\NormalTok{ (}\OperatorTok{!}\KeywordTok{require}\NormalTok{(stats)) }\KeywordTok{install.packages}\NormalTok{(}\StringTok{"stats"}\NormalTok{)}
+\KeywordTok{library}\NormalTok{(stats)}
+\ControlFlowTok{if}\NormalTok{ (}\OperatorTok{!}\KeywordTok{require}\NormalTok{(mice)) }\KeywordTok{install.packages}\NormalTok{(}\StringTok{'mice'}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Loading required package: mice
+\end{verbatim}
+
+\begin{verbatim}
+## 
+## Attaching package: 'mice'
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:base':
+## 
+##     cbind, rbind
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(mice)}
+\ControlFlowTok{if}\NormalTok{ (}\OperatorTok{!}\KeywordTok{require}\NormalTok{(DMwR)) }\KeywordTok{install.packages}\NormalTok{(}\StringTok{'DMwR'}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Loading required package: DMwR
+\end{verbatim}
+
+\begin{verbatim}
+## Loading required package: lattice
+\end{verbatim}
+
+\begin{verbatim}
+## Registered S3 method overwritten by 'quantmod':
+##   method            from
+##   as.zoo.data.frame zoo
+\end{verbatim}
+
+\begin{verbatim}
+## 
+## Attaching package: 'DMwR'
+\end{verbatim}
+
+\begin{verbatim}
+## The following object is masked from 'package:ggfortify':
+## 
+##     unscale
+\end{verbatim}
+
+\begin{verbatim}
+## The following object is masked from 'package:plyr':
+## 
+##     join
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(DMwR)}
+\ControlFlowTok{if}\NormalTok{ (}\OperatorTok{!}\KeywordTok{require}\NormalTok{(impute)) BiocManager}\OperatorTok{::}\KeywordTok{install}\NormalTok{(}\StringTok{"impute"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Loading required package: impute
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(impute)}
+
+
+
+\KeywordTok{library}\NormalTok{(parallel)}
+\NormalTok{cores =}\StringTok{ }\KeywordTok{detectCores}\NormalTok{()}
+
+\CommentTok{############################################################################}
+\CommentTok{############################################################################}
+\CommentTok{###                                                                      }\AlertTok{###}
+\CommentTok{###                             DATA LOADING                             }\AlertTok{###}
+\CommentTok{###                                                                      }\AlertTok{###}
+\CommentTok{############################################################################}
+\CommentTok{############################################################################}
+
+
+
+\CommentTok{##################################################################}
+\CommentTok{##                        Cluster add-in                        ##}
+\CommentTok{##################################################################}
+\NormalTok{cluster =}\StringTok{ }\DecValTok{1}
+\NormalTok{t0 =}\StringTok{ }\KeywordTok{Sys.time}\NormalTok{()}
+\NormalTok{platform =}\StringTok{ }\KeywordTok{Sys.info}\NormalTok{()[}\StringTok{'sysname'}\NormalTok{]}
+\ControlFlowTok{if}\NormalTok{ (cluster }\OperatorTok{==}\StringTok{ }\DecValTok{1} \OperatorTok{&}\StringTok{ }\NormalTok{platform }\OperatorTok{==}\StringTok{ "Linux"}\NormalTok{)\{}
+\NormalTok{  cov.original =}\StringTok{ }\KeywordTok{readRDS}\NormalTok{(}\StringTok{"../FULLDATA/Covariates_full.rds"}\NormalTok{)}
+\NormalTok{  bio.original=}\StringTok{ }\KeywordTok{readRDS}\NormalTok{(}\StringTok{"../FULLDATA/Biomarkers_full.rds"}\NormalTok{)}
+\NormalTok{  bio.dict =}\StringTok{ }\NormalTok{readxl}\OperatorTok{::}\KeywordTok{read_xlsx}\NormalTok{(}\StringTok{"../Biomarker_annotation.xlsx"}\NormalTok{)}
+\NormalTok{  cov.dict =}\StringTok{ }\NormalTok{readxl}\OperatorTok{::}\KeywordTok{read_xlsx}\NormalTok{(}\StringTok{"../Covariate_dictionary.xlsx"}\NormalTok{)}
+\NormalTok{  snp.original =}\StringTok{ }\KeywordTok{readRDS}\NormalTok{(}\StringTok{'../FULLDATA/genetic_data_cvd_snps.rds'}\NormalTok{)}
+\NormalTok{  snp_info.original =}\StringTok{ }\NormalTok{readxl}\OperatorTok{::}\KeywordTok{read_xlsx}\NormalTok{(}\StringTok{"../SNP_info.xlsx"}\NormalTok{)}
+  
+  \CommentTok{# id's into columnss, not doing this anymore}
+  \CommentTok{# rownames(bio.original) = bio.original$`mydata$eid`}
+  \CommentTok{# bio.original = bio.original[,-1]}
+  
+  \CommentTok{# setting up ID column}
+  \KeywordTok{colnames}\NormalTok{(bio.original)[}\DecValTok{1}\NormalTok{] =}\StringTok{ 'ID'}
+\NormalTok{  cov.original =}\StringTok{ }\KeywordTok{cbind}\NormalTok{(}\DataTypeTok{ID =} \KeywordTok{rownames}\NormalTok{(cov.original), cov.original)}
+\NormalTok{  snp.original =}\StringTok{ }\KeywordTok{cbind}\NormalTok{(}\DataTypeTok{ID =} \KeywordTok{rownames}\NormalTok{(snp.original), snp.original)}
+  
+\NormalTok{  cov.original}\OperatorTok{$}\NormalTok{ID =}\StringTok{ }\KeywordTok{as.numeric}\NormalTok{(}\KeywordTok{levels}\NormalTok{(cov.original}\OperatorTok{$}\NormalTok{ID)[cov.original}\OperatorTok{$}\NormalTok{ID])}
+\NormalTok{  snp.original}\OperatorTok{$}\NormalTok{ID =}\StringTok{ }\KeywordTok{as.numeric}\NormalTok{(}\KeywordTok{levels}\NormalTok{(snp.original}\OperatorTok{$}\NormalTok{ID)[snp.original}\OperatorTok{$}\NormalTok{ID])}
+  
+\NormalTok{  save_path =}\StringTok{ "../FULLDATA/preprocessed/"}
+\NormalTok{\} }\ControlFlowTok{else}\NormalTok{ \{}
+    \KeywordTok{setwd}\NormalTok{(}\KeywordTok{dirname}\NormalTok{(rstudioapi}\OperatorTok{::}\KeywordTok{getActiveDocumentContext}\NormalTok{()}\OperatorTok{$}\NormalTok{path))}
+    \CommentTok{#################################################################}
+    \CommentTok{##                      Original datasets                      ##}
+    \CommentTok{#################################################################}
+\NormalTok{    cov.original =}\StringTok{ }\KeywordTok{readRDS}\NormalTok{(}\StringTok{"../data/Covars_toy.rds"}\NormalTok{)}
+\NormalTok{    bio.original=}\StringTok{ }\KeywordTok{readRDS}\NormalTok{(}\StringTok{"../data/Biomarkers_toy.rds"}\NormalTok{)}
+\NormalTok{    bio.dict =}\StringTok{ }\NormalTok{readxl}\OperatorTok{::}\KeywordTok{read_xlsx}\NormalTok{(}\StringTok{"../Biomarker_annotation.xlsx"}\NormalTok{)}
+\NormalTok{    cov.dict =}\StringTok{ }\NormalTok{readxl}\OperatorTok{::}\KeywordTok{read_xlsx}\NormalTok{(}\StringTok{"../Covariate_dictionary.xlsx"}\NormalTok{)}
+\NormalTok{    snp.original =}\StringTok{ }\KeywordTok{readRDS}\NormalTok{(}\StringTok{'../data/Genes_toy.rds'}\NormalTok{)}
+\NormalTok{    snp_info.original =}\StringTok{ }\NormalTok{readxl}\OperatorTok{::}\KeywordTok{read_xlsx}\NormalTok{(}\StringTok{"../SNP_info.xlsx"}\NormalTok{)}
+
+\NormalTok{    bio.original =}\StringTok{ }\KeywordTok{cbind}\NormalTok{(}\DataTypeTok{ID =} \DecValTok{1}\OperatorTok{:}\KeywordTok{nrow}\NormalTok{(bio.original), bio.original)}
+\NormalTok{    cov.original =}\StringTok{ }\KeywordTok{cbind}\NormalTok{(}\DataTypeTok{ID =} \DecValTok{1}\OperatorTok{:}\KeywordTok{nrow}\NormalTok{(cov.original), cov.original)}
+\NormalTok{    snp.original =}\StringTok{ }\KeywordTok{cbind}\NormalTok{(}\DataTypeTok{ID =} \DecValTok{1}\OperatorTok{:}\KeywordTok{nrow}\NormalTok{(snp.original), snp.original)}
+    
+\NormalTok{    save_path =}\StringTok{ "../data/preprocessed/"}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## New names:
+## * `` -> ...9
+## * `` -> ...10
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{##################################################################}
+
+
+\CommentTok{##################################################################}
+\CommentTok{##              Changing biomarkers codes by names              ##}
+\CommentTok{##################################################################}
+\CommentTok{#make nicely looking names (programmingly functional)}
+\KeywordTok{colnames}\NormalTok{(bio.dict) =}\StringTok{ }\KeywordTok{make.names}\NormalTok{(}\KeywordTok{colnames}\NormalTok{(bio.dict), }\DataTypeTok{unique=}\OtherTok{TRUE}\NormalTok{)}
+
+\CommentTok{#get column numbers of columns with name containing pattern *(.)1(.)*}
+\CommentTok{# use (.) to match the dot as opposed to using . as a wildcard}
+\NormalTok{bio =}\StringTok{ }\NormalTok{bio.original[,}\KeywordTok{c}\NormalTok{(T, }\OperatorTok{!}\KeywordTok{grepl}\NormalTok{(}\StringTok{"*(.)1(.)0"}\NormalTok{, }\KeywordTok{colnames}\NormalTok{(bio.original)[}\OperatorTok{-}\DecValTok{1}\NormalTok{]))]}
+
+\CommentTok{# Match code with biomarker name to change column names of b}
+\CommentTok{# get element 2 to 6 of all string in vector colnames(b)}
+\CommentTok{# the match() function, match the substring from colnames to}
+\CommentTok{# the UK.biobank.field in the biomarkers dictionary, }
+\CommentTok{# effectively ordering the colnames of b}
+\CommentTok{# Alternative: order UK.bionbank.field entries and match them}
+\CommentTok{#---- bio.dict = bio.dict %>% arrange(UK.Biobank.Field)}
+
+\KeywordTok{colnames}\NormalTok{(bio)[}\OperatorTok{-}\DecValTok{1}\NormalTok{] =}\StringTok{ }\NormalTok{bio.dict}\OperatorTok{$}\NormalTok{Biomarker.name[}
+  \KeywordTok{match}\NormalTok{(}\KeywordTok{substring}\NormalTok{(}\KeywordTok{colnames}\NormalTok{(bio)[}\OperatorTok{-}\DecValTok{1}\NormalTok{],}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{),bio.dict}\OperatorTok{$}\NormalTok{UK.Biobank.Field)] }
+
+\KeywordTok{colnames}\NormalTok{(bio)[}\OperatorTok{-}\DecValTok{1}\NormalTok{] =}\StringTok{ }\KeywordTok{make.names}\NormalTok{(}\KeywordTok{colnames}\NormalTok{(bio)[}\OperatorTok{-}\DecValTok{1}\NormalTok{], }\DataTypeTok{unique=}\OtherTok{TRUE}\NormalTok{)}
+\KeywordTok{colnames}\NormalTok{(bio)[}\OperatorTok{-}\DecValTok{1}\NormalTok{] =}\StringTok{ }\KeywordTok{sub}\NormalTok{(}\StringTok{"}\CharTok{\textbackslash{}\textbackslash{}}\StringTok{.}\CharTok{\textbackslash{}\textbackslash{}}\StringTok{."}\NormalTok{,}\StringTok{"."}\NormalTok{, }\KeywordTok{colnames}\NormalTok{(bio)[}\OperatorTok{-}\DecValTok{1}\NormalTok{])}
+
+\CommentTok{# safety-check for all vars being numeric}
+\KeywordTok{stopifnot}\NormalTok{(}\KeywordTok{all}\NormalTok{(}\KeywordTok{apply}\NormalTok{(bio, }\DecValTok{2}\NormalTok{, is.numeric)))}
+
+
+\CommentTok{##################################################################}
+\CommentTok{##               Processing of covariates dataset               ##}
+\CommentTok{##################################################################}
+\CommentTok{## preprocessing c}
+
+\CommentTok{#remove anything to do wih cancer or external deaths}
+\NormalTok{cov =}\StringTok{ }\NormalTok{cov.original[,}\OperatorTok{!}\KeywordTok{grepl}\NormalTok{(}\StringTok{"cancer|external"}\NormalTok{, }\KeywordTok{colnames}\NormalTok{(cov.original))]}
+
+\CommentTok{#remove codes except for icd10}
+\NormalTok{cov =}\StringTok{ }\NormalTok{cov[,}\OperatorTok{!}\NormalTok{(}\KeywordTok{colnames}\NormalTok{(cov) }\OperatorTok{%in%}\StringTok{ }\KeywordTok{c}\NormalTok{(}\StringTok{"cvd_final_icd9"}\NormalTok{,}
+                                  \StringTok{"cvd_final_nc_illness_code"}\NormalTok{,}
+                                  \StringTok{"cvd_final_opcs4"}\NormalTok{,}
+                                  \StringTok{"cvd_final_ukb_oper_code"}\NormalTok{,}
+                                  \StringTok{"other_cause_death"}\NormalTok{))]}
+
+\NormalTok{unfactor =}\StringTok{ }\ControlFlowTok{function}\NormalTok{(column, df)\{}
+  \CommentTok{#' Check if column in integer or string and  turn to the correct type}
+  \CommentTok{#' to avoid other function turning into factor indices}
+  
+  \ControlFlowTok{if}\NormalTok{ (}\KeywordTok{class}\NormalTok{(df[}\DecValTok{1}\NormalTok{,column]) }\OperatorTok{==}\StringTok{ "factor"}\NormalTok{)\{}
+    \ControlFlowTok{if}\NormalTok{ (}\KeywordTok{typeof}\NormalTok{(}\KeywordTok{levels}\NormalTok{(df[}\DecValTok{1}\NormalTok{,column])[df[}\DecValTok{1}\NormalTok{,column]]) }\OperatorTok{==}\StringTok{ "integer"}\NormalTok{)\{}
+\NormalTok{      out =}\StringTok{ }\KeywordTok{as.numeric}\NormalTok{(}\KeywordTok{levels}\NormalTok{(df[,column]))[df[,column]]}
+\NormalTok{    \} }\ControlFlowTok{else} \ControlFlowTok{if}\NormalTok{ (}\KeywordTok{typeof}\NormalTok{(}\KeywordTok{levels}\NormalTok{(df[}\DecValTok{1}\NormalTok{,column])[df[}\DecValTok{1}\NormalTok{,column]])  }\OperatorTok{==}\StringTok{ "character"}\NormalTok{) \{}
+\NormalTok{      out =}\StringTok{ }\KeywordTok{as.character}\NormalTok{(}\KeywordTok{levels}\NormalTok{(df[,column]))[df[,column]]}
+\NormalTok{    \} }\ControlFlowTok{else}\NormalTok{ \{ }\CommentTok{#NA}
+\NormalTok{      out =}\StringTok{ }\KeywordTok{as.character}\NormalTok{(}\KeywordTok{levels}\NormalTok{(df[,column]))[df[,column]]}
+\NormalTok{    \}}
+\NormalTok{  \} }\ControlFlowTok{else}\NormalTok{ \{}
+\NormalTok{    out =}\StringTok{ }\NormalTok{df[,column]}
+\NormalTok{  \}}
+
+  \KeywordTok{return}\NormalTok{(out)}
+\NormalTok{\}}
+
+\NormalTok{names.cov =}\StringTok{ }\KeywordTok{colnames}\NormalTok{(cov)}
+
+\NormalTok{cov =}\StringTok{ }\KeywordTok{as.data.frame}\NormalTok{(}
+  \KeywordTok{lapply}\NormalTok{(}\KeywordTok{colnames}\NormalTok{(cov),}
+       \ControlFlowTok{function}\NormalTok{(column) \{}
+         \KeywordTok{print}\NormalTok{(column)}
+       \KeywordTok{unfactor}\NormalTok{(column, cov)\}), }\DataTypeTok{stringsAsFactors =}\NormalTok{ F}
+\NormalTok{  )}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] "ID"
+## [1] "vit_status"
+## [1] "dc_cvd_st"
+## [1] "age_recruitment.0.0"
+## [1] "age_cl"
+## [1] "stop"
+## [1] "stop_cvd"
+## [1] "CVD_status"
+## [1] "age_CVD"
+## [1] "BS2_all"
+## [1] "qual2"
+## [1] "smok_ever_2"
+## [1] "physical_activity_2"
+## [1] "alcohol_2"
+## [1] "BMI_5cl_2"
+## [1] "no_cmrbt_cl2"
+## [1] "no_medicines"
+## [1] "cvd_final_icd10"
+## [1] "primary_cause_death_ICD10"
+## [1] "cvd_death"
+## [1] "cvd_incident"
+## [1] "cvd_prevalent"
+## [1] "gender"
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{colnames}\NormalTok{(cov) =}\StringTok{ }\NormalTok{names.cov}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(arsenal)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Attaching package: 'arsenal'
+\end{verbatim}
+
+\begin{verbatim}
+## The following object is masked from 'package:scales':
+## 
+##     ordinal
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{tab =}\StringTok{ }\KeywordTok{tableby}\NormalTok{(CVD_status}\OperatorTok{~}\NormalTok{.,}
+              \DataTypeTok{data =} \KeywordTok{select}\NormalTok{(cov, }\OperatorTok{-}\KeywordTok{c}\NormalTok{(cvd_final_icd10,primary_cause_death_ICD10, ID)))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning in anova.lm(aov.out): ANOVA F-tests on an essentially perfect fit are
+## unreliable
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{knitr}\OperatorTok{::}\KeywordTok{kable}\NormalTok{(}\KeywordTok{summary}\NormalTok{(tab))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{longtable}[]{@{}lllll@{}}
+\toprule
+& 0 (N=355096) & 1 (N=11653) & Total (N=366749) & p value\tabularnewline
+\midrule
+\endhead
+\textbf{vit\_status} & & & & \textless{} 0.001\tabularnewline
+~~~0 & 348564 (98.2\%) & 11041 (94.7\%) & 359605 (98.1\%)
+&\tabularnewline
+~~~1 & 6532 (1.8\%) & 612 (5.3\%) & 7144 (1.9\%) &\tabularnewline
+\textbf{dc\_cvd\_st} & & & & \textless{} 0.001\tabularnewline
+~~~0 & 354501 (99.8\%) & 11402 (97.8\%) & 365903 (99.8\%)
+&\tabularnewline
+~~~1 & 595 (0.2\%) & 251 (2.2\%) & 846 (0.2\%) &\tabularnewline
+\textbf{age\_recruitment.0.0} & & & & \textless{} 0.001\tabularnewline
+~~~Mean (SD) & 55.522 (8.100) & 59.996 (6.750) & 55.664 (8.099)
+&\tabularnewline
+~~~Range & 38.000 - 73.000 & 40.000 - 71.000 & 38.000 - 73.000
+&\tabularnewline
+\textbf{age\_cl} & & & & \textless{} 0.001\tabularnewline
+~~~\textless{}50 & 96749 (27.2\%) & 1104 (9.5\%) & 97853 (26.7\%)
+&\tabularnewline
+~~~\textgreater{}64 & 54685 (15.4\%) & 3487 (29.9\%) & 58172 (15.9\%)
+&\tabularnewline
+~~~50-64 & 203662 (57.4\%) & 7062 (60.6\%) & 210724 (57.5\%)
+&\tabularnewline
+\textbf{stop} & & & & \textless{} 0.001\tabularnewline
+~~~Mean (SD) & 63.050 (8.088) & 67.531 (6.741) & 63.193 (8.087)
+&\tabularnewline
+~~~Range & 40.843 - 81.963 & 44.441 - 79.209 & 40.843 - 81.963
+&\tabularnewline
+\textbf{stop\_cvd} & & & & \textless{} 0.001\tabularnewline
+~~~Mean (SD) & 63.098 (8.106) & 67.601 (6.753) & 63.241 (8.105)
+&\tabularnewline
+~~~Range & 41.363 - 81.963 & 46.209 - 79.209 & 41.363 - 81.963
+&\tabularnewline
+\textbf{age\_CVD} & & & & \textless{} 0.001\tabularnewline
+~~~Mean (SD) & 63.104 (8.107) & 64.210 (6.936) & 63.139 (8.075)
+&\tabularnewline
+~~~Range & 45.125 - 81.963 & 40.624 - 78.393 & 40.624 - 81.963
+&\tabularnewline
+\textbf{BS2\_all} & & & & \textless{} 0.001\tabularnewline
+~~~Mean (SD) & 0.224 (0.163) & 0.261 (0.166) & 0.225 (0.164)
+&\tabularnewline
+~~~Range & 0.000 - 1.000 & 0.000 - 0.900 & 0.000 - 1.000
+&\tabularnewline
+\textbf{qual2} & & & & \textless{} 0.001\tabularnewline
+~~~high & 125927 (35.5\%) & 3153 (27.1\%) & 129080 (35.2\%)
+&\tabularnewline
+~~~intermediate & 179820 (50.6\%) & 5872 (50.4\%) & 185692 (50.6\%)
+&\tabularnewline
+~~~low & 49349 (13.9\%) & 2628 (22.6\%) & 51977 (14.2\%)
+&\tabularnewline
+\textbf{smok\_ever\_2} & & & & \textless{} 0.001\tabularnewline
+~~~no & 201783 (56.8\%) & 5408 (46.4\%) & 207191 (56.5\%)
+&\tabularnewline
+~~~yes & 153313 (43.2\%) & 6245 (53.6\%) & 159558 (43.5\%)
+&\tabularnewline
+\textbf{physical\_activity\_2} & & & & \textless{} 0.001\tabularnewline
+~~~no & 127288 (35.8\%) & 4773 (41.0\%) & 132061 (36.0\%)
+&\tabularnewline
+~~~yes & 227808 (64.2\%) & 6880 (59.0\%) & 234688 (64.0\%)
+&\tabularnewline
+\textbf{alcohol\_2} & & & & \textless{} 0.001\tabularnewline
+~~~Daily drinker & 160261 (45.1\%) & 5131 (44.0\%) & 165392 (45.1\%)
+&\tabularnewline
+~~~Moderate drinker & 92600 (26.1\%) & 2959 (25.4\%) & 95559 (26.1\%)
+&\tabularnewline
+~~~Non-drinker & 24838 (7.0\%) & 1021 (8.8\%) & 25859 (7.1\%)
+&\tabularnewline
+~~~Social drinker & 77397 (21.8\%) & 2542 (21.8\%) & 79939 (21.8\%)
+&\tabularnewline
+\textbf{BMI\_5cl\_2} & & & & \textless{} 0.001\tabularnewline
+~~~{[}18.5,25{[} & 123665 (34.8\%) & 2677 (23.0\%) & 126342 (34.4\%)
+&\tabularnewline
+~~~{[}25,30{[} & 151398 (42.6\%) & 5424 (46.5\%) & 156822 (42.8\%)
+&\tabularnewline
+~~~{[}30,40{[} & 74011 (20.8\%) & 3308 (28.4\%) & 77319 (21.1\%)
+&\tabularnewline
+~~~\textgreater{}=40 & 6022 (1.7\%) & 244 (2.1\%) & 6266 (1.7\%)
+&\tabularnewline
+\textbf{no\_cmrbt\_cl2} & & & & \textless{} 0.001\tabularnewline
+~~~0 & 298600 (84.1\%) & 9985 (85.7\%) & 308585 (84.1\%)
+&\tabularnewline
+~~~1 & 56496 (15.9\%) & 1668 (14.3\%) & 58164 (15.9\%) &\tabularnewline
+\textbf{no\_medicines} & & & & \textless{} 0.001\tabularnewline
+~~~0 & 184417 (51.9\%) & 4414 (37.9\%) & 188831 (51.5\%)
+&\tabularnewline
+~~~1 & 57230 (16.1\%) & 1854 (15.9\%) & 59084 (16.1\%) &\tabularnewline
+~~~2 & 113449 (31.9\%) & 5385 (46.2\%) & 118834 (32.4\%)
+&\tabularnewline
+\textbf{cvd\_death} & & & & \textless{} 0.001\tabularnewline
+~~~Mean (SD) & 0.002 (0.041) & 0.022 (0.145) & 0.002 (0.048)
+&\tabularnewline
+~~~Range & 0.000 - 1.000 & 0.000 - 1.000 & 0.000 - 1.000
+&\tabularnewline
+\textbf{cvd\_incident} & & & & \textless{} 0.001\tabularnewline
+~~~Mean (SD) & 0.000 (0.000) & 1.000 (0.000) & 0.032 (0.175)
+&\tabularnewline
+~~~Range & 0.000 - 0.000 & 1.000 - 1.000 & 0.000 - 1.000
+&\tabularnewline
+\textbf{cvd\_prevalent} & & & & NaN\tabularnewline
+~~~Mean (SD) & 0.000 (0.000) & 0.000 (0.000) & 0.000 (0.000)
+&\tabularnewline
+~~~Range & 0.000 - 0.000 & 0.000 - 0.000 & 0.000 - 0.000
+&\tabularnewline
+\textbf{gender} & & & & \textless{} 0.001\tabularnewline
+~~~Female & 191828 (54.0\%) & 3728 (32.0\%) & 195556 (53.3\%)
+&\tabularnewline
+~~~Male & 163268 (46.0\%) & 7925 (68.0\%) & 171193 (46.7\%)
+&\tabularnewline
+\bottomrule
+\end{longtable}
+
+\end{document}

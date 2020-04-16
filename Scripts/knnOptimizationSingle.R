@@ -2,7 +2,7 @@ print(.libPaths())
 
 # KNN imputation of bio
 library(impute)
-if (!require("tidyverse")) install.packages("tidyverse")
+if (!require("tidyverse")) install.packages("tidyverse",  repos='http://cran.us.r-project.org')
 library(tidyverse)
 library(ggplot2)
 
@@ -23,6 +23,7 @@ ifelse(!dir.exists(file.path(save_plots, "knnOpti/")),
 save_plots = paste0(save_plots,"knnOpti/")
 
 bio = readRDS(paste0(data_folder,"bioProcessed.rds"))
+bio = bio %>% select(-ID)
 # log.bio = log10(bio)
 # saveRDS(log.bio, paste0(save_data,"LOGbioProcessed.rds"))
 log.bio = readRDS(paste0(data_folder,"LOGbioProcessed.rds"))
@@ -48,19 +49,18 @@ CV = as.numeric(args[1])
 
 print(CV)
 
-results = t(sapply(CV, function(x) kNNImputeOptimization(bio, seed = x,
-                                                  perParam = T, scaled = T,
-                                                  plot = F))) 
+results = kNNImputeOptimization(bio, seed = CV,
+                                perParam = T, scaled = T,
+                                plot = F) 
+                   
+print(typeof(results))
+print(results)
                       
-RMSE = results[[1]]
-
-RMSE = t(RMSE)
-                
 ifelse(!dir.exists(file.path(save_plots, "ArrayJob/")),
        dir.create(file.path(save_plots, "ArrayJob/")), FALSE)
 save_plots = paste0(save_plots,"ArrayJob/")
 
-saveRDS(RMSE, paste0(save_plots, "lassoStab",as.character(CV),".rds"))
+saveRDS(results, paste0(save_plots, "knnOpti",as.character(CV),".rds"))
                    
 
 print(Sys.time() - t0) # takes about 1 minute
