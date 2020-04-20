@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 library(ggplot)
 library(stringr)
 pltrds = readRDS("../FULLResults/EDA/bio_dist_impLOG.rds")
@@ -27,6 +28,8 @@ fig
 
 =======
 >>>>>>> 73cf77a8f96054f0c44e61450fd7b067a5946720
+=======
+>>>>>>> 73cf77a8f96054f0c44e61450fd7b067a5946720
 # quick univariate plots from data
 library(readr)
 library(ggrepel)
@@ -37,6 +40,7 @@ univtable= univtable %>%
 write_csv(univtable, "../FULLResults/UnivariateAnalysis.csv")
 univtable %>% filter(Data == "KNN") %>%
 ggplot(aes(y = OR, x = -log10(p.value),
+<<<<<<< HEAD
 <<<<<<< HEAD
            label = ifelse(-log10(p.value)>50|
                             OR<0.7|
@@ -54,8 +58,13 @@ ggplot(aes(y = OR, x = -log10(p.value),
   ylab("Odds Ratio(OR)")+theme(text = element_text(size = 16))
 
 =======
+=======
+>>>>>>> 73cf77a8f96054f0c44e61450fd7b067a5946720
            label = ifelse(-log10(p.value)>50|OR<0.7,
                           Biomarkers, "")))+
   geom_point()+geom_label_repel()+ylim(0,NA)+
   theme_bw()
+<<<<<<< HEAD
+>>>>>>> 73cf77a8f96054f0c44e61450fd7b067a5946720
+=======
 >>>>>>> 73cf77a8f96054f0c44e61450fd7b067a5946720
