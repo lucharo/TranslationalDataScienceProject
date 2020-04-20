@@ -15,7 +15,6 @@
 ### Supervisors
 Verena Zuber, Marc Chadeau-Hyam, Barbara Bodinier, Matt Whitaker
 
-<<<<<<< HEAD
 ### Relevant papers
 [M Karimi, Early-life inequalities and biological ageing: a multisystem Biological Health Score approach in Understanding Society (2019) J. Epidemiol. Community Health](https://jech.bmj.com/content/73/8/693)
 
@@ -33,14 +32,6 @@ Useful scripts:
 * `Scripts/parlMICE.R`: parallel implementation of MICE imputation
 * `Scripts/univariate_analysis.R`: univariate analysis
 ...
-=======
-## Relevant papers
-[M Karimi, Early-life inequalities and biological ageing: a multisystem Biological Health Score approach in Understanding Society (2019) J. Epidemiol. Community Health](https://jech.bmj.com/content/73/8/693)
-<<<<<<< HEAD
->>>>>>> 73cf77a8f96054f0c44e61450fd7b067a5946720
-=======
->>>>>>> 73cf77a8f96054f0c44e61450fd7b067a5946720
-
 
 
 
