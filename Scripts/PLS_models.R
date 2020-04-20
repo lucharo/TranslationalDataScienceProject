@@ -455,5 +455,5 @@ strat_loadings2 = results_strat2 %>%
   coord_flip()
 
 ggsave(paste0(save_plots,"sPLSDA_strat_non0.pdf"), plot=strat_loadings2, 
-       height = 6.5, width = 6.25)
+       height = 6.5, width = 6.5)
 saveRDS(strat_loadings2, paste0(save_plots,"sPLSDA_strat_non0.rds"))
