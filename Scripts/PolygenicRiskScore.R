@@ -90,7 +90,7 @@ prs_boxplot <- ggplot(cov.prs, aes(x=CVD_status, y=PRS)) +
   geom_boxplot() +
   theme_minimal() + 
   labs(x = 'CVD Status', y = 'Polygenic Risk Score')
-ggsave(paste0(save_plots,"PRS_boxplot.pdf"), prs_boxplot)
+ggsave(paste0(save_plots,"PRS_boxplot.pdf"), prs_boxplot, height = 5, width = 2.5)
 
 #t-test - sig difference in mean PRS between groups
 t_test = t.test(PRS ~ CVD_status, data=cov.prs)
