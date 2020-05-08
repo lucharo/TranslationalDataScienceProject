@@ -18,6 +18,7 @@ library(ROCR)
 cluster = 1
 
 if (cluster == 1){
+  setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
   save_data = data_folder = "../FULLDATA/preprocessed/"
   save_plots = save_data = "../FULLResults/PRS/"
 } else {
@@ -77,16 +78,19 @@ cov.prs$PRS = rescale(cov.prs$PRS, to = c(-1, 1))
 #Density plot
 den_plot <- ggplot(cov.prs) + 
   geom_density(aes(x=PRS, color=CVD_status, fill=CVD_status), alpha=0.2, size=0.25) +
-  labs(x = 'Polygenic Risk Score') + 
+  labs(x = 'Polygenic Risk Score', y = 'Density') + 
   scale_fill_discrete(name = "CVD status", labels = c("Controls", "Cases")) +
-  guides(color = FALSE)
+  guides(color = FALSE) + 
+  theme_minimal()
 
 ggsave(paste0(save_plots,"PRS_density.pdf"), den_plot)
 
 #Boxplot of PRS by CVD status
 prs_boxplot <- ggplot(cov.prs, aes(x=CVD_status, y=PRS)) +
-  geom_boxplot()
-ggsave(paste0(save_plots,"PRS_boxplot.pdf"), prs_boxplot)
+  geom_boxplot() +
+  theme_minimal() + 
+  labs(x = 'CVD Status', y = 'Polygenic Risk Score')
+ggsave(paste0(save_plots,"PRS_boxplot.pdf"), prs_boxplot, height = 4, width = 3.5)
 
 #t-test - sig difference in mean PRS between groups
 t_test = t.test(PRS ~ CVD_status, data=cov.prs)

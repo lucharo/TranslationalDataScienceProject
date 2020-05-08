@@ -239,18 +239,32 @@ colnames(results)[2] = 'Loadings'
 results$minLoad = as.numeric(sapply(as.vector(results$Loadings), function(x) min(0, x)))
 results$maxLoad = as.numeric(sapply(as.vector(results$Loadings), function(x) max(0, x)))
 
+results$Biomarker = str_replace_all(results$Biomarker, "\\.", " ")
+results$Biomarker = str_replace_all(results$Biomarker, 
+                                    "Glycated haemoglobin HbA1c", "HbA1c")
+results$Biomarker = str_replace_all(results$Biomarker, 
+                                    "Gamma glutamyltransferase", "GGT")
+results$Biomarker = str_replace_all(results$Biomarker, 
+                                    "Alanine aminotransferase", "ALT")
+results$Biomarker = str_replace_all(results$Biomarker, 
+                                    "Aspartate aminotransferase", "AST")
+results$Biomarker = str_replace_all(results$Biomarker, 
+                                    "Alkaline phosphatase", "ALP")
+
 sPLSDA_loadings = results %>% 
   ggplot(aes(x = Biomarker, y = 0, ymin = minLoad, ymax = maxLoad)) +
   geom_linerange(stat = "identity") +
   geom_point(aes(y = 0)) +
   ylab("Loading coefficient") +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1), 
+        text = element_text(size = 15), strip.text.y = element_text(angle = 0)) +
   scale_color_brewer(palette = "Set1") +
   facet_grid(rows = vars(belong_to), scales = "free", space = "free_y") +
-  theme(strip.text.y = element_text(angle = 0)) +
   coord_flip()
 
-ggsave(paste0(save_plots,"sPLSDA_loadings.pdf"), plot=sPLSDA_loadings, height = 6)
+ggsave(paste0(save_plots,"sPLSDA_loadings.pdf"), plot=sPLSDA_loadings, 
+       height = 6.5, width = 6.25)
 saveRDS(sPLSDA_loadings, paste0(save_plots,"sPLSDA_loadings.rds"))
 
 
@@ -425,19 +439,21 @@ results_strat2$Biomarker = str_replace_all(results_strat2$Biomarker,
                                            "Gamma glutamyltransferase", "GGT")
 results_strat2$Biomarker = str_replace_all(results_strat2$Biomarker, 
                                            "Alkaline phosphatase", "ALP")
+results_strat2$Subtype = factor(results_strat2$Subtype, 
+                                levels(results_strat2$Subtype)[c(5,4,3,2,1)])
 
 strat_loadings2 = results_strat2 %>% 
-  ggplot(aes(x = Biomarker, y = 0, ymin = minLoad, ymax = maxLoad, color = Subtype)) +
+  ggplot(aes(x = Biomarker, y = 0, ymin = minLoad, ymax = maxLoad, color = Subtype)) + 
   geom_linerange(stat = "identity", position = position_dodge(0.8)) +
   geom_point(aes(y = 0), position = position_dodge(0.8)) +
   ylab("Loading coefficient") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-  scale_color_brewer(palette = "Set1") +
+  scale_color_brewer(palette = "Set1", breaks = c('G459','I209','I219','I251','I639')) +
   facet_grid(rows = vars(belong_to), scales = "free", space = "free_y") +
   theme(text = element_text(size = 15), strip.text.y = element_text(angle = 0)) +
   coord_flip()
 
 ggsave(paste0(save_plots,"sPLSDA_strat_non0.pdf"), plot=strat_loadings2, 
-       height = 6.5, width = 6.25)
+       height = 6.5, width = 6.5)
 saveRDS(strat_loadings2, paste0(save_plots,"sPLSDA_strat_non0.rds"))
