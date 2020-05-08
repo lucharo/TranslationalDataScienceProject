@@ -1,4 +1,7 @@
-# BEES_TDS
+# Translational Data Science (TDS) Project
+
+TDS project as part of the Master in Health Data Analytics & Machine Learning
+
 ## Project description & aims
 ### Data set (N~500,000) 
  - UK Biobank
