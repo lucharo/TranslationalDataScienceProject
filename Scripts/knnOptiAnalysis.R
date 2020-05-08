@@ -47,7 +47,9 @@ absolute.sd = apply(absolute, 2, sd)
 res.absol = data.frame(mean = absolute.mean, sd = absolute.sd,
                        k = seq(1,20,2))
 
-res.absol %>% ggplot(aes(x = k, y = mean, ymax = mean+sd, ymin = mean-sd))+geom_pointrange()
+res.absol %>% ggplot(aes(x = k, y = mean, ymax = mean+sd, ymin = mean-sd))+geom_pointrange()+
+  theme_bw()+xlab("k - Number of neighbours considered for imputation")+ylab("Imputation NRMSE")+
+  scale_x_continuous(breaks =seq(1,19,2))+theme(text = element_text(size = 18))
 
 # Per Param error
 perParam$k = as.factor(perParam$k)

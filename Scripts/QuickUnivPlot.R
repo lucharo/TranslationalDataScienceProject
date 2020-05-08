@@ -33,7 +33,7 @@ fig
 # quick univariate plots from data
 library(readr)
 library(ggrepel)
-univtable = read_csv("../FULLResults/UnivariateAnalysis.csv")
+univtable = read_csv("../FULLResults/UnivariateAnalysisScaled.csv")
 colnames(univtable)[4:5] = c("lowerCI", "upperCI")
 univtable= univtable %>%
   mutate_at(c("lowerCI", "upperCI", "OR"), ~round(., 4))
