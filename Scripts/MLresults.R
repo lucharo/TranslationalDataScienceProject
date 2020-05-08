@@ -29,8 +29,10 @@ quietly(lapply(all.files[2:length(all.files)],
 
 results %>% filter(data != "logBio") %>%
 ggplot(aes(x = model, y = reorder(data, auc),
-           fill = auc ,label = round(auc,4)))+
-  geom_tile()+
-  geom_text()+scale_fill_distiller(direction = 1)
+           fill = auc ,label = round(auc,3)))+
+  geom_tile(color = "black")+theme_minimal()+
+  geom_text(size = 9)+scale_fill_distiller(direction = 1, palette = "Greens")+
+  labs(fill = "AUC\non test set")+xlab("Models")+
+  ylab("Data")+theme(text = element_text(size = 20))
 
 

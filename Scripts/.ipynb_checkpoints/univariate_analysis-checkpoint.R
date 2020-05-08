@@ -69,6 +69,9 @@ bio.imp_cov = tidyFactors(bio.imp_cov)
 bio_cov = bio_cov[, c("CVD_status", confounders, colnames(bio)[-1])]
 bio.imp_cov = bio.imp_cov[, c("CVD_status", confounders, colnames(bio.imp)[-1])]
 
+bio_cov[, -c(1:10)] = scale(bio_cov[, -c(1:10)])
+bio.imp_cov[, -c(1:10)] = scale(bio.imp_cov[, -c(1:10)])
+
 
 DoYouMatter = function(biomarker, data = bio.imp_cov){
   # I guess I would ideally not have to precise a data argument and allow
@@ -102,7 +105,7 @@ Univariate.analysis = function(merged.dataset){
   
   Univ_biomarkers = data.frame("Biomarkers" = bio.names, pvals)
   
-  colnames(Univ_biomarkers)[2:5] = c("OR", "p.value", "lower CI", "upper CI")
+  colnames(Univ_biomarkers)[2:5] = c("OR", "p.value", "lowerCI", "upperCI")
   
   Univ_biomarkers
 }
@@ -123,7 +126,7 @@ fortable$`lowerCI` = exp(fortable$`lowerCI`)
 fortable$`upperCI` = exp(fortable$`upperCI`)
 fortable %>% mutate_at(c("lowerCI", "upperCI", "OR"), ~round(., 4))
 
-readr::write_csv(fortable, paste0(save_plots,"UnivariateAnalysis.csv"))
+readr::write_csv(fortable, paste0(save_plots,"UnivariateAnalysisScaled.csv"))
 
 data = rbind(cbind(univ_nonimputed, Data = "Not-imputed"),
              cbind(univ_imputed, Data = "KNN")) %>% arrange(p.value) %>% head(30)
@@ -174,8 +177,8 @@ figure
 ##                         Saving Plots                         ##
 ##################################################################
 
-ggsave(paste0(save_plots,"UnivariateAnalysis.pdf")) # as pdf
-saveRDS(figure, paste0(save_plots,"UnivariateAnalysis.rds")) # as object
+ggsave(paste0(save_plots,"UnivariateAnalysisScaled.pdf")) # as pdf
+saveRDS(figure, paste0(save_plots,"UnivariateAnalysisScaled.rds")) # as object
 
 
 
